@@ -8,6 +8,7 @@ import java.util.TreeMap;
 import net.sf.cram.CompressionHeader;
 import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
+import net.sf.cram.Utils;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.GolombEncoding;
 import net.sf.cram.encoding.HuffmanEncoding;
@@ -82,7 +83,7 @@ public class CompressionHeaderFactory {
 					freqs[i] = map.get(v).value;
 					i++;
 				}
-				tree = HuffmanCode.buildTree(freqs, IOUtils.autobox(values));
+				tree = HuffmanCode.buildTree(freqs, Utils.autobox(values));
 			}
 
 			List<Integer> valueList = new ArrayList<>();

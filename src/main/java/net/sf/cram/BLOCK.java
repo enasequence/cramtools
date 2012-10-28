@@ -1,6 +1,8 @@
 package net.sf.cram;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.sf.block.ExposedByteArrayOutputStream;
+import net.sf.cram.encoding.DataReaderFactory;
 import net.sf.cram.encoding.DataWriterFactory;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.Reader;
@@ -16,6 +19,7 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import uk.ac.ebi.ena.sra.cram.io.DefaultBitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitOutputStream;
 
 public class BLOCK {
@@ -26,6 +30,8 @@ public class BLOCK {
 		public long alignmentSpan = -1;
 
 		public int nofRecords = -1;
+		
+		public CompressionHeader h ;
 
 		public Slice[] slices;
 	}
@@ -51,8 +57,9 @@ public class BLOCK {
 		FILE_HEADER, COMPRESSION_HEADER, MAPPED_SLICE, UNMAPPED_SLICE;
 	}
 
-	public static List<CramRecord> records(Container c, SAMFileHeader fileHeader) {
-		CompressionHeader h = null;
+	public static List<CramRecord> records(CompressionHeader h, Container c, SAMFileHeader fileHeader)
+			throws IllegalArgumentException, IllegalAccessException,
+			IOException {
 		List<CramRecord> records = new ArrayList<>();
 		for (Slice s : c.slices)
 			records.addAll(records(s, h, fileHeader));
@@ -100,12 +107,32 @@ public class BLOCK {
 	}
 
 	public static List<CramRecord> records(Slice s, CompressionHeader h,
-			SAMFileHeader fileHeader) {
+			SAMFileHeader fileHeader) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
 		SAMSequenceRecord sequence = fileHeader.getSequence(s.sequenceId);
 		String seqName = sequence.getSequenceName();
-		Reader reader = new Reader () ;
+		DataReaderFactory f = new DataReaderFactory();
+		Map<Integer, InputStream> inputMap = new HashMap<>();
+		for (Integer exId : s.external.keySet()) {
+			inputMap.put(exId, new ByteArrayInputStream(
+					s.external.get(exId).content));
+		}
 
-		return null;
+		Reader reader = f.buildReader(new DefaultBitInputStream(
+				new ByteArrayInputStream(s.coreBlock.content)), inputMap, h);
+
+		List<CramRecord> records = new ArrayList<>();
+		for (int i = 0; i < s.nofRecords; i++) {
+			CramRecord r = new CramRecord();
+			r.setSequenceName(seqName);
+			r.sequenceId = sequence.getSequenceIndex();
+
+			reader.read(r);
+			records.add(r);
+
+		}
+
+		return records;
 	}
 
 	public static List<CramRecord> read(CramRecordCodec codec, byte[] core,
@@ -383,9 +410,11 @@ public class BLOCK {
 		List<Slice> slices = new ArrayList<>();
 
 		Container c = new Container();
+		c.h = h ;
 		c.nofRecords = records.size();
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
-			List<CramRecord> sliceRecords = records.subList(i, Math.min(records.size(), recordsPerSlice));
+			List<CramRecord> sliceRecords = records.subList(i,
+					Math.min(records.size(), recordsPerSlice));
 			Slice slice = writeSlice(sliceRecords, h, fileHeader);
 			slices.add(slice);
 
@@ -406,19 +435,19 @@ public class BLOCK {
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<>();
-		for (EncodingKey key:h.eMap.keySet()){
-			EncodingParams params = h.eMap.get(key) ;
+		for (EncodingKey key : h.eMap.keySet()) {
+			EncodingParams params = h.eMap.get(key);
 			if (params.id == EncodingID.EXTERNAL) {
 				// dirty hack to get external block id:
-				ExternalByteEncoding encoding = new ExternalByteEncoding() ;
-				encoding.fromByteArray(params.params) ;
-				int id = encoding.contentId ;
+				ExternalByteEncoding encoding = new ExternalByteEncoding();
+				encoding.fromByteArray(params.params);
+				int id = encoding.contentId;
 				if (map.get(id) == null) {
-					map.put(id, new ExposedByteArrayOutputStream()) ;
+					map.put(id, new ExposedByteArrayOutputStream());
 				}
 			}
 		}
-		
+
 		DataWriterFactory f = new DataWriterFactory();
 		ExposedByteArrayOutputStream bitBAOS = new ExposedByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(bitBAOS);
@@ -461,6 +490,10 @@ public class BLOCK {
 
 	public static void main(String[] args) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
+		SAMFileHeader samFileHeader = new SAMFileHeader();
+		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100) ;
+		samFileHeader.addSequence(sequenceRecord);
+		
 		CramRecord record = new CramRecord();
 		record.setReadBases("A".getBytes());
 		record.setQualityScores("!".getBytes());
@@ -468,19 +501,20 @@ public class BLOCK {
 		record.setAlignmentStart(1);
 		record.alignmentStartOffsetFromPreviousRecord = 0;
 		record.setReadName("haba-haba");
-		record.setSequenceName("chr1");
-		record.sequenceId = 1;
+		record.setSequenceName(sequenceRecord.getSequenceName());
+		record.sequenceId = sequenceRecord.getSequenceIndex();
+		record.setReadMapped(true) ;
+		record.resetFlags() ;
+		record.setReadFeatures(new ArrayList<ReadFeature>()) ;
+		record.setReadLength(1) ;
 
 		List<CramRecord> records = new ArrayList<>();
 		records.add(record);
 
-		SAMFileHeader samFileHeader = new SAMFileHeader();
-		samFileHeader.addSequence(new SAMSequenceRecord("chr1", 100)) ;
-
 		Container c = writeContainer(records, samFileHeader);
-		
-		List<CramRecord> readRecords = records(c, samFileHeader) ;
-		for (CramRecord rr:readRecords)
+
+		List<CramRecord> readRecords = records(c.h, c, samFileHeader);
+		for (CramRecord rr : readRecords)
 			System.out.println(rr);
 	}
 }
