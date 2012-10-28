@@ -23,12 +23,12 @@
  */
 package net.sf.samtools;
 
-import net.sf.samtools.util.BinaryCodec;
-import net.sf.samtools.util.StringUtil;
-
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import net.sf.samtools.util.BinaryCodec;
+import net.sf.samtools.util.StringUtil;
 
 /**
  * Converter between disk and in-memory representation of a SAMRecord tag.

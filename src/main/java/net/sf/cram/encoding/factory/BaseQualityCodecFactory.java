@@ -8,9 +8,6 @@ import net.sf.cram.CompressionHeader;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 

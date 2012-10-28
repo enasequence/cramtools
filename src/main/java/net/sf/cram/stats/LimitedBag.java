@@ -15,11 +15,7 @@
  ******************************************************************************/
 package net.sf.cram.stats;
 
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Set;
-
-import org.apache.commons.math.stat.Frequency;
 
 public class LimitedBag extends HashBag {
 	public static final int MAX_DISTINCT_VALUES = 1000;

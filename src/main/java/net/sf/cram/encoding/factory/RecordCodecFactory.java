@@ -4,12 +4,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 
 import net.sf.cram.CompressionHeader;
 import net.sf.cram.CramRecord;
+import net.sf.cram.CramRecordCodec;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.encoding.BitCodec;
-import net.sf.cram.CramRecordCodec;
-import uk.ac.ebi.ena.sra.cram.CramException;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
 
 public class RecordCodecFactory extends
 		AbstractCodecFactory<CramRecord> {

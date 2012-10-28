@@ -14,7 +14,7 @@ import net.sf.cram.encoding.HuffmanEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanTree;
-import uk.ac.ebi.ena.sra.cram.Utils;
+import uk.ac.ebi.ena.sra.cram.io.IOUtils;
 
 public class CompressionHeaderFactory {
 

@@ -7,11 +7,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import net.sf.cram.CompressionHeader;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.encoding.BitCodec;
+import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.ReadFeatureCodec;
-import uk.ac.ebi.ena.sra.cram.CramException;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
 
 class ReadFeatureCodecFactory extends AbstractCodecFactory<List<ReadFeature>> {
 	private DeletionVariationCodecFactory delFactory;

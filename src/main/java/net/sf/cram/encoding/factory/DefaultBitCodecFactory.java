@@ -2,7 +2,6 @@ package net.sf.cram.encoding.factory;
 
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.Encoding;
-import uk.ac.ebi.ena.sra.cram.encoding.ByteArrayBitCodec;
 
 public class DefaultBitCodecFactory implements BitCodecFactory{
 

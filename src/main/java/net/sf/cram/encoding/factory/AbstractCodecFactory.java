@@ -4,7 +4,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.MeasuringCodec;
-import uk.ac.ebi.ena.sra.cram.encoding.ByteArrayBitCodec;
 
 abstract class AbstractCodecFactory<T> implements CramBitCodecFactory<T> {
 

@@ -11,12 +11,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 
 import net.sf.cram.CompressionHeader;
 import net.sf.cram.EncodingKey;
+import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.Encoding;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 import uk.ac.ebi.ena.sra.cram.io.NullBitOutputStream;

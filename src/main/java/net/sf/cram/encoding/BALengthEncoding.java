@@ -5,8 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import uk.ac.ebi.ena.sra.cram.encoding.BitCodec;
-import uk.ac.ebi.ena.sra.cram.encoding.ByteArrayBitCodec;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 

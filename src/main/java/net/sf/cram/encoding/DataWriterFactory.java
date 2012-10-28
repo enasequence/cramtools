@@ -1,7 +1,6 @@
 package net.sf.cram.encoding;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;

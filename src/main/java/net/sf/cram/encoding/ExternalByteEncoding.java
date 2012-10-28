@@ -1,7 +1,6 @@
 package net.sf.cram.encoding;
 
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 import net.sf.block.ByteBufferUtils;

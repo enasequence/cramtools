@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import net.sf.cram.encoding.BitCodec;
-import uk.ac.ebi.ena.sra.cram.encoding.ByteArrayBitCodec;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
+import net.sf.cram.encoding.read_features.ReadFeature;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 import uk.ac.ebi.ena.sra.cram.io.NullBitOutputStream;

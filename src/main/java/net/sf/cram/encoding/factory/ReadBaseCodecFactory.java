@@ -7,9 +7,6 @@ import net.sf.cram.EncodingKey;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadBaseCodec;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
 
 class ReadBaseCodecFactory extends AbstractCodecFactory<ReadBase> {
 

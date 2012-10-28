@@ -7,9 +7,6 @@ import net.sf.cram.EncodingKey;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.DeletionVariationCodec;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
 
 class DeletionVariationCodecFactory extends
 		AbstractCodecFactory<DeletionVariation> {

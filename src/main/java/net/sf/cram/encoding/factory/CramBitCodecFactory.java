@@ -4,10 +4,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 
 import net.sf.cram.CompressionHeader;
 import net.sf.cram.encoding.BitCodec;
-import uk.ac.ebi.ena.sra.cram.CramException;
-import uk.ac.ebi.ena.sra.cram.SequenceBaseProvider;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
 
 public interface CramBitCodecFactory<T> {
 

@@ -19,8 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
+import net.sf.cram.encoding.read_features.ReadFeature;
 
 public class CramRecord {
 
@@ -58,9 +57,9 @@ public class CramRecord {
 	private Byte mateFlags = null;
 	public boolean mateMapped = false;
 	public boolean mateNegativeStrand = false;
-	
-	public int mateSequnceID = 0 ;
-	public long mateAlignmentStart = 0 ;
+
+	public int mateSequnceID = 0;
+	public long mateAlignmentStart = 0;
 
 	private byte mappingQuality;
 

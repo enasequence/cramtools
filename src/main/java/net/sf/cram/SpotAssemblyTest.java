@@ -12,9 +12,6 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
-import uk.ac.ebi.ena.sra.cram.bam.Sam2CramRecordFactory;
-import uk.ac.ebi.ena.sra.cram.format.CramRecord;
-import uk.ac.ebi.ena.sra.cram.spot.PairedTemplateAssembler;
 
 public class SpotAssemblyTest {
 	private List<CramRecord> records;

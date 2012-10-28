@@ -18,7 +18,7 @@ package net.sf.cram.stats;
 import java.util.Map;
 import java.util.TreeMap;
 
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
+import net.sf.cram.ReadTag;
 
 public class ReadTagStats {
 

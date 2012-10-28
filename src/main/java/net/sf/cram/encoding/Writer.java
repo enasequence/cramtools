@@ -7,14 +7,14 @@ import java.util.Map;
 import net.sf.cram.CramRecord;
 import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingKey;
+import net.sf.cram.ReadTag;
+import net.sf.cram.encoding.read_features.BaseQualityScore;
+import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.ReadBase;
+import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
-import uk.ac.ebi.ena.sra.cram.format.BaseQualityScore;
-import uk.ac.ebi.ena.sra.cram.format.DeletionVariation;
-import uk.ac.ebi.ena.sra.cram.format.InsertBase;
-import uk.ac.ebi.ena.sra.cram.format.InsertionVariation;
-import uk.ac.ebi.ena.sra.cram.format.ReadBase;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
 
 public class Writer {
 

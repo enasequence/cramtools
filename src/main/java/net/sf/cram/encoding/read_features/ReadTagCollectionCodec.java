@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
+import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.BitCodec;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;

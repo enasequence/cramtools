@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.picard.PicardException;
 import net.sf.picard.io.IoUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -50,12 +51,6 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTag;
-
-import uk.ac.ebi.ena.sra.cram.CramIndexer.CountingInputStream;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.CramHeaderRecord;
-import uk.ac.ebi.ena.sra.cram.format.CramRecord;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
 import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 public class Utils {

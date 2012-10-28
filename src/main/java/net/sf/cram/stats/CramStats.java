@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.stats;
 
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -23,31 +22,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import net.sf.cram.CramRecord;
+import net.sf.cram.ReadTag;
+import net.sf.cram.encoding.read_features.BaseQualityScore;
+import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.ReadBase;
+import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SubstitutionVariation;
+
 import org.apache.commons.math.stat.HashMapFrequency;
 
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanTree;
-import uk.ac.ebi.ena.sra.cram.encoding.HuffmanCodec;
-import uk.ac.ebi.ena.sra.cram.format.BaseQualityScore;
-import uk.ac.ebi.ena.sra.cram.format.ByteFrequencies;
-import uk.ac.ebi.ena.sra.cram.format.CramCompression;
-import uk.ac.ebi.ena.sra.cram.format.CramHeader;
-import uk.ac.ebi.ena.sra.cram.format.CramRecord;
-import uk.ac.ebi.ena.sra.cram.format.CramRecordBlock;
-import uk.ac.ebi.ena.sra.cram.format.DeletionVariation;
-import uk.ac.ebi.ena.sra.cram.format.DiByteFrequencies;
-import uk.ac.ebi.ena.sra.cram.format.Encoding;
-import uk.ac.ebi.ena.sra.cram.format.InsertBase;
-import uk.ac.ebi.ena.sra.cram.format.InsertionVariation;
-import uk.ac.ebi.ena.sra.cram.format.IntFrequencies;
-import uk.ac.ebi.ena.sra.cram.format.ReadAnnotation;
-import uk.ac.ebi.ena.sra.cram.format.ReadBase;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-import uk.ac.ebi.ena.sra.cram.format.ReadTag;
-import uk.ac.ebi.ena.sra.cram.format.SubstitutionVariation;
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
-import uk.ac.ebi.ena.sra.cram.format.compression.EncodingAlgorithm;
-import uk.ac.ebi.ena.sra.cram.format.compression.NumberCodecStub;
 
 public class CramStats {
 	private CramRecord prevRecord;

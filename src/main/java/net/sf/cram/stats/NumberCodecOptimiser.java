@@ -18,11 +18,6 @@ package net.sf.cram.stats;
 import java.util.ArrayList;
 import java.util.List;
 
-import uk.ac.ebi.ena.sra.cram.format.compression.CramCompressionException;
-import uk.ac.ebi.ena.sra.cram.format.compression.EncodingAlgorithm;
-import uk.ac.ebi.ena.sra.cram.format.compression.NumberCodecFactory;
-import uk.ac.ebi.ena.sra.cram.format.compression.NumberCodecStub;
-
 public class NumberCodecOptimiser {
 
 	private NumberCodecStub[] stubs;

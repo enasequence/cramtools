@@ -9,7 +9,6 @@ import java.util.Map;
 
 import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.encoding.DataWriterFactory;
-import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.Reader;
 import net.sf.cram.encoding.Writer;
