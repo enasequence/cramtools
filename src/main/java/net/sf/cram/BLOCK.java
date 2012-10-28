@@ -65,6 +65,7 @@ public class BLOCK {
 		return records;
 	}
 
+	
 	private static void restoreTemplatesByDistance(List<CramRecord> records) {
 		for (int i = 0; i < records.size(); i++) {
 			CramRecord r = records.get(i);
