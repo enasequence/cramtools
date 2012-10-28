@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project basedir="../" default="help" name="cramtools">
+
+	<property environment="env" />
+
+	<property name="src" value="${basedir}/src" />
+	<property name="build.home" value="${basedir}/build" />
+	<property name="lib.home" value="${basedir}/lib" />
+	<property name="target.dir" value="${basedir}/target" />
+	<property name="classes" value="${target.dir}/classes" />
+	<property name="crammerClasses" value="../crammer/target/classes" />
+	<property name="jar.file.name" value="cramone.jar" />
+
+	<path id="classpath">
+		<fileset dir="${lib.home}" includes="*.jar" />
+		<fileset dir="../crammer/lib" includes="*.jar" />
+	</path>
+
+	<path id="build.classpath">
+		<fileset dir="${basedir}/">
+			<include name="${lib.home}/*.jar" />
+		</fileset>
+	</path>
+
+	<pathconvert property="mf.classpath" pathsep=" ">
+		<path refid="build.classpath" />
+		<mapper>
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.jar" to="lib/*.jar" />
+			</chainedmapper>
+		</mapper>
+	</pathconvert>
+
+	<target name="runnable" depends="clean,compile">
+
+		<property file="version.property" />
+		<buildnumber />
+
+		<tstamp>
+			<format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+		</tstamp>
+
+		<jar destfile="${basedir}/cramone.jar" filesetmanifest="skip" duplicate="preserve">
+			<fileset dir="${classes}" />
+			<zipgroupfileset dir="lib" includes="*.jar" >
+				<exclude name="**/SAMFileReader.class" />
+			</zipgroupfileset>
+
+			<manifest>
+				<attribute name="Main-Class" value="net.sf.cram.Coder" />
+				<attribute name="Class-Path" value="" />
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="Implementation-Version" value="${version.num}-b${build.number}" />
+				<attribute name="Built-Date" value="${TODAY}" />
+			</manifest>
+		</jar>
+	</target>
+
+
+
+	<target name="setup">
+		<mkdir dir="${classes}" />
+		<mkdir dir="${target.dir}" />
+	</target>
+
+	<target name="run">
+		<java classname="net.sf.cram.Coder">
+			<classpath refid="classpath" />
+			<classpath path="${target.dir}/${jar.file.name}" />
+		</java>
+	</target>
+
+	<target name="test">
+		<junit printsummary="yes" fork="false" haltonfailure="false" haltonerror="false" includeantruntime="false" showoutput="true">
+			<classpath refid="classpath" />
+			<classpath path="${classes}" />
+
+			<formatter type="plain" />
+
+			<test name="uk.ac.ebi.ena.sra.cram.TestAll" />
+
+		</junit>
+	</target>
+
+	<target name="clean">
+		<delete dir="${target.dir}" includeEmptyDirs="true" />
+		<delete file="cramtools.jar" />
+	</target>
+
+	<target name="compile" depends="setup">
+		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java:../crammer/src/main/java">
+			<include name="**/*.java" />
+			<classpath refid="classpath" />
+		</javac>
+		<copy todir="${classes}">
+			<fileset dir="${basedir}/src/main/resources" includes="**/*">
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="help">
+		<property file="version.property" />
+		
+		<echo message="cramtools build xml, version ${version.num}" />
+		<echo message="Available targets: " />
+		<echo message="	clean" />
+		<echo message="	compile" />
+		<echo message="	test" />
+		<echo message="	runnable" />
+	</target>
+
+</project>
