@@ -82,7 +82,7 @@ public class CompressionHeaderFactory {
 					freqs[i] = map.get(v).value;
 					i++;
 				}
-				tree = HuffmanCode.buildTree(freqs, Utils.autobox(values));
+				tree = HuffmanCode.buildTree(freqs, IOUtils.autobox(values));
 			}
 
 			List<Integer> valueList = new ArrayList<>();

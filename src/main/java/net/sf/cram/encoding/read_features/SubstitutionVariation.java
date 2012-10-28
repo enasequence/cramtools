@@ -17,8 +17,6 @@ package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
 
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-
 
 
 public class SubstitutionVariation implements Serializable, ReadFeature {

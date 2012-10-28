@@ -1,7 +1,6 @@
 package net.sf.cram.encoding.read_features;
 
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
-import uk.ac.ebi.ena.sra.cram.encoding.HuffmanCodec;
 
 public class ReadFeatureOperatorCodec extends HuffmanCodec<Byte> {
 

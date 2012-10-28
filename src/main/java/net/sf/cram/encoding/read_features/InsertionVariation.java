@@ -3,8 +3,6 @@ package net.sf.cram.encoding.read_features;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
-
 public class InsertionVariation implements Serializable, ReadFeature {
 
 	private int position;

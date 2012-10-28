@@ -13,10 +13,10 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.Reader;
 import net.sf.cram.encoding.Writer;
+import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
-import uk.ac.ebi.ena.sra.cram.format.ReadFeature;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitOutputStream;
 
 public class BLOCK {
