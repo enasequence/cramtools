@@ -42,4 +42,8 @@ public class DeletionVariationCodec implements BitCodec<DeletionVariation> {
 		}
 	}
 
+	@Override
+	public DeletionVariation read(BitInputStream bis, int len) throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
 }

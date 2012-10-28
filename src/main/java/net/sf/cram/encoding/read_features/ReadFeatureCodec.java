@@ -127,4 +127,10 @@ public class ReadFeatureCodec implements BitCodec<List<ReadFeature>> {
 			throw new RuntimeException(e);
 		}
 	}
+
+	@Override
+	public List<ReadFeature> read(BitInputStream bis, int len)
+			throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
 }

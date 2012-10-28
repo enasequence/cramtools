@@ -24,4 +24,9 @@ public class BaseChangeCodec implements BitCodec<BaseChange> {
 		return 2;
 	}
 
+	@Override
+	public BaseChange read(BitInputStream bis, int len) throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
+
 }

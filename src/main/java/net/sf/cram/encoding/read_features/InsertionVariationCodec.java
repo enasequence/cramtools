@@ -53,4 +53,10 @@ public class InsertionVariationCodec implements BitCodec<InsertionVariation> {
 		return String.format("Insertion codec: %d bases total, %d bits, %.2f bits per base.", byteCounter, totalLen, (float)totalLen/byteCounter) ;
 	}
 
+	@Override
+	public InsertionVariation read(BitInputStream bis, int len)
+			throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
+
 }

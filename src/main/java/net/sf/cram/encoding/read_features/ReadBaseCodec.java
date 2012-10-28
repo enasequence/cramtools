@@ -43,4 +43,9 @@ public class ReadBaseCodec implements BitCodec<ReadBase> {
 		}
 	}
 
+	@Override
+	public ReadBase read(BitInputStream bis, int len) throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
+
 }

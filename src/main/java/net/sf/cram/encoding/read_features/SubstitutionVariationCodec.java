@@ -56,4 +56,10 @@ public class SubstitutionVariationCodec implements
 		}
 	}
 
+	@Override
+	public SubstitutionVariation read(BitInputStream bis, int len)
+			throws IOException {
+		throw new RuntimeException("Not implemented,") ;
+	}
+
 }
