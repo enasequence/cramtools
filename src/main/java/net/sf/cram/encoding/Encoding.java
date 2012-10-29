@@ -4,8 +4,11 @@ import java.io.InputStream;
 import java.util.Map;
 
 import net.sf.block.ExposedByteArrayOutputStream;
+import net.sf.cram.EncodingID;
 
 public interface Encoding<T> {
+	
+	public EncodingID id() ;
 	
 	public byte[] toByteArray();
 

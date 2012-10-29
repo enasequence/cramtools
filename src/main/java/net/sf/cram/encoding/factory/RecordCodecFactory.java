@@ -36,7 +36,7 @@ public class RecordCodecFactory extends
 
 		recordCodec.inSeqPosCodec = register(
 				bitCodecFactory.buildLongCodec(compression.eMap
-						.get(EncodingKey.AP_AlignmentPosition)), root,
+						.get(EncodingKey.AP_AlignmentPositionOffset)), root,
 				"Refpos codec");
 		recordCodec.recordsToNextFragmentCodec = register(
 				bitCodecFactory.buildLongCodec(compression.eMap

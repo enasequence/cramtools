@@ -20,8 +20,9 @@ import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
-	public boolean qsIncluded = false;
-	public boolean readNamesIncluded = false;
+	public boolean captureMappedQS = false;
+	public boolean captureUnmappedQS = false;
+	public boolean captureReadNames = false;
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataReader<Integer> bitFlagsC;
@@ -29,7 +30,7 @@ public class Reader {
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataReader<Integer> readLengthC;
 
-	@DataSeries(key = EncodingKey.AP_AlignmentPosition, type = DataSeriesType.LONG)
+	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.LONG)
 	public DataReader<Long> alStartC;
 
 	@DataSeries(key = EncodingKey.RG_ReadGroup, type = DataSeriesType.INT)
@@ -94,13 +95,8 @@ public class Reader {
 		r.setReadLength(readLengthC.readData());
 		r.setAlignmentStart(alStartC.readData());
 		r.setReadGroupID(readGroupC.readData());
-		if (qsIncluded) {
-			byte[] qs = new byte[r.getReadLength()];
-			for (int i = 0; i < qs.length; i++)
-				qs[i] = qc.readData();
-		}
 
-		if (readNamesIncluded) {
+		if (captureReadNames) {
 			r.setReadName(new String(readNameC.readData(), charset));
 		}
 
@@ -108,7 +104,7 @@ public class Reader {
 		if (!r.isLastFragment()) {
 			if (r.detached) {
 				r.setMateFlags(mbfc.readData());
-				if (!readNamesIncluded)
+				if (!captureReadNames)
 					r.setReadName(new String(readNameC.readData(), charset));
 
 				r.mateSequnceID = mrc.readData();
@@ -187,11 +183,23 @@ public class Reader {
 
 			// mapping quality:
 			r.setMappingQuality(mqc.readData());
+			if (captureMappedQS) {
+				byte[] qs = new byte[r.getReadLength()];
+				for (int i = 0; i < qs.length; i++)
+					qs[i] = qc.readData();
+			}
 		} else {
 			byte[] bases = new byte[r.getReadLength()];
 			for (int i = 0; i < bases.length; i++)
 				bases[i] = bc.readData();
 			r.setReadBases(bases);
+			
+			if (captureUnmappedQS) {
+				byte[] qs = new byte[r.getReadLength()];
+				for (int i = 0; i < qs.length; i++)
+					qs[i] = qc.readData();
+				r.setQualityScores(qs) ;
+			}
 		}
 	}
 }

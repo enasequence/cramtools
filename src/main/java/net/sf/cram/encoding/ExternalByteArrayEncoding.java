@@ -6,12 +6,19 @@ import java.util.Map;
 import net.sf.block.ByteBufferUtils;
 import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.EncodingID;
+import net.sf.cram.EncodingParams;
 
 public class ExternalByteArrayEncoding implements Encoding<byte[]> {
-	public final static EncodingID ID = EncodingID.EXTERNAL;
-	private int contentId;
+	public static final EncodingID encodingId = EncodingID.EXTERNAL;
+	public int contentId = -1;
 
 	public ExternalByteArrayEncoding() {
+	}
+
+	public static EncodingParams toParam(int contentId) {
+		ExternalByteArrayEncoding e = new ExternalByteArrayEncoding();
+		e.contentId = contentId;
+		return new EncodingParams(encodingId, e.toByteArray());
 	}
 
 	public byte[] toByteArray() {
@@ -28,7 +35,12 @@ public class ExternalByteArrayEncoding implements Encoding<byte[]> {
 		InputStream is = inputMap == null ? null : inputMap.get(contentId);
 		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap
 				.get(contentId);
-
-		return new ExternalByteArrayBitCodec(os, is, null);
+		return (BitCodec) new ExternalByteArrayCodec(os, is);
 	}
+
+	@Override
+	public EncodingID id() {
+		return encodingId;
+	}
+
 }

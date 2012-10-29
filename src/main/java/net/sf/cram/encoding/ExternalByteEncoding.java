@@ -37,4 +37,9 @@ public class ExternalByteEncoding implements Encoding<Byte> {
 		return (BitCodec) new ExternalByteCodec(os, is);
 	}
 
+	@Override
+	public EncodingID id() {
+		return encodingId;
+	}
+
 }

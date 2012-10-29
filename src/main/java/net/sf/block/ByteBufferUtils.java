@@ -1,26 +1,87 @@
 package net.sf.block;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 public class ByteBufferUtils {
-	
-	public static final int readUnsignedITF8 (byte[] data) {
-		ByteBuffer buf = ByteBuffer.wrap(data) ;
-		int value = ByteBufferUtils.readUnsignedITF8(buf) ;
-		buf.clear() ;
-		
-		return value ;
+
+	public static final int readUnsignedITF8(InputStream is) throws IOException {
+		int b1 = is.read();
+
+		if ((b1 & 0b10000000) == 0)
+			return b1;
+
+		if ((b1 & 0b01000000) == 0)
+			return ((b1 & 0b01111111) << 8) | is.read();
+
+		if ((b1 & 0b00100000) == 0) {
+			int b2 = is.read();
+			int b3 = is.read();
+			return ((b1 & 0b00111111) << 16) | b2 << 8 | b3;
+		}
+
+		if ((b1 & 0b00010000) == 0)
+			return ((b1 & 0b00011111) << 24) | is.read() << 16 | is.read() << 8
+					| is.read();
+
+		return ((b1 & 0b00001111) << 28) | is.read() << 20 | is.read() << 12
+				| is.read() << 4 | (0b00001111 & is.read());
 	}
 	
-	public static final byte[] writeUnsignedITF8 (int value) {
+	public static final int writeUnsignedITF8(int value, OutputStream os) throws IOException {
+		if ((value >>> 7) == 0) {
+			os.write(value);
+			return 8;
+		}
+
+		if ((value >>> 14) == 0) {
+			os.write( ((value >> 8) | 0b10000000));
+			os.write( (value & 0xFF));
+			return 16;
+		}
+
+		if ((value >>> 21) == 0) {
+			os.write( ((value >> 16) | 0b11000000));
+			os.write( ((value >> 8) & 0xFF));
+			os.write( (value & 0xFF));
+			return 24;
+		}
+
+		if ((value >>> 28) == 0) {
+			os.write( ((value >> 24) | 0b11100000));
+			os.write( ((value >> 16) & 0xFF));
+			os.write( ((value >> 8) & 0xFF));
+			os.write( (value & 0xFF));
+			return 32 ;
+		}
+
+		os.write( ((value >> 28) | 0b11110000));
+		os.write( ((value >> 20) & 0xFF));
+		os.write( ((value >> 12) & 0xFF));
+		os.write( ((value >> 4) & 0xFF));
+		os.write( (value & 0xFF));
+		return 32 ;
+	}
+
+	public static final int readUnsignedITF8(byte[] data) {
+		ByteBuffer buf = ByteBuffer.wrap(data);
+		int value = ByteBufferUtils.readUnsignedITF8(buf);
+		buf.clear();
+
+		return value;
+	}
+
+	public static final byte[] writeUnsignedITF8(int value) {
 		ByteBuffer buf = ByteBuffer.allocate(10);
 		ByteBufferUtils.writeUnsignedITF8(value, buf);
-		
+
 		buf.flip();
 		byte[] array = new byte[buf.limit()];
 		buf.get(array);
-		
-		buf.clear() ;
+
+		buf.clear();
 		return array;
 	}
 
@@ -34,10 +95,9 @@ public class ByteBufferUtils {
 			return ((b1 & 0b01111111) << 8) | (0xFF & buf.get());
 
 		if ((b1 & 0b00100000) == 0) {
-			int b2 = 0xFF & buf.get() ;
-			int b3 = 0xFF & buf.get() ;
-			return ((b1 & 0b00111111) << 16) | b2 << 8
-					| b3;
+			int b2 = 0xFF & buf.get();
+			int b3 = 0xFF & buf.get();
+			return ((b1 & 0b00111111) << 16) | b2 << 8 | b3;
 		}
 
 		if ((b1 & 0b00010000) == 0)
@@ -85,28 +145,29 @@ public class ByteBufferUtils {
 
 	public static void main(String[] args) {
 		ByteBuffer buf = ByteBuffer.allocate(5);
-		
-		//Read 192 but expecting 16384
-		writeUnsignedITF8(16384, buf) ;
-		buf.flip() ;
-		int v = readUnsignedITF8(buf) ;
+
+		// Read 192 but expecting 16384
+		writeUnsignedITF8(16384, buf);
+		buf.flip();
+		int v = readUnsignedITF8(buf);
 		System.out.println(v);
-		
-		long time=System.nanoTime() ;
-		for (int i=0; i<Integer.MAX_VALUE; i++) {
-			buf.clear() ;
+
+		long time = System.nanoTime();
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			buf.clear();
 			writeUnsignedITF8(i, buf);
-			buf.flip() ;
-			int value = readUnsignedITF8(buf) ; 
+			buf.flip();
+			int value = readUnsignedITF8(buf);
 			if (i != value)
-				throw new RuntimeException("Read " + value + " but expecting " + i);
-			
-			if (System.nanoTime()-time > 1000*1000*1000) {
-				time = System.nanoTime() ;
+				throw new RuntimeException("Read " + value + " but expecting "
+						+ i);
+
+			if (System.nanoTime() - time > 1000 * 1000 * 1000) {
+				time = System.nanoTime();
 				System.out.println("i=" + i);
 			}
 		}
-		
+
 		System.out.println("Done.");
 	}
 }

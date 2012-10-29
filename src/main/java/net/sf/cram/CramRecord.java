@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.samtools.SAMUtils;
 
 public class CramRecord {
 
@@ -209,11 +210,7 @@ public class CramRecord {
 		if (readName != null)
 			sb.append(readName).append("; ");
 		sb.append("flags=").append(flags);
-		sb.append("; readMapped=").append(readMapped);
 		sb.append("; alignmentStart=").append(alignmentStart);
-		sb.append("; negativeStrand=").append(negativeStrand);
-		sb.append("; vendorFiltered=").append(vendorFiltered);
-		sb.append("; firstInPair=").append(firstInPair);
 		sb.append("; mappingQuality=").append(mappingQuality);
 
 		if (readFeatures != null)
@@ -225,7 +222,6 @@ public class CramRecord {
 		if (qualityScores != null)
 			sb.append("; ").append("qscores: ")
 					.append(new String(qualityScores));
-		// .append(SAMUtils.phredToFastq(qualityScores));
 
 		sb.append("]");
 		return sb.toString();

@@ -19,8 +19,9 @@ import net.sf.cram.encoding.read_features.SubstitutionVariation;
 public class Writer {
 
 	public Charset charset = Charset.forName("UTF8");
-	public boolean qsIncluded = false;
-	public boolean readNamesIncluded = false;
+	public boolean captureMappedQS = false;
+	public boolean captureUnmappedQS = false;
+	public boolean captureReadNames = false;
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataWriter<Integer> bitFlagsC;
@@ -28,7 +29,7 @@ public class Writer {
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> readLengthC;
 
-	@DataSeries(key = EncodingKey.AP_AlignmentPosition, type = DataSeriesType.LONG)
+	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.LONG)
 	public DataWriter<Long> alStartC;
 
 	@DataSeries(key = EncodingKey.RG_ReadGroup, type = DataSeriesType.INT)
@@ -93,12 +94,8 @@ public class Writer {
 		readLengthC.writeData(r.getReadLength());
 		alStartC.writeData(r.getAlignmentStart());
 		readGroupC.writeData(r.getReadGroupID());
-		if (qsIncluded) {
-			for (byte q : r.getQualityScores())
-				qc.writeData(q);
-		}
 
-		if (readNamesIncluded) {
+		if (captureReadNames) {
 			readNameC.writeData(r.getReadName().getBytes(charset));
 		}
 
@@ -106,7 +103,7 @@ public class Writer {
 		if (!r.isLastFragment()) {
 			if (r.detached) {
 				mbfc.writeData(r.getMateFlags());
-				if (!readNamesIncluded)
+				if (!captureReadNames)
 					readNameC.writeData(r.getReadName().getBytes(charset));
 
 				mrc.writeData(r.mateSequnceID);
@@ -183,9 +180,17 @@ public class Writer {
 
 			// mapping quality:
 			mqc.writeData(r.getMappingQuality());
+			if (captureMappedQS) {
+				for (byte q : r.getQualityScores())
+					qc.writeData(q);
+			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
+			if (captureUnmappedQS) {
+				for (byte q : r.getQualityScores())
+					qc.writeData(q);
+			}
 		}
 	}
 }

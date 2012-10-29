@@ -19,6 +19,9 @@ public class DataReaderFactory {
 			Map<Integer, InputStream> inputMap, CompressionHeader h)
 			throws IllegalArgumentException, IllegalAccessException {
 		Reader reader = new Reader();
+		reader.captureMappedQS = h.mappedQualityScoreIncluded ;
+		reader.captureUnmappedQS = h.unmappedQualityScoreIncluded ;
+		reader.captureReadNames = h.readNamesIncluded ;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {

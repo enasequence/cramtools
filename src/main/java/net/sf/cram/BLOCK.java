@@ -405,6 +405,10 @@ public class BLOCK {
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
+		h.mappedQualityScoreIncluded = true ;
+		h.unmappedQualityScoreIncluded = true ;
+		h.readNamesIncluded = true ;
+		
 		int recordsPerSlice = 10000;
 
 		List<Slice> slices = new ArrayList<>();
@@ -435,19 +439,10 @@ public class BLOCK {
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<>();
-		for (EncodingKey key : h.eMap.keySet()) {
-			EncodingParams params = h.eMap.get(key);
-			if (params.id == EncodingID.EXTERNAL) {
-				// dirty hack to get external block id:
-				ExternalByteEncoding encoding = new ExternalByteEncoding();
-				encoding.fromByteArray(params.params);
-				int id = encoding.contentId;
-				if (map.get(id) == null) {
-					map.put(id, new ExposedByteArrayOutputStream());
-				}
-			}
+		for (int id: h.externalIds) {
+			map.put(id, new ExposedByteArrayOutputStream());
 		}
-
+		
 		DataWriterFactory f = new DataWriterFactory();
 		ExposedByteArrayOutputStream bitBAOS = new ExposedByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(bitBAOS);
@@ -458,8 +453,8 @@ public class BLOCK {
 		for (CramRecord r : records) {
 			writer.write(r);
 
-			if (!r.isReadMapped())
-				continue;
+//			if (!r.isReadMapped())
+//				continue;
 
 			if (slice.alignmentStart == -1) {
 				slice.alignmentStart = r.getAlignmentStart();
@@ -495,18 +490,18 @@ public class BLOCK {
 		samFileHeader.addSequence(sequenceRecord);
 		
 		CramRecord record = new CramRecord();
-		record.setReadBases("A".getBytes());
-		record.setQualityScores("!".getBytes());
+		record.setReadBases("AAAAAAAAACGT".getBytes());
+		record.setQualityScores("!!!'''#~~'#!".getBytes());
+		record.setReadLength(record.getReadBases().length) ;
 		record.setFlags(124);
 		record.setAlignmentStart(1);
 		record.alignmentStartOffsetFromPreviousRecord = 0;
 		record.setReadName("haba-haba");
 		record.setSequenceName(sequenceRecord.getSequenceName());
 		record.sequenceId = sequenceRecord.getSequenceIndex();
-		record.setReadMapped(true) ;
+//		record.setReadMapped(true) ;
 		record.resetFlags() ;
 		record.setReadFeatures(new ArrayList<ReadFeature>()) ;
-		record.setReadLength(1) ;
 
 		List<CramRecord> records = new ArrayList<>();
 		records.add(record);

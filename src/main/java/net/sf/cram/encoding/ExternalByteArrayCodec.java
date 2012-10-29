@@ -8,24 +8,13 @@ import net.sf.block.IOStreamUtils;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 
-public class ExternalByteArrayCodec implements ByteArrayBitCodec {
+public class ExternalByteArrayCodec implements BitCodec<byte[]> {
 	private OutputStream os;
 	private InputStream is;
-	private String name;
 
-	public ExternalByteArrayCodec(OutputStream os, InputStream is, String name) {
+	public ExternalByteArrayCodec(OutputStream os, InputStream is) {
 		this.os = os;
 		this.is = is;
-		this.name = name ;
-	}
-
-	@Override
-	public String getName() {
-		return name;
-	}
-	
-	public void setName (String name) {
-		this.name = name ;
 	}
 
 	@Override
@@ -45,9 +34,8 @@ public class ExternalByteArrayCodec implements ByteArrayBitCodec {
 	}
 
 	@Override
-	public Stats getStats() {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] read(BitInputStream bis) throws IOException {
+		throw new RuntimeException("Cannot read byte array of unknown length.") ;
 	}
 
 }

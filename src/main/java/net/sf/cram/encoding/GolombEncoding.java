@@ -14,6 +14,15 @@ public class GolombEncoding implements Encoding<Long> {
 
 	public GolombEncoding() {
 	}
+	
+	public GolombEncoding(int m) {
+		this.m = m;
+	}
+
+	@Override
+	public EncodingID id() {
+		return ENCODING_ID;
+	}
 
 	public static EncodingParams toParam(int m) {
 		GolombEncoding e = new GolombEncoding();

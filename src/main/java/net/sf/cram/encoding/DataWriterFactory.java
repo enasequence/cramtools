@@ -15,18 +15,21 @@ import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 public class DataWriterFactory {
 
 	public Writer buildWriter(BitOutputStream bos,
-			Map<Integer, ExposedByteArrayOutputStream> outputMap, CompressionHeader h)
-			throws IllegalArgumentException, IllegalAccessException {
+			Map<Integer, ExposedByteArrayOutputStream> outputMap,
+			CompressionHeader h) throws IllegalArgumentException,
+			IllegalAccessException {
 		Writer writer = new Writer();
+		writer.captureMappedQS = h.mappedQualityScoreIncluded;
+		writer.captureUnmappedQS = h.unmappedQualityScoreIncluded;
+		writer.captureReadNames = h.readNamesIncluded;
 
 		for (Field f : writer.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
-				DataSeriesType type = ds.type() ;
+				DataSeriesType type = ds.type();
 				f.set(writer,
-						createWriter(type, h.eMap.get(key),
-								bos, outputMap));
+						createWriter(type, h.eMap.get(key), bos, outputMap));
 			}
 
 			if (f.isAnnotationPresent(DataSeriesMap.class)) {
@@ -37,7 +40,8 @@ public class DataWriterFactory {
 					for (String key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
 						DataWriter<byte[]> tagWtiter = createWriter(
-								DataSeriesType.BYTE_ARRAY, params, bos, outputMap);
+								DataSeriesType.BYTE_ARRAY, params, bos,
+								outputMap);
 						map.put(key, tagWtiter);
 					}
 					f.set(writer, map);
@@ -53,6 +57,10 @@ public class DataWriterFactory {
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
+		if (encoding == null)
+			throw new RuntimeException("Encoding not found: value type="
+					+ valueType.name() + ", encoding id=" + params.id.name());
+
 		encoding.fromByteArray(params.params);
 
 		return new DefaultDataWriter<T>(encoding.buildCodec(null, outputMap),

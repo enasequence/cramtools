@@ -12,6 +12,11 @@ public class NullEncoding<T> implements Encoding<T> {
 
 	public NullEncoding() {
 	}
+	
+	@Override
+	public EncodingID id() {
+		return ENCODING_ID;
+	}
 
 	public static EncodingParams toParam() {
 		return new EncodingParams(ENCODING_ID, new NullEncoding().toByteArray());
