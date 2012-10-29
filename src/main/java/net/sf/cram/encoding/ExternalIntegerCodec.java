@@ -1,0 +1,58 @@
+package net.sf.cram.encoding;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import net.sf.block.ByteBufferUtils;
+import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
+import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+
+public class ExternalIntegerCodec implements BitCodec<Integer> {
+	private OutputStream os;
+	private InputStream is;
+	private OutputStream nullOS = new OutputStream() {
+
+		@Override
+		public void write(byte[] b) throws IOException {
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+		}
+	};
+
+	public ExternalIntegerCodec(OutputStream os, InputStream is) {
+		this.os = os;
+		this.is = is;
+	}
+
+	@Override
+	public Integer read(BitInputStream bis) throws IOException {
+		return ByteBufferUtils.readUnsignedITF8(is);
+	}
+
+	@Override
+	public long write(BitOutputStream bos, Integer value) throws IOException {
+		return ByteBufferUtils.writeUnsignedITF8(value, os);
+	}
+
+	@Override
+	public long numberOfBits(Integer value) {
+		try {
+			return ByteBufferUtils.writeUnsignedITF8(value, nullOS);
+		} catch (IOException e) {
+			// this should never happened but still:
+			throw new RuntimeException(e) ;
+		}
+	}
+
+	@Override
+	public Integer read(BitInputStream bis, int len) throws IOException {
+		throw new RuntimeException("Not implemented.");
+	}
+}
