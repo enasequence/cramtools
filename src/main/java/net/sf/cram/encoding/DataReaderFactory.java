@@ -19,12 +19,15 @@ public class DataReaderFactory {
 			Map<Integer, InputStream> inputMap, CompressionHeader h)
 			throws IllegalArgumentException, IllegalAccessException {
 		Reader reader = new Reader();
-		reader.captureMappedQS = h.mappedQualityScoreIncluded ;
-		reader.captureUnmappedQS = h.unmappedQualityScoreIncluded ;
-		reader.captureReadNames = h.readNamesIncluded ;
+		reader.captureMappedQS = h.mappedQualityScoreIncluded;
+		reader.captureUnmappedQS = h.unmappedQualityScoreIncluded;
+		reader.captureReadNames = h.readNamesIncluded;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
+				// debug hook:
+				// if (f.getName().equals("fc"))
+				// System.out.println("qwe");
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
@@ -58,19 +61,22 @@ public class DataReaderFactory {
 		if (params.id == EncodingID.NULL) {
 			switch (valueType) {
 			case BYTE:
-				return (DataReader<T>) new SingleValueReader<Byte>(new Byte((byte)0)) ;
+				return (DataReader<T>) new SingleValueReader<Byte>(new Byte(
+						(byte) 0));
 			case INT:
-				return (DataReader<T>) new SingleValueReader<Integer>(new Integer(0)) ;
+				return (DataReader<T>) new SingleValueReader<Integer>(
+						new Integer(0));
 			case LONG:
-				return (DataReader<T>) new SingleValueReader<Long>(new Long(0)) ;
+				return (DataReader<T>) new SingleValueReader<Long>(new Long(0));
 			case BYTE_ARRAY:
-				return (DataReader<T>) new SingleValueReader<byte[]>(new byte[]{}) ;
+				return (DataReader<T>) new SingleValueReader<byte[]>(
+						new byte[] {});
 
 			default:
 				break;
 			}
 		}
-		
+
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
 		encoding.fromByteArray(params.params);
@@ -99,10 +105,10 @@ public class DataReaderFactory {
 			return null;
 		}
 	}
-	
+
 	private static class SingleValueReader<T> implements DataReader<T> {
-		private T value ;
-		
+		private T value;
+
 		public SingleValueReader(T value) {
 			super();
 			this.value = value;
@@ -117,6 +123,6 @@ public class DataReaderFactory {
 		public T readDataArray(int len) {
 			return value;
 		}
-		
+
 	}
 }

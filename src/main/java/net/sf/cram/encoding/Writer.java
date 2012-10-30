@@ -29,8 +29,8 @@ public class Writer {
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> readLengthC;
 
-	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.LONG)
-	public DataWriter<Long> alStartC;
+	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.INT)
+	public DataWriter<Integer> alStartC;
 
 	@DataSeries(key = EncodingKey.RG_ReadGroup, type = DataSeriesType.INT)
 	public DataWriter<Integer> readGroupC;
@@ -92,7 +92,7 @@ public class Writer {
 	public void write(CramRecord r) throws IOException {
 		bitFlagsC.writeData(r.getFlags());
 		readLengthC.writeData(r.getReadLength());
-		alStartC.writeData(r.getAlignmentStart());
+		alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
 		readGroupC.writeData(r.getReadGroupID());
 
 		if (captureReadNames) {

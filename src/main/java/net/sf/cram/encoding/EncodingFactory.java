@@ -12,6 +12,8 @@ public class EncodingFactory {
 			switch (id) {
 			case EXTERNAL:
 				return (Encoding<T>) new ExternalByteEncoding();
+			case HUFFMAN:
+				return (Encoding<T>) new HuffmanByteEncoding();
 			case NULL:
 				return new NullEncoding<>();
 

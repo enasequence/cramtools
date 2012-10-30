@@ -72,13 +72,16 @@ public class CanonicalHuffmanByteCodec implements BitCodec<Byte> {
 					codeMap = new HashMap<Long, Byte>();
 					codeCache.put(code.bitLentgh, codeMap);
 				}
-				codeMap.put(new Long(code.bitCode), code.value);
+				codeMap.put(new Long(code.bitCode), (byte) (0xFF & code.value));
 			}
 
 		}
 
 		// 3. Done. Just have to populate codeMaps ---------------------
-		codeMaps = new Map[codeLentghSorted[codeLentghSorted.length - 1] + 1];
+		if (codeLentghSorted.length > 0)
+			codeMaps = new Map[codeLentghSorted[codeLentghSorted.length - 1] + 1];
+		else
+			codeMaps = new Map[1];
 		for (int len : codeLentghSorted) { // Iterate over code lengths
 			codeMaps[len] = codeCache.get(len);
 		}

@@ -8,14 +8,21 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.encoding.DataReaderFactory;
 import net.sf.cram.encoding.DataWriterFactory;
-import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.Reader;
 import net.sf.cram.encoding.Writer;
+import net.sf.cram.encoding.read_features.BaseChange;
+import net.sf.cram.encoding.read_features.BaseQualityScore;
+import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
@@ -30,8 +37,8 @@ public class BLOCK {
 		public long alignmentSpan = -1;
 
 		public int nofRecords = -1;
-		
-		public CompressionHeader h ;
+
+		public CompressionHeader h;
 
 		public Slice[] slices;
 	}
@@ -57,9 +64,9 @@ public class BLOCK {
 		FILE_HEADER, COMPRESSION_HEADER, MAPPED_SLICE, UNMAPPED_SLICE;
 	}
 
-	public static List<CramRecord> records(CompressionHeader h, Container c, SAMFileHeader fileHeader)
-			throws IllegalArgumentException, IllegalAccessException,
-			IOException {
+	public static List<CramRecord> records(CompressionHeader h, Container c,
+			SAMFileHeader fileHeader) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
 		List<CramRecord> records = new ArrayList<>();
 		for (Slice s : c.slices)
 			records.addAll(records(s, h, fileHeader));
@@ -404,21 +411,24 @@ public class BLOCK {
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
+		long time1 = System.nanoTime() ;
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
-		h.mappedQualityScoreIncluded = true ;
-		h.unmappedQualityScoreIncluded = true ;
-		h.readNamesIncluded = true ;
-		
+		long time2 = System.nanoTime() ;
+		System.out.println("Compression header built in " + (time2-time1)/1000000 + " ms.");
+		h.mappedQualityScoreIncluded = true;
+		h.unmappedQualityScoreIncluded = true;
+		h.readNamesIncluded = true;
+
 		int recordsPerSlice = 10000;
 
 		List<Slice> slices = new ArrayList<>();
 
 		Container c = new Container();
-		c.h = h ;
+		c.h = h;
 		c.nofRecords = records.size();
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
-					Math.min(records.size(), recordsPerSlice));
+					Math.min(records.size(), i+recordsPerSlice));
 			Slice slice = writeSlice(sliceRecords, h, fileHeader);
 			slices.add(slice);
 
@@ -439,10 +449,10 @@ public class BLOCK {
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<>();
-		for (int id: h.externalIds) {
+		for (int id : h.externalIds) {
 			map.put(id, new ExposedByteArrayOutputStream());
 		}
-		
+
 		DataWriterFactory f = new DataWriterFactory();
 		ExposedByteArrayOutputStream bitBAOS = new ExposedByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(bitBAOS);
@@ -453,8 +463,8 @@ public class BLOCK {
 		for (CramRecord r : records) {
 			writer.write(r);
 
-//			if (!r.isReadMapped())
-//				continue;
+			// if (!r.isReadMapped())
+			// continue;
 
 			if (slice.alignmentStart == -1) {
 				slice.alignmentStart = r.getAlignmentStart();
@@ -486,30 +496,115 @@ public class BLOCK {
 	public static void main(String[] args) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		SAMFileHeader samFileHeader = new SAMFileHeader();
-		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100) ;
+		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100);
 		samFileHeader.addSequence(sequenceRecord);
-		
-		CramRecord record = new CramRecord();
-		record.setReadBases("AAAAAAAAACGT".getBytes());
-		record.setQualityScores("!!!'''#~~'#!".getBytes());
-		record.setReadLength(record.getReadBases().length) ;
-		record.setFlags(124);
-		record.setAlignmentStart(1);
-		record.alignmentStartOffsetFromPreviousRecord = 0;
-		record.setReadName("haba-haba");
-		record.setSequenceName(sequenceRecord.getSequenceName());
-		record.sequenceId = sequenceRecord.getSequenceIndex();
-//		record.setReadMapped(true) ;
-		record.resetFlags() ;
-		record.setReadFeatures(new ArrayList<ReadFeature>()) ;
 
+		Random random = new Random();
 		List<CramRecord> records = new ArrayList<>();
-		records.add(record);
+		for (int i = 0; i < 50000; i++) {
+			int len = random.nextInt(100) + 50;
+			byte[] bases = new byte[len];
+			byte[] scores = new byte[len];
+			for (int p = 0; p < len; p++) {
+				bases[p] = "ACGT".getBytes()[random.nextInt(4)];
+				scores[p] = (byte) (33 + random.nextInt(40));
+			}
 
+			CramRecord record = new CramRecord();
+			record.setReadBases(bases);
+			record.setQualityScores(scores);
+			record.setReadLength(record.getReadBases().length);
+			record.setFlags(random.nextInt(1000));
+			record.alignmentStartOffsetFromPreviousRecord = random
+					.nextInt(200);
+
+			byte[] name = new byte[random.nextInt(5) + 5];
+			for (int p = 0; p < name.length; p++)
+				name[p] = (byte) (65 + random.nextInt(10));
+			record.setReadName(new String(name));
+
+			record.setSequenceName(sequenceRecord.getSequenceName());
+			record.sequenceId = sequenceRecord.getSequenceIndex();
+			record.setReadMapped(random.nextBoolean());
+			record.resetFlags();
+			record.setReadFeatures(new ArrayList<ReadFeature>());
+			record.setMappingQuality((byte) random.nextInt(40));
+
+			if (record.isReadMapped()) {
+				byte[] ops = new byte[] { SubstitutionVariation.operator,
+						DeletionVariation.operator,
+						InsertionVariation.operator, ReadBase.operator,
+						BaseQualityScore.operator, InsertBase.operator };
+				int prevPos = 0;
+				do {
+					int newPos = prevPos + random.nextInt(30);
+					if (newPos >= record.getReadLength())
+						break;
+					prevPos = newPos;
+
+					byte op = ops[random.nextInt(ops.length)];
+					switch (op) {
+					case SubstitutionVariation.operator:
+						SubstitutionVariation sv = new SubstitutionVariation();
+						sv.setPosition(newPos);
+						sv.setBaseChange(new BaseChange(random.nextInt(4)));
+						record.getReadFeatures().add(sv);
+						break;
+					case DeletionVariation.operator:
+						DeletionVariation dv = new DeletionVariation();
+						dv.setPosition(newPos);
+						dv.setLength(random.nextInt(10));
+						record.getReadFeatures().add(dv);
+						break;
+					case InsertionVariation.operator:
+						InsertionVariation iv = new InsertionVariation();
+						iv.setPosition(newPos);
+						byte[] seq = new byte[random.nextInt(10) + 1];
+						for (int p = 0; p < seq.length; p++)
+							seq[p] = "ACGT".getBytes()[random.nextInt(4)];
+						iv.setSequence(seq);
+						record.getReadFeatures().add(iv);
+						break;
+					case ReadBase.operator:
+						ReadBase rb = new ReadBase(newPos,
+								"ACGT".getBytes()[random.nextInt(4)],
+								(byte) (33 + random.nextInt(40)));
+						record.getReadFeatures().add(rb);
+						break;
+					case BaseQualityScore.operator:
+						BaseQualityScore qs = new BaseQualityScore(newPos, (byte) (33 + random.nextInt(40)));
+						record.getReadFeatures().add(qs);
+						break;
+					case InsertBase.operator:
+						InsertBase ib = new InsertBase();
+						ib.setPosition(newPos);
+						ib.setBase("ACGT".getBytes()[random.nextInt(4)]) ;
+						record.getReadFeatures().add(ib);
+						break;
+
+					default:
+						break;
+					}
+				} while (prevPos < record.getReadLength());
+			}
+
+			records.add(record);
+		}
+
+		long time1 = System.nanoTime() ;
 		Container c = writeContainer(records, samFileHeader);
-
+		long time2 = System.nanoTime() ;
+		System.out.println("Container written in " + (time2-time1)/1000000 + " milli seconds");
+		
+		time1 = System.nanoTime() ;
 		List<CramRecord> readRecords = records(c.h, c, samFileHeader);
-		for (CramRecord rr : readRecords)
+		time2 = System.nanoTime() ;
+		System.out.println("Container read in " + (time2-time1)/1000000 + " milli seconds");
+		
+		for (CramRecord rr : readRecords) {
 			System.out.println(rr);
+			break ;
+		}
+		
 	}
 }

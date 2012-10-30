@@ -24,7 +24,7 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(1024);
+		ByteBuffer buf = ByteBuffer.allocate(1024*10);
 		ByteBufferUtils.writeUnsignedITF8(values.length, buf);
 		for (int value : values)
 			ByteBufferUtils.writeUnsignedITF8(value, buf);

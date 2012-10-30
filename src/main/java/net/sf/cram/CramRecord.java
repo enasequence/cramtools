@@ -209,8 +209,9 @@ public class CramRecord {
 		StringBuffer sb = new StringBuffer("[");
 		if (readName != null)
 			sb.append(readName).append("; ");
-		sb.append("flags=").append(flags);
-		sb.append("; alignmentStart=").append(alignmentStart);
+		sb.append("flags=").append(getFlags());
+		sb.append("; aloffset=").append(alignmentStartOffsetFromPreviousRecord);
+		sb.append("; mateoffset=").append(recordsToNextFragment);
 		sb.append("; mappingQuality=").append(mappingQuality);
 
 		if (readFeatures != null)

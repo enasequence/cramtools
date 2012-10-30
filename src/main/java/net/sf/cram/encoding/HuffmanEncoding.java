@@ -16,6 +16,11 @@ public class HuffmanEncoding implements Encoding<Integer> {
 
 	public HuffmanEncoding() {
 	}
+	
+	@Override
+	public EncodingID id() {
+		return ENCODING_ID;
+	}
 
 	@Override
 	public byte[] toByteArray() {

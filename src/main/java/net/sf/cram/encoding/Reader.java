@@ -30,8 +30,8 @@ public class Reader {
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataReader<Integer> readLengthC;
 
-	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.LONG)
-	public DataReader<Long> alStartC;
+	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.INT)
+	public DataReader<Integer> alStartC;
 
 	@DataSeries(key = EncodingKey.RG_ReadGroup, type = DataSeriesType.INT)
 	public DataReader<Integer> readGroupC;
@@ -93,7 +93,7 @@ public class Reader {
 	public void read(CramRecord r) throws IOException {
 		r.setFlags(bitFlagsC.readData());
 		r.setReadLength(readLengthC.readData());
-		r.setAlignmentStart(alStartC.readData());
+		r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
 		r.setReadGroupID(readGroupC.readData());
 
 		if (captureReadNames) {

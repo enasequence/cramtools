@@ -15,7 +15,6 @@ import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 
 	private TreeMap<Integer, HuffmanBitCode> codes;
-	private HuffmanBitCode[] bitCodes = new HuffmanBitCode[256];
 	private Integer[] codeLentghSorted;
 	private Map<Integer, Map<Long, Integer>> codeCache = new HashMap<Integer, Map<Long, Integer>>();
 	private Map<Long, Integer>[] codeMaps;
@@ -64,7 +63,6 @@ public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 				if (NumberOfSetBits(codeValue) > iKey)
 					throw new IllegalArgumentException("Symbol out of range");
 
-				bitCodes[entry & 0xFF] = code; // Store Bit Code
 				codes.put(entry, code); // Store HuffmanBitCode
 
 				Map<Long, Integer> codeMap = codeCache.get(code.bitLentgh);
@@ -78,7 +76,10 @@ public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 		}
 
 		// 3. Done. Just have to populate codeMaps ---------------------
-		codeMaps = new Map[codeLentghSorted[codeLentghSorted.length - 1] + 1];
+		if (codeLentghSorted.length > 0)
+			codeMaps = new Map[codeLentghSorted[codeLentghSorted.length - 1] + 1];
+		else
+			codeMaps = new Map[1];
 		for (int len : codeLentghSorted) { // Iterate over code lengths
 			codeMaps[len] = codeCache.get(len);
 		}
@@ -108,7 +109,7 @@ public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 
 	@Override
 	public long write(BitOutputStream bos, Integer object) throws IOException {
-		HuffmanBitCode bitCode = bitCodes[object];
+		HuffmanBitCode bitCode = codes.get(object);
 		if (bitCode == null)
 			throw new RuntimeException("Huffman code not found for value: "
 					+ object);

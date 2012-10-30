@@ -17,6 +17,7 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GolombEncoding;
+import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.read_features.DeletionVariation;
@@ -56,10 +57,8 @@ public class CompressionHeaderFactory {
 			for (CramRecord r : records)
 				calculator.add(r.getFlags());
 			calculator.calculate();
-			h.eMap.put(
-					EncodingKey.BF_BitFlags,
-					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()));
+			h.eMap.put(EncodingKey.BF_BitFlags, HuffmanIntegerEncoding.toParam(
+					calculator.values(), calculator.bitLens()));
 		}
 
 		{ // read length encoding:
@@ -68,17 +67,31 @@ public class CompressionHeaderFactory {
 				calculator.add(r.getReadLength());
 			calculator.calculate();
 
-			h.eMap.put(
-					EncodingKey.RL_ReadLength,
-					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()));
+			h.eMap.put(EncodingKey.RL_ReadLength, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
 		}
 
-		h.eMap.put(EncodingKey.AP_AlignmentPositionOffset,
-				GolombEncoding.toParam(5));
+		{ // alignment offset:
+			NumberEncodingCalculator calc = new NumberEncodingCalculator();
+			for (CramRecord r : records) {
+				calc.addValue(r.alignmentStartOffsetFromPreviousRecord);
+			}
+
+			Encoding<Long> bestEncoding = calc.getBestEncoding();
+			h.eMap.put(
+					EncodingKey.AP_AlignmentPositionOffset,
+					new EncodingParams(bestEncoding.id(), bestEncoding
+							.toByteArray()));
+		}
 
 		{ // read group
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				calculator.add(r.getReadGroupID());
+			calculator.calculate();
 
+			h.eMap.put(EncodingKey.RG_ReadGroup, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
 		}
 
 		{ // read name encoding:
@@ -89,8 +102,8 @@ public class CompressionHeaderFactory {
 
 			h.eMap.put(EncodingKey.RN_ReadName, ByteArrayLenEncoding.toParam(
 					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()),
-					ExternalByteArrayEncoding.toParam(readNameID)));
+							calculator.bitLens()), ExternalByteArrayEncoding
+							.toParam(readNameID)));
 		}
 
 		{ // records to next fragment
@@ -117,8 +130,9 @@ public class CompressionHeaderFactory {
 				calculator.add(r.getReadFeatures().size());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures, HuffmanIntegerEncoding
-					.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures,
+					HuffmanIntegerEncoding.toParam(calculator.values,
+							calculator.bitLens));
 		}
 
 		{ // feature position
@@ -143,8 +157,8 @@ public class CompressionHeaderFactory {
 					calculator.add(rf.getOperator());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.RF_ReadFeatureCode, HuffmanIntegerEncoding.toParam(
-					calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.FC_FeatureCode, HuffmanByteEncoding
+					.toParam(calculator.valuesAsBytes(), calculator.bitLens));
 		}
 
 		{ // bases:
@@ -166,8 +180,9 @@ public class CompressionHeaderFactory {
 								.getBaseChange().getChange());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.BS_BaseSubstitutionCode, HuffmanIntegerEncoding
-					.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.BS_BaseSubstitutionCode,
+					HuffmanIntegerEncoding.toParam(calculator.values,
+							calculator.bitLens));
 		}
 
 		{ // insertion bases
@@ -183,8 +198,8 @@ public class CompressionHeaderFactory {
 
 			h.eMap.put(EncodingKey.IN_Insertion, ByteArrayLenEncoding.toParam(
 					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()),
-					ExternalByteArrayEncoding.toParam(baseID)));
+							calculator.bitLens()), ExternalByteArrayEncoding
+							.toParam(baseID)));
 		}
 
 		{ // deletion length
@@ -195,8 +210,8 @@ public class CompressionHeaderFactory {
 						calculator.add(((DeletionVariation) rf).getLength());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding.toParam(
-					calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
+					.toParam(calculator.values, calculator.bitLens));
 		}
 
 		{ // mapping quality score
@@ -205,8 +220,8 @@ public class CompressionHeaderFactory {
 				calculator.add(r.getMappingQuality());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.MQ_MappingQualityScore, HuffmanIntegerEncoding
-					.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.MQ_MappingQualityScore, HuffmanByteEncoding
+					.toParam(calculator.valuesAsBytes(), calculator.bitLens));
 		}
 
 		{ // mate bit flags
@@ -215,8 +230,8 @@ public class CompressionHeaderFactory {
 				calculator.add(r.getMateFlags());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.MF_MateBitFlags, HuffmanIntegerEncoding.toParam(
-					calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.MF_MateBitFlags, HuffmanIntegerEncoding
+					.toParam(calculator.values, calculator.bitLens));
 		}
 
 		{ // next fragment ref id
