@@ -23,6 +23,11 @@ import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 public class BetaIntegerCodec implements BitCodec<Integer> {
 	private int offset = 0;
 	private int readNofBits;
+	
+	public BetaIntegerCodec(int offset, int readNofBits) {
+		this.offset = offset;
+		this.readNofBits = readNofBits;
+	}
 
 	@Override
 	public final Integer read(BitInputStream bis) throws IOException {

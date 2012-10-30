@@ -1,6 +1,7 @@
 package net.sf.cram;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.encoding.DataReaderFactory;
@@ -499,9 +501,10 @@ public class BLOCK {
 		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100);
 		samFileHeader.addSequence(sequenceRecord);
 
+		long baseCount = 0 ;
 		Random random = new Random();
 		List<CramRecord> records = new ArrayList<>();
-		for (int i = 0; i < 50000; i++) {
+		for (int i = 0; i < 100000; i++) {
 			int len = random.nextInt(100) + 50;
 			byte[] bases = new byte[len];
 			byte[] scores = new byte[len];
@@ -589,6 +592,7 @@ public class BLOCK {
 			}
 
 			records.add(record);
+			baseCount += record.getReadLength() ;
 		}
 
 		long time1 = System.nanoTime() ;
@@ -605,6 +609,22 @@ public class BLOCK {
 			System.out.println(rr);
 			break ;
 		}
+		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+		GZIPOutputStream gos = new GZIPOutputStream(baos) ;
+		long size = 0 ;
+		for (Slice s:c.slices) {
+			size+= s.coreBlock.content.length ;
+			gos.write(s.coreBlock.content) ;
+			for (Block b:s.external.values()) {
+				size += b.content.length ;
+				gos.write(b.content) ;
+			}
+		}
+		gos.close() ;
+		System.out.println("Bases: " + baseCount);
+		System.out.printf("Uncompressed container size: %d; %.2f\n", size, size*8f/baseCount);
+		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(), baos.size()*8f/baseCount);
 		
 	}
 }
