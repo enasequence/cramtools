@@ -8,7 +8,7 @@ public class ReadBase implements Serializable, ReadFeature {
 	private byte base;
 	private byte qualityScore;
 
-	public static final byte operator = 'N';
+	public static final byte operator = 'B';
 	
 	public ReadBase(int position, byte base, byte qualityScore) {
 		this.position = position;

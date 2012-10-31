@@ -119,7 +119,13 @@ public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 
 	@Override
 	public long numberOfBits(Integer object) {
-		throw new UnsupportedOperationException("Not supported yet.");
+		HuffmanBitCode bitCode;
+		try {
+			bitCode = codes.get(object);
+			return bitCode.bitLentgh ;
+		} catch (NullPointerException e) {
+			throw new RuntimeException("Value " + object + " not found.", e) ;
+		}
 	}
 
 	private static class HuffmanBitCode {

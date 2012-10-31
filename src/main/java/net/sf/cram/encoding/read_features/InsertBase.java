@@ -6,6 +6,7 @@ public class InsertBase implements Serializable, ReadFeature {
 
 	private int position;
 	private byte base;
+	public static final byte operator = 'i';
 
 	public InsertBase() {
 	}
@@ -15,7 +16,6 @@ public class InsertBase implements Serializable, ReadFeature {
 		this.base = base;
 	}
 
-	public static final byte operator = 'i';
 
 	@Override
 	public byte getOperator() {

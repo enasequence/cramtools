@@ -77,7 +77,7 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // alignment offset:
-			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
 					"alignment offset");
 			for (CramRecord r : records) {
 				calc.addValue(r.alignmentStartOffsetFromPreviousRecord);
@@ -113,7 +113,7 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // records to next fragment
-			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
 					"records to next fragment");
 			for (CramRecord r : records)
 				calc.addValue(r.getRecordsToNextFragment());
@@ -143,7 +143,7 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // feature position
-			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
 					"read feature position");
 			for (CramRecord r : records) {
 				int prevPos = 0;
@@ -278,6 +278,15 @@ public class CompressionHeaderFactory {
 			counter.value++;
 		}
 
+		public void add(Integer value, int inc) {
+			MutableInt counter = countMap.get(value);
+			if (counter == null) {
+				counter = new MutableInt();
+				countMap.put(value, counter);
+			}
+			counter.value += inc;
+		}
+
 		public int[] bitLens() {
 			return bitLens;
 		}
@@ -354,17 +363,25 @@ public class CompressionHeaderFactory {
 			len += codec.numberOfBits(value);
 		}
 
+		public void add(int value, int inc) {
+			len += inc * codec.numberOfBits(value);
+		}
+
 		public long len() {
 			return len;
 		}
 	}
 
-	private static class NumberEncodingCalculator {
+	private static class IntegerEncodingCalculator {
 		private List<EncodingLengthCalculator> calcs = new ArrayList<>();
 		private int max = 0;
+		private int count = 0;
 		private String name;
+		private HashMap<Integer, MutableInt> dictionary = new HashMap<>();
+		private int dictionaryThreshold = 100;
 
-		public NumberEncodingCalculator(String name) {
+		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
+			this.name = name ;
 			for (int i = 2; i < 20; i++)
 				calcs.add(new EncodingLengthCalculator(
 						new GolombIntegerEncoding(i)));
@@ -373,19 +390,37 @@ public class CompressionHeaderFactory {
 				calcs.add(new EncodingLengthCalculator(
 						new GolombRiceIntegerEncoding(i)));
 
-			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding()));
+			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1)));
 
 			for (int i = 2; i < 20; i++)
 				calcs.add(new EncodingLengthCalculator(
 						new SubexpIntegerEncoding(i)));
 		}
 
+		public IntegerEncodingCalculator(String name) {
+			this(name, 255);
+		}
+
 		public void addValue(int value) {
+			count++;
 			if (value > max)
 				max = value;
 
 			for (EncodingLengthCalculator c : calcs)
 				c.add(value);
+
+			if (dictionary != null) {
+				MutableInt m = dictionary.get(value);
+				if (m == null) {
+					m = new MutableInt();
+					dictionary.put(value, m);
+				}
+				m.value++;
+
+				if (dictionary.size() > dictionaryThreshold)
+					dictionary = null;
+			}
+
 		}
 
 		public Encoding<Integer> getBestEncoding() {
@@ -397,13 +432,43 @@ public class CompressionHeaderFactory {
 			}
 
 			Encoding<Integer> bestEncoding = bestC.encoding;
+			long bits = bestC.len();
 
-			int betaLength = (int) Math
-					.round(Math.log(max) / Math.log(2) + 0.5);
-			if (bestC.len() > betaLength)
-				bestEncoding = new BetaIntegerEncoding(betaLength);
+			{ // check if beta is better:
 
-			System.out.printf("Best encoding for %s: %s, params array %s.\n",
+				int betaLength = (int) Math.round(Math.log(max) / Math.log(2)
+						+ 0.5);
+				if (bestC.len() > betaLength) {
+					bestEncoding = new BetaIntegerEncoding(betaLength);
+					bits = betaLength * count;
+				}
+			}
+
+			{ // try huffman:
+				if (dictionary != null) {
+					HuffmanParamsCalculator c = new HuffmanParamsCalculator();
+					for (Integer value : dictionary.keySet())
+						c.add(value, dictionary.get(value).value);
+
+					c.calculate();
+
+					EncodingParams param = HuffmanIntegerEncoding.toParam(
+							c.values(), c.bitLens());
+					HuffmanIntegerEncoding he = new HuffmanIntegerEncoding();
+					he.fromByteArray(param.params);
+					EncodingLengthCalculator lc = new EncodingLengthCalculator(
+							he);
+					for (Integer value : dictionary.keySet())
+						lc.add(value, dictionary.get(value).value);
+
+					if (lc.len() < bits) {
+						bestEncoding = he;
+						bits = lc.len();
+					}
+				}
+			}
+
+			System.err.printf("Best encoding for %s: %s, params array %s.\n",
 					name, bestEncoding.id(),
 					Arrays.toString(bestEncoding.toByteArray()));
 			return bestEncoding;

@@ -17,17 +17,14 @@ package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
 
-
-
 public class SubstitutionVariation implements Serializable, ReadFeature {
 
 	private int position;
 	private byte base;
 	private byte refernceBase;
-	// private byte qualityScore;
 	private BaseChange baseChange;
 
-	public static final byte operator = 'S';
+	public static final byte operator = 'X';
 
 	@Override
 	public byte getOperator() {

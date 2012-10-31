@@ -2,10 +2,13 @@ package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
 
+import net.sf.samtools.CigarOperator;
+
 public class DeletionVariation implements Serializable, ReadFeature{
 
 	private int position;
 	private int length;
+	public static final byte operator = 'D';
 
 	public DeletionVariation() {
 	}
@@ -15,7 +18,6 @@ public class DeletionVariation implements Serializable, ReadFeature{
 		this.length = length;
 	}
 
-	public static final byte operator = 'D';
 
 	@Override
 	public byte getOperator() {

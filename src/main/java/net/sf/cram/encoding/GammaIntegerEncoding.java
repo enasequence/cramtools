@@ -14,8 +14,13 @@ public class GammaIntegerEncoding implements Encoding<Integer> {
 	private int offset ;
 
 	public GammaIntegerEncoding() {
+		this (0) ;
 	}
-	
+
+	public GammaIntegerEncoding(int offset) {
+		this.offset = offset;
+	}
+
 	@Override
 	public EncodingID id() {
 		return ENCODING_ID;

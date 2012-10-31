@@ -1,27 +1,29 @@
 package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
-public class InsertionVariation implements Serializable, ReadFeature {
+import net.sf.samtools.CigarOperator;
+
+public class SoftClipVariation implements Serializable, ReadFeature{
 
 	private int position;
-	private byte[] sequence;
-	public static final byte operator = 'I';
+	private int length;
 
-	public InsertionVariation() {
+	public SoftClipVariation() {
 	}
 
-	public InsertionVariation(int position, byte[] sequence) {
+	public SoftClipVariation(int position, int length) {
 		this.position = position;
-		this.sequence = sequence;
+		this.length = length;
 	}
+
+	public static final byte operator = CigarOperator.enumToCharacter(CigarOperator.S);
 
 	@Override
 	public byte getOperator() {
 		return operator;
 	}
-
+	
 	public int getPosition() {
 		return position;
 	}
@@ -30,31 +32,34 @@ public class InsertionVariation implements Serializable, ReadFeature {
 		this.position = position;
 	}
 
-	public byte[] getSequence() {
-		return sequence;
+	public int getLength() {
+		return length;
 	}
 
-	public void setSequence(byte[] sequence) {
-		this.sequence = sequence;
+	public void setLength(int length) {
+		this.length = length;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof InsertionVariation))
+		if (!(obj instanceof SoftClipVariation))
 			return false;
 
-		InsertionVariation v = (InsertionVariation) obj;
+		SoftClipVariation v = (SoftClipVariation) obj;
 
 		if (position != v.position)
 			return false;
-		return Arrays.equals(sequence, v.sequence);
+		if (length != v.length)
+			return false;
+
+		return true;
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
 		sb.append("position=").append(position);
-		sb.append("; sequence=").append(new String(sequence));
+		sb.append("; length=").append(length);
 		sb.append("] ");
 		return sb.toString();
 	}
