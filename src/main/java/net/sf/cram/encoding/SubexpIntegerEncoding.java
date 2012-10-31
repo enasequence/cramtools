@@ -9,16 +9,21 @@ import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 
-public class BetaIntegerEncoding implements Encoding<Integer> {
-	public static final EncodingID ENCODING_ID = EncodingID.BETA;
+public class SubexpIntegerEncoding implements Encoding<Integer> {
+	public static final EncodingID ENCODING_ID = EncodingID.SUBEXP;
 	private int offset;
-	private int bitLimit;
+	private int k;
 
-	public BetaIntegerEncoding() {
+	public SubexpIntegerEncoding() {
 	}
 
-	public BetaIntegerEncoding(int bitLimit) {
-		this.bitLimit = bitLimit;
+	public SubexpIntegerEncoding(int k) {
+		this(0, k);
+	}
+
+	public SubexpIntegerEncoding(int offset, int k) {
+		this.offset = offset;
+		this.k = k;
 	}
 
 	@Override
@@ -26,35 +31,29 @@ public class BetaIntegerEncoding implements Encoding<Integer> {
 		return ENCODING_ID;
 	}
 
-	public static EncodingParams toParam(int offset, int bitLimit) {
-		BetaIntegerEncoding e = new BetaIntegerEncoding();
+	public static EncodingParams toParam(int offset, int k) {
+		SubexpIntegerEncoding e = new SubexpIntegerEncoding();
 		e.offset = offset;
-		e.bitLimit = bitLimit;
+		e.k = k;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
 	@Override
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(10);
-		ByteBufferUtils.writeUnsignedITF8(offset, buf);
-		ByteBufferUtils.writeUnsignedITF8(bitLimit, buf);
-		buf.flip();
-		byte[] array = new byte[buf.limit()];
-		buf.get(array);
-		return array;
+		return ByteBufferUtils.writeUnsignedITF8(k);
 	}
 
 	@Override
 	public void fromByteArray(byte[] data) {
 		ByteBuffer buf = ByteBuffer.wrap(data);
 		offset = ByteBufferUtils.readUnsignedITF8(buf);
-		bitLimit = ByteBufferUtils.readUnsignedITF8(buf);
+		k = ByteBufferUtils.readUnsignedITF8(buf);
 	}
 
 	@Override
 	public BitCodec<Integer> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new BetaIntegerCodec(offset, bitLimit);
+		return new SubexpIntegerCodec(offset, k);
 	}
 
 }

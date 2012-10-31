@@ -1,6 +1,7 @@
 package net.sf.cram.stats;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -10,16 +11,20 @@ import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
 import net.sf.cram.Utils;
+import net.sf.cram.encoding.BetaIntegerEncoding;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.ByteArrayLenEncoding;
 import net.sf.cram.encoding.Encoding;
 import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
-import net.sf.cram.encoding.GolombEncoding;
+import net.sf.cram.encoding.GammaIntegerEncoding;
+import net.sf.cram.encoding.GolombIntegerEncoding;
+import net.sf.cram.encoding.GolombRiceIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
+import net.sf.cram.encoding.SubexpIntegerEncoding;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
@@ -72,12 +77,13 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // alignment offset:
-			NumberEncodingCalculator calc = new NumberEncodingCalculator();
+			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+					"alignment offset");
 			for (CramRecord r : records) {
 				calc.addValue(r.alignmentStartOffsetFromPreviousRecord);
 			}
 
-			Encoding<Long> bestEncoding = calc.getBestEncoding();
+			Encoding<Integer> bestEncoding = calc.getBestEncoding();
 			h.eMap.put(
 					EncodingKey.AP_AlignmentPositionOffset,
 					new EncodingParams(bestEncoding.id(), bestEncoding
@@ -107,11 +113,12 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // records to next fragment
-			NumberEncodingCalculator calc = new NumberEncodingCalculator();
+			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+					"records to next fragment");
 			for (CramRecord r : records)
 				calc.addValue(r.getRecordsToNextFragment());
 
-			Encoding<Long> bestEncoding = calc.getBestEncoding();
+			Encoding<Integer> bestEncoding = calc.getBestEncoding();
 			h.eMap.put(
 					EncodingKey.NF_RecordsToNextFragment,
 					new EncodingParams(bestEncoding.id(), bestEncoding
@@ -136,7 +143,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // feature position
-			NumberEncodingCalculator calc = new NumberEncodingCalculator();
+			NumberEncodingCalculator calc = new NumberEncodingCalculator(
+					"read feature position");
 			for (CramRecord r : records) {
 				int prevPos = 0;
 				for (ReadFeature rf : r.getReadFeatures()) {
@@ -145,7 +153,7 @@ public class CompressionHeaderFactory {
 				}
 			}
 
-			Encoding<Long> bestEncoding = calc.getBestEncoding();
+			Encoding<Integer> bestEncoding = calc.getBestEncoding();
 			h.eMap.put(EncodingKey.FP_FeaturePosition, new EncodingParams(
 					bestEncoding.id(), bestEncoding.toByteArray()));
 		}
@@ -157,8 +165,8 @@ public class CompressionHeaderFactory {
 					calculator.add(rf.getOperator());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.FC_FeatureCode, HuffmanByteEncoding
-					.toParam(calculator.valuesAsBytes(), calculator.bitLens));
+			h.eMap.put(EncodingKey.FC_FeatureCode, HuffmanByteEncoding.toParam(
+					calculator.valuesAsBytes(), calculator.bitLens));
 		}
 
 		{ // bases:
@@ -333,16 +341,16 @@ public class CompressionHeaderFactory {
 	}
 
 	private static class EncodingLengthCalculator {
-		private BitCodec<Long> codec;
-		private Encoding<Long> encoding;
+		private BitCodec<Integer> codec;
+		private Encoding<Integer> encoding;
 		private long len;
 
-		public EncodingLengthCalculator(Encoding<Long> encoding) {
+		public EncodingLengthCalculator(Encoding<Integer> encoding) {
 			this.encoding = encoding;
 			codec = encoding.buildCodec(null, null);
 		}
 
-		public void add(long value) {
+		public void add(int value) {
 			len += codec.numberOfBits(value);
 		}
 
@@ -353,18 +361,34 @@ public class CompressionHeaderFactory {
 
 	private static class NumberEncodingCalculator {
 		private List<EncodingLengthCalculator> calcs = new ArrayList<>();
+		private int max = 0;
+		private String name;
 
-		public NumberEncodingCalculator() {
+		public NumberEncodingCalculator(String name) {
 			for (int i = 2; i < 20; i++)
-				calcs.add(new EncodingLengthCalculator(new GolombEncoding(i)));
+				calcs.add(new EncodingLengthCalculator(
+						new GolombIntegerEncoding(i)));
+
+			for (int i = 2; i < 20; i++)
+				calcs.add(new EncodingLengthCalculator(
+						new GolombRiceIntegerEncoding(i)));
+
+			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding()));
+
+			for (int i = 2; i < 20; i++)
+				calcs.add(new EncodingLengthCalculator(
+						new SubexpIntegerEncoding(i)));
 		}
 
-		public void addValue(long value) {
+		public void addValue(int value) {
+			if (value > max)
+				max = value;
+
 			for (EncodingLengthCalculator c : calcs)
 				c.add(value);
 		}
 
-		public Encoding<Long> getBestEncoding() {
+		public Encoding<Integer> getBestEncoding() {
 			EncodingLengthCalculator bestC = calcs.get(0);
 
 			for (EncodingLengthCalculator c : calcs) {
@@ -372,7 +396,17 @@ public class CompressionHeaderFactory {
 					bestC = c;
 			}
 
-			return bestC.encoding;
+			Encoding<Integer> bestEncoding = bestC.encoding;
+
+			int betaLength = (int) Math
+					.round(Math.log(max) / Math.log(2) + 0.5);
+			if (bestC.len() > betaLength)
+				bestEncoding = new BetaIntegerEncoding(betaLength);
+
+			System.out.printf("Best encoding for %s: %s, params array %s.\n",
+					name, bestEncoding.id(),
+					Arrays.toString(bestEncoding.toByteArray()));
+			return bestEncoding;
 		}
 	}
 }

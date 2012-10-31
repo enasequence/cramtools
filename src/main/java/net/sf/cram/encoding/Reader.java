@@ -84,8 +84,8 @@ public class Reader {
 	@DataSeries(key = EncodingKey.NS_NextFragmentReferenceSequenceID, type = DataSeriesType.INT)
 	public DataReader<Integer> mrc;
 
-	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.LONG)
-	public DataReader<Long> malsc;
+	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.INT)
+	public DataReader<Integer> malsc;
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataReader<Integer> tsc;

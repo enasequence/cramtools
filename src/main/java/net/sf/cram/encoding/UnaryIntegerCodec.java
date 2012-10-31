@@ -25,16 +25,20 @@ public class UnaryIntegerCodec implements BitCodec<Integer> {
 	private int offset = 0;
 
 	public UnaryIntegerCodec() {
-		this(false, 0);
+		this(0, false);
 	}
 
-	public UnaryIntegerCodec(boolean stopBit, int offset) {
+	public UnaryIntegerCodec(int offset) {
+		this(offset, false);
+	}
+
+	public UnaryIntegerCodec(int offset, boolean stopBit) {
 		this.stopBit = stopBit;
 		this.offset = offset;
 	}
 
 	@Override
-	public final Integer read (BitInputStream bis) throws IOException {
+	public final Integer read(BitInputStream bis) throws IOException {
 		int bits = 0;
 		while (bis.readBit() != stopBit)
 			bits++;
@@ -43,10 +47,12 @@ public class UnaryIntegerCodec implements BitCodec<Integer> {
 	}
 
 	@Override
-	public final long write(BitOutputStream bos, Integer value) throws IOException {
+	public final long write(BitOutputStream bos, Integer value)
+			throws IOException {
 		int newValue = value + offset;
 		if (newValue < 0)
-			throw new IllegalArgumentException("Unary codec, negative values not allowed: " + newValue);
+			throw new IllegalArgumentException(
+					"Unary codec, negative values not allowed: " + newValue);
 
 		int bits = newValue + 1;
 
@@ -79,7 +85,7 @@ public class UnaryIntegerCodec implements BitCodec<Integer> {
 
 	@Override
 	public Integer read(BitInputStream bis, int len) throws IOException {
-		throw new RuntimeException("Not implemented.") ;
+		throw new RuntimeException("Not implemented.");
 	}
 
 }

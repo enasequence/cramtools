@@ -24,6 +24,10 @@ public class SubexpIntegerCodec implements BitCodec<Integer> {
 	private int offset = 0;
 	private int k = 2;
 	private boolean unaryBit = true;
+	
+	public SubexpIntegerCodec(int offset, int k) {
+		this (offset, k, true) ;
+	}
 
 	public SubexpIntegerCodec(int offset, int k, boolean unaryBit) {
 		this.offset = offset;

@@ -9,21 +9,23 @@ import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 
-public class GammaIntegerEncoding implements Encoding<Integer> {
-	public static final EncodingID ENCODING_ID = EncodingID.GAMMA;
-	private int offset ;
+public class UnaryIntegerEncoding implements Encoding<Integer> {
+	public static final EncodingID ENCODING_ID = EncodingID.GOLOMB;
+	private int offset;
+	private boolean stopBit;
 
-	public GammaIntegerEncoding() {
+	public UnaryIntegerEncoding() {
 	}
-	
+
 	@Override
 	public EncodingID id() {
 		return ENCODING_ID;
 	}
 
-	public static EncodingParams toParam(int offset) {
-		GammaIntegerEncoding e = new GammaIntegerEncoding();
+	public static EncodingParams toParam(int offset, boolean stopBit) {
+		UnaryIntegerEncoding e = new UnaryIntegerEncoding();
 		e.offset = offset ;
+		e.stopBit = stopBit ;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
@@ -31,6 +33,7 @@ public class GammaIntegerEncoding implements Encoding<Integer> {
 	public byte[] toByteArray() {
 		ByteBuffer buf = ByteBuffer.allocate(10);
 		ByteBufferUtils.writeUnsignedITF8(offset, buf);
+		buf.put((byte) (stopBit ? 1 : 0));
 		buf.flip();
 		byte[] array = new byte[buf.limit()];
 		buf.get(array);
@@ -39,13 +42,15 @@ public class GammaIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public void fromByteArray(byte[] data) {
-		offset = ByteBufferUtils.readUnsignedITF8(data) ;
+		ByteBuffer buf = ByteBuffer.wrap(data);
+		offset = ByteBufferUtils.readUnsignedITF8(buf);
+		stopBit = buf.get() == 1;
 	}
 
 	@Override
 	public BitCodec<Integer> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new GammaIntegerCodec(offset);
+		return new UnaryIntegerCodec();
 	}
 
 }

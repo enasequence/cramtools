@@ -1,6 +1,7 @@
 package net.sf.cram.encoding;
 
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 import net.sf.block.ByteBufferUtils;
@@ -8,15 +9,12 @@ import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 
-public class GolombEncoding implements Encoding<Long> {
+public class GolombLongEncoding implements Encoding<Long> {
 	public static final EncodingID ENCODING_ID = EncodingID.GOLOMB;
 	private int m;
+	private int offset;
 
-	public GolombEncoding() {
-	}
-	
-	public GolombEncoding(int m) {
-		this.m = m;
+	public GolombLongEncoding() {
 	}
 
 	@Override
@@ -24,26 +22,35 @@ public class GolombEncoding implements Encoding<Long> {
 		return ENCODING_ID;
 	}
 
-	public static EncodingParams toParam(int m) {
-		GolombEncoding e = new GolombEncoding();
+	public static EncodingParams toParam(int offset, int m) {
+		GolombLongEncoding e = new GolombLongEncoding();
+		e.offset = offset;
 		e.m = m;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
 	@Override
 	public byte[] toByteArray() {
-		return ByteBufferUtils.writeUnsignedITF8(m);
+		ByteBuffer buf = ByteBuffer.allocate(10);
+		ByteBufferUtils.writeUnsignedITF8(offset, buf);
+		ByteBufferUtils.writeUnsignedITF8(m, buf);
+		buf.flip();
+		byte[] array = new byte[buf.limit()];
+		buf.get(array);
+		return array;
 	}
 
 	@Override
 	public void fromByteArray(byte[] data) {
-		m = ByteBufferUtils.readUnsignedITF8(data);
+		ByteBuffer buf = ByteBuffer.wrap(data);
+		offset = ByteBufferUtils.readUnsignedITF8(buf);
+		m = ByteBufferUtils.readUnsignedITF8(buf);
 	}
 
 	@Override
 	public BitCodec<Long> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new GolombCodec(m);
+		return new GolombLongCodec(offset, m, true);
 	}
 
 }

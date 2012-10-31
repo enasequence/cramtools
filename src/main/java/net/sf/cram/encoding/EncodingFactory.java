@@ -33,6 +33,14 @@ public class EncodingFactory {
 				return (Encoding<T>) new ExternalIntegerEncoding();
 			case GOLOMB:
 				return (Encoding<T>) new GolombIntegerEncoding();
+			case GOLOMB_RICE:
+				return (Encoding<T>) new GolombRiceIntegerEncoding();
+			case BETA:
+				return (Encoding<T>) new BetaIntegerEncoding();
+			case GAMMA:
+				return (Encoding<T>) new GammaIntegerEncoding();
+			case SUBEXP:
+				return (Encoding<T>) new SubexpIntegerEncoding();
 
 			default:
 				break;
@@ -44,7 +52,7 @@ public class EncodingFactory {
 			case NULL:
 				return new NullEncoding<>();
 			case GOLOMB:
-				return (Encoding<T>) new GolombEncoding();
+				return (Encoding<T>) new GolombLongEncoding();
 			case EXTERNAL:
 				return (Encoding<T>) new ExternalLongEncoding();
 

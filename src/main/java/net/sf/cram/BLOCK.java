@@ -413,10 +413,11 @@ public class BLOCK {
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
-		long time1 = System.nanoTime() ;
+		long time1 = System.nanoTime();
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
-		long time2 = System.nanoTime() ;
-		System.out.println("Compression header built in " + (time2-time1)/1000000 + " ms.");
+		long time2 = System.nanoTime();
+		System.out.println("Compression header built in " + (time2 - time1)
+				/ 1000000 + " ms.");
 		h.mappedQualityScoreIncluded = true;
 		h.unmappedQualityScoreIncluded = true;
 		h.readNamesIncluded = true;
@@ -430,7 +431,7 @@ public class BLOCK {
 		c.nofRecords = records.size();
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
-					Math.min(records.size(), i+recordsPerSlice));
+					Math.min(records.size(), i + recordsPerSlice));
 			Slice slice = writeSlice(sliceRecords, h, fileHeader);
 			slices.add(slice);
 
@@ -501,7 +502,7 @@ public class BLOCK {
 		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100);
 		samFileHeader.addSequence(sequenceRecord);
 
-		long baseCount = 0 ;
+		long baseCount = 0;
 		Random random = new Random();
 		List<CramRecord> records = new ArrayList<>();
 		for (int i = 0; i < 100000; i++) {
@@ -518,8 +519,7 @@ public class BLOCK {
 			record.setQualityScores(scores);
 			record.setReadLength(record.getReadBases().length);
 			record.setFlags(random.nextInt(1000));
-			record.alignmentStartOffsetFromPreviousRecord = random
-					.nextInt(200);
+			record.alignmentStartOffsetFromPreviousRecord = random.nextInt(200);
 
 			byte[] name = new byte[random.nextInt(5) + 5];
 			for (int p = 0; p < name.length; p++)
@@ -575,13 +575,14 @@ public class BLOCK {
 						record.getReadFeatures().add(rb);
 						break;
 					case BaseQualityScore.operator:
-						BaseQualityScore qs = new BaseQualityScore(newPos, (byte) (33 + random.nextInt(40)));
+						BaseQualityScore qs = new BaseQualityScore(newPos,
+								(byte) (33 + random.nextInt(40)));
 						record.getReadFeatures().add(qs);
 						break;
 					case InsertBase.operator:
 						InsertBase ib = new InsertBase();
 						ib.setPosition(newPos);
-						ib.setBase("ACGT".getBytes()[random.nextInt(4)]) ;
+						ib.setBase("ACGT".getBytes()[random.nextInt(4)]);
 						record.getReadFeatures().add(ib);
 						break;
 
@@ -591,40 +592,46 @@ public class BLOCK {
 				} while (prevPos < record.getReadLength());
 			}
 
+			if (!record.isLastFragment())
+				record.setRecordsToNextFragment(random.nextInt(10000));
 			records.add(record);
-			baseCount += record.getReadLength() ;
+			baseCount += record.getReadLength();
 		}
 
-		long time1 = System.nanoTime() ;
+		long time1 = System.nanoTime();
 		Container c = writeContainer(records, samFileHeader);
-		long time2 = System.nanoTime() ;
-		System.out.println("Container written in " + (time2-time1)/1000000 + " milli seconds");
-		
-		time1 = System.nanoTime() ;
+		long time2 = System.nanoTime();
+		System.out.println("Container written in " + (time2 - time1) / 1000000
+				+ " milli seconds");
+
+		time1 = System.nanoTime();
 		List<CramRecord> readRecords = records(c.h, c, samFileHeader);
-		time2 = System.nanoTime() ;
-		System.out.println("Container read in " + (time2-time1)/1000000 + " milli seconds");
-		
+		time2 = System.nanoTime();
+		System.out.println("Container read in " + (time2 - time1) / 1000000
+				+ " milli seconds");
+
 		for (CramRecord rr : readRecords) {
 			System.out.println(rr);
-			break ;
+			break;
 		}
-		
-		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
-		GZIPOutputStream gos = new GZIPOutputStream(baos) ;
-		long size = 0 ;
-		for (Slice s:c.slices) {
-			size+= s.coreBlock.content.length ;
-			gos.write(s.coreBlock.content) ;
-			for (Block b:s.external.values()) {
-				size += b.content.length ;
-				gos.write(b.content) ;
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		GZIPOutputStream gos = new GZIPOutputStream(baos);
+		long size = 0;
+		for (Slice s : c.slices) {
+			size += s.coreBlock.content.length;
+			gos.write(s.coreBlock.content);
+			for (Block b : s.external.values()) {
+				size += b.content.length;
+				gos.write(b.content);
 			}
 		}
-		gos.close() ;
+		gos.close();
 		System.out.println("Bases: " + baseCount);
-		System.out.printf("Uncompressed container size: %d; %.2f\n", size, size*8f/baseCount);
-		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(), baos.size()*8f/baseCount);
-		
+		System.out.printf("Uncompressed container size: %d; %.2f\n", size, size
+				* 8f / baseCount);
+		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(),
+				baos.size() * 8f / baseCount);
+
 	}
 }

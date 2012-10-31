@@ -26,16 +26,19 @@ public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 	private boolean quotientBit = false;
 	private int offset = 0;
 
-	public GolombRiceIntegerCodec(int log2m, boolean quotientBit, int offset) {
-		super();
+	public GolombRiceIntegerCodec(int log2m) {
+		this (0, log2m) ;
+	}
+
+	public GolombRiceIntegerCodec(int offset, int log2m) {
+		this (offset, log2m, false) ;
+	}
+
+	public GolombRiceIntegerCodec(int offset, int log2m, boolean quotientBit) {
 		this.log2m = log2m;
 		m = 1 << log2m;
 		this.quotientBit = quotientBit;
 		this.offset = offset;
-	}
-
-	public GolombRiceIntegerCodec(int log2m) {
-		this(log2m, false, 0);
 	}
 
 	public final Integer read(final BitInputStream bis) throws IOException {

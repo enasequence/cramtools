@@ -20,18 +20,20 @@ import java.io.IOException;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 
-public class GolombCodec implements BitCodec<Long> {
-	private long m;
+public class GolombLongCodec implements BitCodec<Long> {
+	private int m;
 	private boolean quotientBit = true;
-	private Long offset = 0L;
-	private boolean deltaCodec = false;
-	private long previousValue = 0L;
+	private long offset = 0L;
 
-	public GolombCodec(int m) {
-		this(m, true, 0L);
+	public GolombLongCodec(int m) {
+		this(0, m, true);
 	}
 
-	public GolombCodec(long m, boolean quotientBit, Long offset) {
+	public GolombLongCodec(long offset, int m) {
+		this(offset, m, true);
+	}
+
+	public GolombLongCodec(long offset, int m, boolean quotientBit) {
 		if (m < 2)
 			throw new IllegalArgumentException(
 					"M parameter must be at least 2.");
@@ -46,10 +48,8 @@ public class GolombCodec implements BitCodec<Long> {
 		while (bis.readBit() == quotientBit)
 			quotient++;
 
-		long numbits = quotient + 1;
 		long ceiling = (long) (Math.log(m) / Math.log(2) + 1);
 		long reminder = bis.readBits((int) (ceiling - 1));
-		numbits += ceiling - 1;
 		if (reminder >= Math.pow(2, ceiling) - m) {
 			reminder <<= 1;
 			reminder |= bis.readBits(1);
@@ -98,7 +98,7 @@ public class GolombCodec implements BitCodec<Long> {
 		return l;
 	}
 
-	public long getM() {
+	public int getM() {
 		return m;
 	}
 
@@ -110,7 +110,7 @@ public class GolombCodec implements BitCodec<Long> {
 		return offset;
 	}
 
-	public void setM(long m) {
+	public void setM(int m) {
 		this.m = m;
 	}
 
@@ -126,11 +126,4 @@ public class GolombCodec implements BitCodec<Long> {
 	public Long read(BitInputStream bis, int len) throws IOException {
 		throw new RuntimeException("Multi-value read method not defined.");
 	}
-
-	// @Override
-	// public void reset() {
-	// // TODO Auto-generated method stub
-	//
-	// }
-
 }
