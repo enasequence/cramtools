@@ -72,35 +72,21 @@ public class SubstitutionVariation implements Serializable, ReadFeature {
 			} else if (!v.baseChange.equals(baseChange))
 				return false;
 		}
-
-		// if (qualityScore != v.qualityScore)
-		// return false;
-
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
-		sb.append("position=").append(position);
+		StringBuffer sb = new StringBuffer().append((char)operator).append('@');
+		sb.append(position);
 		if (baseChange != null)
-			sb.append("; change=").append(baseChange.getChange());
+			sb.append('/').append(baseChange.getChange());
 		else {
-			sb.append("; base=").append((char) base);
-			sb.append("; referenceBase=").append((char) refernceBase);
+			sb.append('\\').append((char) base);
+			sb.append((char) refernceBase);
 		}
-		// sb.append("; quality score=").append(qualityScore);
-		sb.append("] ");
 		return sb.toString();
 	}
-
-	// public byte getQualityScore() {
-	// return qualityScore;
-	// }
-	//
-	// public void setQualityScore(byte qualityScore) {
-	// this.qualityScore = qualityScore;
-	// }
 
 	public BaseChange getBaseChange() {
 		return baseChange;

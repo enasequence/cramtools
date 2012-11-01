@@ -184,14 +184,14 @@ public class Writer {
 
 			// mapping quality:
 			mqc.writeData(r.getMappingQuality());
-			if (captureMappedQS) {
+			if (r.forcePreserveQualityScores) {
 				for (byte q : r.getQualityScores())
 					qc.writeData(q);
 			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
-			if (captureUnmappedQS) {
+			if (r.forcePreserveQualityScores) {
 				for (byte q : r.getQualityScores())
 					qc.writeData(q);
 			}

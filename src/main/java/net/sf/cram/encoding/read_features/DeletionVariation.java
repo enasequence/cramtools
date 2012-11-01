@@ -57,10 +57,9 @@ public class DeletionVariation implements Serializable, ReadFeature{
 
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
-		sb.append("position=").append(position);
-		sb.append("; length=").append(length);
-		sb.append("] ");
+		StringBuffer sb = new StringBuffer().append((char)operator).append('@');
+		sb.append(position);
+		sb.append('+').append(length);
 		return sb.toString();
 	}
 }

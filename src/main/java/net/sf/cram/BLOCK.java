@@ -296,7 +296,7 @@ public class BLOCK {
 	}
 
 	public static List<PreservationPolicy> policyList = new ArrayList<>();
-	{
+	static {
 		// these should be sorted by qs treatment from none to max!
 
 		// R8X10-R40X5-N40-U40
@@ -346,7 +346,7 @@ public class BLOCK {
 	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
 		switch (t.type) {
 		case BIN:
-			return Illumina_binning_matrix[score];
+			return Illumina_binning_matrix[score - 33];
 		case DROP:
 			return -1;
 		case PRESERVE:
@@ -359,13 +359,31 @@ public class BLOCK {
 
 	public static void addQS(SAMRecord s, CramRecord r, ReferenceTracks t,
 			List<PreservationPolicy> pp) {
-		BaseQualityScore[] scores = new BaseQualityScore[s.getReadLength()];
+		byte[] scores = new byte[s.getReadLength()];
+		Arrays.fill(scores, (byte) -1);
 		for (PreservationPolicy p : pp)
 			addQS(s, r, scores, t, p);
+
+		if (!r.forcePreserveQualityScores) {
+			for (int i = 0; i < scores.length; i++) {
+				if (scores[i] > -1)
+					r.getReadFeatures().add(new BaseQualityScore(i, scores[i]));
+			}
+			Collections
+					.sort(r.getReadFeatures(), readFeaturePositionComparator);
+		}
 	}
 
-	public static void addQS(SAMRecord s, CramRecord r,
-			BaseQualityScore[] scores, ReferenceTracks t, PreservationPolicy p) {
+	private static Comparator<ReadFeature> readFeaturePositionComparator = new Comparator<ReadFeature>() {
+
+		@Override
+		public int compare(ReadFeature o1, ReadFeature o2) {
+			return o1.getPosition() - o2.getPosition();
+		}
+	};
+
+	public static void addQS(SAMRecord s, CramRecord r, byte[] scores,
+			ReferenceTracks t, PreservationPolicy p) {
 		int alSpan = s.getAlignmentEnd() - s.getAlignmentStart();
 		t.ensureRange(s.getAlignmentStart(), alSpan);
 		byte[] qs = s.getBaseQualities();
@@ -399,13 +417,19 @@ public class BLOCK {
 			case BIN:
 				if (r.getQualityScores() == null)
 					r.setQualityScores(s.getBaseQualities());
-				applyBinning(r.getQualityScores());
+				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
+						scores.length);
+				applyBinning(scores);
+				r.forcePreserveQualityScores = true;
 				break;
 			case PRESERVE:
-				r.setReadBases(s.getBaseQualities());
+				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
+						scores.length);
+				r.forcePreserveQualityScores = true;
 				break;
 			case DROP:
 				r.setReadBases(null);
+				r.forcePreserveQualityScores = false;
 				break;
 
 			default:
@@ -477,10 +501,16 @@ public class BLOCK {
 				break;
 			}
 
+			int maskedCount = 0;
 			for (int i = 0; i < mask.length; i++)
-				if (mask[i])
-					scores[i] = new BaseQualityScore(i, applyTreatment(qs[i],
-							p.treatment));
+				if (mask[i]) {
+					scores[i] = applyTreatment(qs[i], p.treatment);
+					maskedCount++;
+				}
+			// safety latch, store all qs if there are too many individual score
+			// to store:
+			if (maskedCount > s.getReadLength() / 2)
+				r.forcePreserveQualityScores = true;
 		}
 	}
 
@@ -843,11 +873,12 @@ public class BLOCK {
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		int maxRecords = 10;
+		int maxRecords = 50000;
 		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
 
 		int alStart = Integer.MAX_VALUE;
 		int alEnd = 0;
+		long baseCount = 0 ;
 		SAMRecordIterator iterator = samFileReader.iterator();
 		do {
 			SAMRecord samRecord = iterator.next();
@@ -855,6 +886,7 @@ public class BLOCK {
 					|| samRecords.size() >= maxRecords)
 				break;
 
+			baseCount += samRecord.getReadLength() ;
 			samRecords.add(samRecord);
 			if (samRecord.getAlignmentStart() > 0
 					&& alStart > samRecord.getAlignmentStart())
@@ -864,28 +896,29 @@ public class BLOCK {
 		} while (iterator.hasNext());
 
 		ReferenceTracks tracks = new ReferenceTracks(sequence.getContigIndex(),
-				sequence.getName(), sequence.getBases(), alEnd - alStart+1);
+				sequence.getName(), sequence.getBases(), alEnd - alStart + 1);
 		tracks.moveForwardTo(alStart);
 
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
-		f.captureUnmappedBases = true ;
-		f.captureUnmappedScores = true ;
+		f.captureUnmappedBases = true;
+		f.captureUnmappedScores = true;
 		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
-		int prevAlStart = 1 ;
-		int index = 0 ;
+		int prevAlStart = 1;
+		int index = 0;
 		for (SAMRecord samRecord : samRecords) {
 			CramRecord cramRecord = f.createCramRecord(samRecord);
-			cramRecord.index = index++ ;
-			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord.getAlignmentStart()-prevAlStart ;
-			prevAlStart = samRecord.getAlignmentStart() ;
-			
+			cramRecord.index = index++;
+			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
+					.getAlignmentStart() - prevAlStart;
+			prevAlStart = samRecord.getAlignmentStart();
+
 			cramRecords.add(cramRecord);
 			int refPos = samRecord.getAlignmentStart();
 			int readPos = 0;
 			for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
 				if (ce.getOperator().consumesReferenceBases()) {
-					for (int i = refPos; i < ce.getLength(); i++)
-						tracks.addCoverage(refPos, 1);
+					for (int i = 0; i < ce.getLength(); i++)
+						tracks.addCoverage(refPos + i, 1);
 				}
 				switch (ce.getOperator()) {
 				case M:
@@ -903,41 +936,74 @@ public class BLOCK {
 					break;
 				}
 
-				readPos += ce.getLength();
-				refPos += ce.getLength();
+				readPos += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
+				refPos += ce.getOperator().consumesReferenceBases() ? ce.getLength() : 0;
 			}
+
+			addQS(samRecord, cramRecord, tracks, policyList);
 		}
-		
+
 		// mating:
-		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord> () ;
-		for (CramRecord r:cramRecords) {
+		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
+		for (CramRecord r : cramRecords) {
 			if (r.lastFragment) {
-				r.recordsToNextFragment = -1 ;
-				continue ; 
+				r.recordsToNextFragment = -1;
+				continue;
 			}
-			
-			String name = r.getReadName() ;
-			CramRecord mate = mateMap.get(name) ; 
+
+			String name = r.getReadName();
+			CramRecord mate = mateMap.get(name);
 			if (mate == null) {
-				mateMap.put(name, r) ;
-				continue ;
+				mateMap.put(name, r);
+				continue;
 			}
-			
-			mate.recordsToNextFragment = r.index - mate.index ;
+
+			mate.recordsToNextFragment = r.index - mate.index;
 		}
-		for (CramRecord r:cramRecords) {
-			if (!r.lastFragment && r.next == null) r.detached = true ;
+		for (CramRecord r : cramRecords) {
+			if (!r.lastFragment && r.next == null)
+				r.detached = true;
 		}
+
+		for (int i=0; i<Math.min(cramRecords.size(), 10); i++)
+			System.out.println(cramRecords.get(i).toString());
 		
+		System.out.println();
+		
+		long time1 = System.nanoTime();
 		Container c = writeContainer(cramRecords, samFileReader.getFileHeader());
+		long time2 = System.nanoTime();
+		System.out.println("Container written in " + (time2 - time1) / 1000000
+				+ " milli seconds");
+
+		time1 = System.nanoTime();
 		List<CramRecord> newRecords = records(c.h, c,
 				samFileReader.getFileHeader());
+		time2 = System.nanoTime();
+		System.out.println("Container read in " + (time2 - time1) / 1000000
+				+ " milli seconds");
 
-		for (CramRecord nr : cramRecords)
-			System.out.println(nr.toString());
-
-		for (CramRecord nr : newRecords)
-			System.out.println(nr.toString());
+		
+		for (int i=0; i<Math.min(newRecords.size(), 10); i++)
+			System.out.println(newRecords.get(i).toString());
+		
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		GZIPOutputStream gos = new GZIPOutputStream(baos);
+		long size = 0;
+		for (Slice s : c.slices) {
+			size += s.coreBlock.content.length;
+			gos.write(s.coreBlock.content);
+			for (Block b : s.external.values()) {
+				size += b.content.length;
+				gos.write(b.content);
+			}
+		}
+		gos.close();
+		System.out.println("Bases: " + baseCount);
+		System.out.printf("Uncompressed container size: %d; %.2f\n", size, size
+				* 8f / baseCount);
+		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(),
+				baos.size() * 8f / baseCount);
 	}
 
 	// @formatter:off
@@ -985,6 +1051,10 @@ public class BLOCK {
 	private static byte[] Illumina_binning_matrix = new byte[] {// @formatter:off
 	0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 22,
 			22, 22, 22, 22, 27, 27, 27, 27, 27, 33, 33, 33, 33, 33, 37, 37, 37,
-			37, 37, 40 };
+			37, 37, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+			40, 40, 40, 40 };
 	// @formatter:on
 }

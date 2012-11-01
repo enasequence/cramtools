@@ -26,6 +26,7 @@ public class CramRecord {
 
 	public Collection<ReadTag> tags;
 
+	public boolean forcePreserveQualityScores = false;
 	public int index = 0 ;
 	private long alignmentStart;
 	public int alignmentStartOffsetFromPreviousRecord;
@@ -75,6 +76,9 @@ public class CramRecord {
 	public int getFlags() {
 		if (flags == null) {
 			int b = 0;
+			b |= forcePreserveQualityScores ? 1 : 0;
+			
+			b <<= 1;
 			b |= detached ? 1 : 0;
 			b <<= 1;
 			b |= duplicate ? 1 : 0;
@@ -82,6 +86,7 @@ public class CramRecord {
 			b |= vendorFiltered ? 1 : 0;
 			b <<= 1;
 			b |= properPair ? 1 : 0;
+			
 			b <<= 1;
 			b |= firstInPair ? 1 : 0;
 			b <<= 1;
@@ -90,6 +95,8 @@ public class CramRecord {
 			b |= negativeStrand ? 1 : 0;
 			b <<= 1;
 			b |= readMapped ? 1 : 0;
+			
+			
 			flags = new Integer(b);
 		}
 		return flags;
@@ -106,6 +113,8 @@ public class CramRecord {
 		vendorFiltered = ((b & 32) == 0) ? false : true;
 		duplicate = ((b & 64) == 0) ? false : true;
 		detached = ((b & 128) == 0) ? false : true;
+		
+		forcePreserveQualityScores = ((b & 256) == 0) ? false : true;
 	}
 
 	public void resetFlags() {

@@ -189,10 +189,11 @@ public class Reader {
 
 			// mapping quality:
 			r.setMappingQuality(mqc.readData());
-			if (captureMappedQS) {
+			if (r.forcePreserveQualityScores) {
 				byte[] qs = new byte[r.getReadLength()];
 				for (int i = 0; i < qs.length; i++)
 					qs[i] = qc.readData();
+				r.setQualityScores(qs);
 			}
 		} else {
 			byte[] bases = new byte[r.getReadLength()];
@@ -200,7 +201,7 @@ public class Reader {
 				bases[i] = bc.readData();
 			r.setReadBases(bases);
 
-			if (captureUnmappedQS) {
+			if (r.forcePreserveQualityScores) {
 				byte[] qs = new byte[r.getReadLength()];
 				for (int i = 0; i < qs.length; i++)
 					qs[i] = qc.readData();
