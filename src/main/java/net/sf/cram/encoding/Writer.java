@@ -14,6 +14,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
 public class Writer {
@@ -159,6 +160,9 @@ public class Writer {
 					InsertionVariation iv = (InsertionVariation) f;
 					inc.writeData(iv.getSequence());
 					break;
+				case SoftClipVariation.operator:
+					SoftClipVariation fv = (SoftClipVariation) f;
+					inc.writeData(fv.getSequence());
 				case DeletionVariation.operator:
 					DeletionVariation dv = (DeletionVariation) f;
 					dlc.writeData(dv.getLength());

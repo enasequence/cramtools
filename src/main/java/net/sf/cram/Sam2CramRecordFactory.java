@@ -29,6 +29,7 @@ import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
@@ -41,13 +42,13 @@ import uk.ac.ebi.ena.sra.cram.mask.RefMaskUtils;
 
 public class Sam2CramRecordFactory {
 	private enum TREAT_TYPE {
-		IGNORE, ALIGNMENT, INSERTION
+		IGNORE, ALIGNMENT, INSERTION, SOFT_CLIP
 	};
 
 	/**
 	 * Reserved for later use.
 	 */
-	private TREAT_TYPE treatSoftClipsAs = TREAT_TYPE.INSERTION;
+	private TREAT_TYPE treatSoftClipsAs = TREAT_TYPE.SOFT_CLIP;
 
 	public final static byte QS_asciiOffset = 33;
 	public final static byte unsetQualityScore = 32;
@@ -104,6 +105,14 @@ public class Sam2CramRecordFactory {
 
 	public CramRecord createCramRecord(SAMRecord record) {
 		CramRecord cramRecord = new CramRecord();
+		if (record.getReadPairedFlag()) {
+			cramRecord.mateAlignmentStart = record.getMateAlignmentStart();
+			cramRecord.mateMapped = !record.getMateUnmappedFlag();
+			cramRecord.mateNegativeStrand = record.getMateNegativeStrandFlag();
+			cramRecord.mateSequnceID = record.getMateReferenceIndex();
+		} 
+		cramRecord.setReadName(record.getReadName());
+
 		cramRecord.setAlignmentStart(record.getAlignmentStart());
 		cramRecord.setNegativeStrand(record.getReadNegativeStrandFlag());
 		cramRecord.setReadMapped(!record.getReadUnmappedFlag());
@@ -241,6 +250,10 @@ public class Sam2CramRecordFactory {
 					addInsertion(features, zeroBasedPositionInRead,
 							cigarElementLength, bases, qualityScore);
 					break;
+				case SOFT_CLIP:
+					addSoftClip(features, zeroBasedPositionInRead,
+							cigarElementLength, bases, qualityScore);
+					break;
 				default:
 					throw new IllegalArgumentException(
 							"Not sure how to treat soft clips: "
@@ -271,6 +284,18 @@ public class Sam2CramRecordFactory {
 		}
 
 		return features;
+	}
+
+	private void addSoftClip(List<ReadFeature> features,
+			int zeroBasedPositionInRead, int cigarElementLength, byte[] bases,
+			byte[] scores) {
+		byte[] insertedBases = Arrays.copyOfRange(bases,
+				zeroBasedPositionInRead, zeroBasedPositionInRead
+						+ cigarElementLength);
+
+		SoftClipVariation v = new SoftClipVariation(
+				zeroBasedPositionInRead + 1, insertedBases);
+		features.add(v);
 	}
 
 	private void addInsertion(List<ReadFeature> features,

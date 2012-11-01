@@ -16,6 +16,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
 public class Reader {
@@ -161,6 +162,11 @@ public class Reader {
 							inc.readData());
 					rf.add(iv);
 					break;
+				case SoftClipVariation.operator:
+					SoftClipVariation fv = new SoftClipVariation(pos,
+							inc.readData());
+					rf.add(fv);
+					break;
 				case DeletionVariation.operator:
 					DeletionVariation dv = new DeletionVariation(pos,
 							dlc.readData());
@@ -193,12 +199,12 @@ public class Reader {
 			for (int i = 0; i < bases.length; i++)
 				bases[i] = bc.readData();
 			r.setReadBases(bases);
-			
+
 			if (captureUnmappedQS) {
 				byte[] qs = new byte[r.getReadLength()];
 				for (int i = 0; i < qs.length; i++)
 					qs[i] = qc.readData();
-				r.setQualityScores(qs) ;
+				r.setQualityScores(qs);
 			}
 		}
 	}

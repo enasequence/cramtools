@@ -2,14 +2,18 @@ package net.sf.cram;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.block.ExposedByteArrayOutputStream;
@@ -26,7 +30,15 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.cram.stats.CompressionHeaderFactory;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitOutputStream;
@@ -249,7 +261,7 @@ public class BLOCK {
 	}
 
 	public static enum QualityScoreTreatmentType {
-		PRESERVE, DROP, BIN;
+		PRESERVE, BIN, DROP;
 	}
 
 	public static class QualityScoreTreatment {
@@ -285,6 +297,8 @@ public class BLOCK {
 
 	public static List<PreservationPolicy> policyList = new ArrayList<>();
 	{
+		// these should be sorted by qs treatment from none to max!
+
 		// R8X10-R40X5-N40-U40
 		PreservationPolicy c1 = new PreservationPolicy();
 		c1.baseCategories.add(BaseCategory.lower_than_coverage(10));
@@ -307,6 +321,167 @@ public class BLOCK {
 		c4.readCategory = ReadCategory.unplaced();
 		c4.treatment = QualityScoreTreatment.bin(40);
 		policyList.add(c4);
+	}
+	static {
+		Collections.sort(policyList, new Comparator<PreservationPolicy>() {
+
+			@Override
+			public int compare(PreservationPolicy o1, PreservationPolicy o2) {
+				QualityScoreTreatment t1 = o1.treatment;
+				QualityScoreTreatment t2 = o2.treatment;
+				int result = t2.type.ordinal() - t1.type.ordinal();
+				if (result != 0)
+					return result;
+
+				return 0;
+			}
+		});
+	}
+
+	public static final void applyBinning(byte[] scores) {
+		for (int i = 0; i < scores.length; i++)
+			scores[i] = Illumina_binning_matrix[scores[i]];
+	}
+
+	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
+		switch (t.type) {
+		case BIN:
+			return Illumina_binning_matrix[score];
+		case DROP:
+			return -1;
+		case PRESERVE:
+			return score;
+
+		}
+		throw new RuntimeException("Unknown quality score treatment type: "
+				+ t.type.name());
+	}
+
+	public static void addQS(SAMRecord s, CramRecord r, ReferenceTracks t,
+			List<PreservationPolicy> pp) {
+		BaseQualityScore[] scores = new BaseQualityScore[s.getReadLength()];
+		for (PreservationPolicy p : pp)
+			addQS(s, r, scores, t, p);
+	}
+
+	public static void addQS(SAMRecord s, CramRecord r,
+			BaseQualityScore[] scores, ReferenceTracks t, PreservationPolicy p) {
+		int alSpan = s.getAlignmentEnd() - s.getAlignmentStart();
+		t.ensureRange(s.getAlignmentStart(), alSpan);
+		byte[] qs = s.getBaseQualities();
+
+		// check if read is falling into the read category:
+		if (p.readCategory != null) {
+			boolean properRead = false;
+			switch (p.readCategory.type) {
+			case UNPLACED:
+				properRead = s.getReadUnmappedFlag();
+				break;
+			case LOWER_MAPPING_SCORE:
+				properRead = s.getMappingQuality() < p.readCategory.param;
+				break;
+			case HIGHER_MAPPING_SCORE:
+				properRead = s.getMappingQuality() > p.readCategory.param;
+				break;
+
+			default:
+				throw new RuntimeException("Unknown read category: "
+						+ p.readCategory.type.name());
+			}
+
+			if (!properRead) // nothing to do here:
+				return;
+		}
+
+		// apply treamtent if there is no per-base policy:
+		if (p.baseCategories == null || p.baseCategories.isEmpty()) {
+			switch (p.treatment.type) {
+			case BIN:
+				if (r.getQualityScores() == null)
+					r.setQualityScores(s.getBaseQualities());
+				applyBinning(r.getQualityScores());
+				break;
+			case PRESERVE:
+				r.setReadBases(s.getBaseQualities());
+				break;
+			case DROP:
+				r.setReadBases(null);
+				break;
+
+			default:
+				throw new RuntimeException(
+						"Unknown quality score treatment type: "
+								+ p.treatment.type.name());
+			}
+
+			// nothing else to do here:
+			return;
+		}
+
+		// here we go, scan all bases to check if the policy applies:
+		boolean[] mask = new boolean[qs.length];
+		int alStart = s.getAlignmentStart();
+
+		for (BaseCategory c : p.baseCategories) {
+			int pos;
+			switch (c.type) {
+			case FLANKING_DELETION:
+				pos = 0;
+				for (CigarElement ce : s.getCigar().getCigarElements()) {
+					if (ce.getOperator() == CigarOperator.D) {
+						if (pos > 0)
+							mask[pos - 1] = true;
+						if (pos < mask.length)
+							mask[pos + 1] = true;
+					}
+
+					pos += ce.getOperator().consumesReadBases() ? ce
+							.getLength() : 0;
+				}
+				break;
+			case MATCH:
+			case MISMATCH:
+				pos = 0;
+				for (CigarElement ce : s.getCigar().getCigarElements()) {
+					switch (ce.getOperator()) {
+					case M:
+					case X:
+					case EQ:
+						for (int i = 0; i < ce.getLength(); i++) {
+							boolean match = s.getReadBases()[pos + i] == t
+									.baseAt(s.getAlignmentStart() + pos + i);
+							if ((c.type == BaseCategoryType.MATCH && match)
+									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
+								mask[pos] = true;
+							}
+						}
+						break;
+					}
+
+					pos += ce.getOperator().consumesReadBases() ? ce
+							.getLength() : 0;
+				}
+				break;
+			case LOWER_COVERAGE:
+				for (int i = 0; i < qs.length; i++)
+					if (t.coverageAt(alStart + i) < c.param)
+						mask[i] = true;
+				break;
+			case PILEUP:
+				for (int i = 0; i < qs.length; i++)
+					if (t.mismatchesAt(alStart + i) > c.param)
+						mask[i] = true;
+				break;
+
+			default:
+				break;
+			}
+
+			for (int i = 0; i < mask.length; i++)
+				if (mask[i])
+					scores[i] = new BaseQualityScore(i, applyTreatment(qs[i],
+							p.treatment));
+		}
 	}
 
 	public static class ReferenceTracks {
@@ -371,12 +546,26 @@ public class BLOCK {
 				Arrays.fill(coverage, (short) 0);
 				Arrays.fill(mismatches, (short) 0);
 			}
+
+			this.position = newPos;
 		}
 
 		public void reset() {
 			System.arraycopy(reference, position, bases, 0, bases.length);
 			Arrays.fill(coverage, (short) 0);
 			Arrays.fill(mismatches, (short) 0);
+		}
+
+		public void ensureRange(int start, int length) {
+			if (length > bases.length)
+				throw new RuntimeException("Requested window is too big: "
+						+ length);
+			if (start < position)
+				throw new RuntimeException("Cannot move the window backwords: "
+						+ start);
+
+			if (start + length > position + bases.length)
+				moveForwardTo(start);
 		}
 
 		public final byte baseAt(int pos) {
@@ -496,8 +685,8 @@ public class BLOCK {
 		return slice;
 	}
 
-	public static void main(String[] args) throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+	private static void randomStressTest() throws IOException,
+			IllegalArgumentException, IllegalAccessException {
 		SAMFileHeader samFileHeader = new SAMFileHeader();
 		SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 100);
 		samFileHeader.addSequence(sequenceRecord);
@@ -632,6 +821,170 @@ public class BLOCK {
 				* 8f / baseCount);
 		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(),
 				baos.size() * 8f / baseCount);
-
 	}
+
+	public static void main(String[] args) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
+
+		SAMFileReader samFileReader = new SAMFileReader(
+				new File(
+						"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam"));
+		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
+				.getReferenceSequenceFile(new File(
+						"c:/temp/human_g1k_v37.fasta"));
+
+		ReferenceSequence sequence = null;
+		{
+			String seqName = null;
+			SAMRecordIterator iterator = samFileReader.iterator();
+			SAMRecord samRecord = iterator.next();
+			seqName = samRecord.getReferenceName();
+			iterator.close();
+			sequence = referenceSequenceFile.getSequence(seqName);
+		}
+
+		int maxRecords = 10;
+		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
+
+		int alStart = Integer.MAX_VALUE;
+		int alEnd = 0;
+		SAMRecordIterator iterator = samFileReader.iterator();
+		do {
+			SAMRecord samRecord = iterator.next();
+			if (!samRecord.getReferenceName().equals(sequence.getName())
+					|| samRecords.size() >= maxRecords)
+				break;
+
+			samRecords.add(samRecord);
+			if (samRecord.getAlignmentStart() > 0
+					&& alStart > samRecord.getAlignmentStart())
+				alStart = samRecord.getAlignmentStart();
+			if (alEnd < samRecord.getAlignmentEnd())
+				alEnd = samRecord.getAlignmentEnd();
+		} while (iterator.hasNext());
+
+		ReferenceTracks tracks = new ReferenceTracks(sequence.getContigIndex(),
+				sequence.getName(), sequence.getBases(), alEnd - alStart+1);
+		tracks.moveForwardTo(alStart);
+
+		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
+		f.captureUnmappedBases = true ;
+		f.captureUnmappedScores = true ;
+		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
+		int prevAlStart = 1 ;
+		int index = 0 ;
+		for (SAMRecord samRecord : samRecords) {
+			CramRecord cramRecord = f.createCramRecord(samRecord);
+			cramRecord.index = index++ ;
+			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord.getAlignmentStart()-prevAlStart ;
+			prevAlStart = samRecord.getAlignmentStart() ;
+			
+			cramRecords.add(cramRecord);
+			int refPos = samRecord.getAlignmentStart();
+			int readPos = 0;
+			for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
+				if (ce.getOperator().consumesReferenceBases()) {
+					for (int i = refPos; i < ce.getLength(); i++)
+						tracks.addCoverage(refPos, 1);
+				}
+				switch (ce.getOperator()) {
+				case M:
+				case X:
+				case EQ:
+					for (int i = readPos; i < ce.getLength(); i++) {
+						byte readBase = samRecord.getReadBases()[readPos + i];
+						byte refBase = tracks.baseAt(refPos + i);
+						if (readBase != refBase)
+							tracks.addMismatches(refPos + i, 1);
+					}
+					break;
+
+				default:
+					break;
+				}
+
+				readPos += ce.getLength();
+				refPos += ce.getLength();
+			}
+		}
+		
+		// mating:
+		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord> () ;
+		for (CramRecord r:cramRecords) {
+			if (r.lastFragment) {
+				r.recordsToNextFragment = -1 ;
+				continue ; 
+			}
+			
+			String name = r.getReadName() ;
+			CramRecord mate = mateMap.get(name) ; 
+			if (mate == null) {
+				mateMap.put(name, r) ;
+				continue ;
+			}
+			
+			mate.recordsToNextFragment = r.index - mate.index ;
+		}
+		for (CramRecord r:cramRecords) {
+			if (!r.lastFragment && r.next == null) r.detached = true ;
+		}
+		
+		Container c = writeContainer(cramRecords, samFileReader.getFileHeader());
+		List<CramRecord> newRecords = records(c.h, c,
+				samFileReader.getFileHeader());
+
+		for (CramRecord nr : cramRecords)
+			System.out.println(nr.toString());
+
+		for (CramRecord nr : newRecords)
+			System.out.println(nr.toString());
+	}
+
+	// @formatter:off
+	// NCBI binning scheme:
+	// Low High Value
+	// 0 0 0
+	// 1 1 1
+	// 2 2 2
+	// 3 14 9
+	// 15 19 17
+	// 20 24 22
+	// 25 29 28
+	// 30 nolimit 35
+	// @formatter:on
+	private static byte[] NCBI_binning_matrix = new byte[] {
+			// @formatter:off
+			0, 1, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 17, 17, 17, 17, 17,
+			22, 22, 22, 22,
+			22,
+			28,
+			28,
+			28,
+			28,
+			28,
+			// @formatter:on
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+			35 };
+
+	// @formatter:off
+	// Illumina binning scheme:
+	// 2-9 6
+	// 10-19 15
+	// 20-24 22
+	// 25-29 27
+	// 30-34 33
+	// 35-39 37
+	// ≥40 40
+	// @formatter:on
+	private static byte[] Illumina_binning_matrix = new byte[] {// @formatter:off
+	0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 22,
+			22, 22, 22, 22, 27, 27, 27, 27, 27, 33, 33, 33, 33, 33, 37, 37, 37,
+			37, 37, 40 };
+	// @formatter:on
 }

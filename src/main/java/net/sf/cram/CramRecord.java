@@ -26,12 +26,13 @@ public class CramRecord {
 
 	public Collection<ReadTag> tags;
 
+	public int index = 0 ;
 	private long alignmentStart;
 	public int alignmentStartOffsetFromPreviousRecord;
 
 	private int readLength;
 
-	private int recordsToNextFragment = -1;
+	public int recordsToNextFragment = -1;
 
 	private byte[] readBases;
 	private byte[] qualityScores;
@@ -41,15 +42,16 @@ public class CramRecord {
 	private int readGroupID = 0;
 
 	// flags:
-	private Integer flags = null;
+	public Integer flags = null;
 	public boolean vendorFiltered = false;
-	private boolean negativeStrand;
-	private boolean readMapped;
-	private boolean lastFragment;
-	private boolean firstInPair = false;
-	private boolean properPair = false;
-	private boolean duplicate = false;
+	public boolean negativeStrand;
+	public boolean readMapped;
+	public boolean lastFragment;
+	public boolean firstInPair = false;
+	public boolean properPair = false;
+	public boolean duplicate = false;
 	public boolean detached = false;
+	public boolean multiFragment = false;
 
 	// pointers to the previous and next segments in the template:
 	public CramRecord next, previous;

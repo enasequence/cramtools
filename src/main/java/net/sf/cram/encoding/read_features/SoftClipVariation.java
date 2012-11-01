@@ -1,43 +1,42 @@
 package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
-import net.sf.samtools.CigarOperator;
-
-public class SoftClipVariation implements Serializable, ReadFeature{
+public class SoftClipVariation implements Serializable, ReadFeature {
 
 	private int position;
-	private int length;
+	private byte[] sequence;
+
+	public byte[] getSequence() {
+		return sequence;
+	}
+
+	public void setSequence(byte[] sequence) {
+		this.sequence = sequence;
+	}
 
 	public SoftClipVariation() {
 	}
 
-	public SoftClipVariation(int position, int length) {
+	public SoftClipVariation(int position, byte[] sequence) {
 		this.position = position;
-		this.length = length;
+		this.sequence = sequence;
 	}
 
-	public static final byte operator = CigarOperator.enumToCharacter(CigarOperator.S);
+	public static final byte operator = 'S';
 
 	@Override
 	public byte getOperator() {
 		return operator;
 	}
-	
+
 	public int getPosition() {
 		return position;
 	}
 
 	public void setPosition(int position) {
 		this.position = position;
-	}
-
-	public int getLength() {
-		return length;
-	}
-
-	public void setLength(int length) {
-		this.length = length;
 	}
 
 	@Override
@@ -49,7 +48,7 @@ public class SoftClipVariation implements Serializable, ReadFeature{
 
 		if (position != v.position)
 			return false;
-		if (length != v.length)
+		if (Arrays.equals(sequence, v.sequence))
 			return false;
 
 		return true;
@@ -59,7 +58,7 @@ public class SoftClipVariation implements Serializable, ReadFeature{
 	public String toString() {
 		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
 		sb.append("position=").append(position);
-		sb.append("; length=").append(length);
+		sb.append("; bases=").append(new String(sequence));
 		sb.append("] ");
 		return sb.toString();
 	}

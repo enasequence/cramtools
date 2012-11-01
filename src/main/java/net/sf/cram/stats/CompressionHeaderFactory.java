@@ -28,6 +28,7 @@ import net.sf.cram.encoding.SubexpIntegerEncoding;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanTree;
@@ -198,10 +199,15 @@ public class CompressionHeaderFactory {
 			for (CramRecord r : records)
 				calculator.add(r.getReadName().length());
 			for (CramRecord r : records)
-				for (ReadFeature rf : r.getReadFeatures())
+				for (ReadFeature rf : r.getReadFeatures()) {
 					if (rf.getOperator() == InsertionVariation.operator)
 						calculator
 								.add(((InsertionVariation) rf).getSequence().length);
+					if (rf.getOperator() == SoftClipVariation.operator)
+						calculator
+								.add(((SoftClipVariation) rf).getSequence().length);
+				}
+
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.IN_Insertion, ByteArrayLenEncoding.toParam(
@@ -381,7 +387,7 @@ public class CompressionHeaderFactory {
 		private int dictionaryThreshold = 100;
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
-			this.name = name ;
+			this.name = name;
 			for (int i = 2; i < 20; i++)
 				calcs.add(new EncodingLengthCalculator(
 						new GolombIntegerEncoding(i)));
