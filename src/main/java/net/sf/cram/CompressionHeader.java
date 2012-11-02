@@ -7,8 +7,9 @@ public class CompressionHeader {
 	public long firstRecordPosition ;
 	
 	public boolean mappedQualityScoreIncluded;
-	public boolean readNamesIncluded;
 	public boolean unmappedQualityScoreIncluded;
+	public boolean unmappedPlacedQualityScoreIncluded;
+	public boolean readNamesIncluded;
 	
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<String, EncodingParams> tMap;
@@ -17,4 +18,5 @@ public class CompressionHeader {
 	public byte[][] substitutionCodes = new byte[256][256] ;
 
 	public List<Integer> externalIds ;
+
 }

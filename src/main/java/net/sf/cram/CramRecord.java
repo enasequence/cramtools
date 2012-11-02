@@ -28,7 +28,7 @@ public class CramRecord {
 
 	public boolean forcePreserveQualityScores = false;
 	public int index = 0 ;
-	private long alignmentStart;
+	private int alignmentStart;
 	public int alignmentStartOffsetFromPreviousRecord;
 
 	private int readLength;
@@ -142,11 +142,11 @@ public class CramRecord {
 		mateFlags = null;
 	}
 
-	public long getAlignmentStart() {
+	public int getAlignmentStart() {
 		return alignmentStart;
 	}
 
-	public void setAlignmentStart(long alignmentStart) {
+	public void setAlignmentStart(int alignmentStart) {
 		this.alignmentStart = alignmentStart;
 	}
 

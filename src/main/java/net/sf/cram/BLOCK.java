@@ -1,8 +1,12 @@
 package net.sf.cram;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -17,6 +21,7 @@ import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.block.ExposedByteArrayOutputStream;
+import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.encoding.DataReaderFactory;
 import net.sf.cram.encoding.DataWriterFactory;
 import net.sf.cram.encoding.Reader;
@@ -47,20 +52,29 @@ public class BLOCK {
 
 	public static class Container {
 		public int sequenceId = -1;
-		public long alignmentStart = -1;
-		public long alignmentSpan = -1;
+		public int alignmentStart = -1;
+		public int alignmentSpan = -1;
 
 		public int nofRecords = -1;
 
 		public CompressionHeader h;
 
 		public Slice[] slices;
+		public int blockCount ;
+
+		@Override
+		public String toString() {
+			return String
+					.format("CHEADER: seqid=%d, astart=%d, aspan=%d, records=%d, slices=%d, blocks=%d.",
+							sequenceId, alignmentStart, alignmentSpan,
+							nofRecords, slices == null ? -1 : slices.length, blockCount);
+		}
 	}
 
 	public static class Slice {
 		public int sequenceId = -1;
-		public long alignmentStart = -1;
-		public long alignmentSpan = -1;
+		public int alignmentStart = -1;
+		public int alignmentSpan = -1;
 
 		public int nofRecords = -1;
 
@@ -72,10 +86,20 @@ public class BLOCK {
 	public static class Block {
 		public BlockContentType contentType;
 		public byte[] content;
+		public int contentId;
+		public int method;
+
+		@Override
+		public String toString() {
+			return String.format(
+					"BLOCK: method=%d, type=%s, id=%d, content=%s.", method,
+					contentType.name(), contentId,
+					Arrays.toString(Arrays.copyOf(content, 20)));
+		}
 	}
 
 	public enum BlockContentType {
-		FILE_HEADER, COMPRESSION_HEADER, MAPPED_SLICE, UNMAPPED_SLICE;
+		FILE_HEADER, COMPRESSION_HEADER, MAPPED_SLICE, UNMAPPED_SLICE, EXTERNAL, CORE;
 	}
 
 	public static List<CramRecord> records(CompressionHeader h, Container c,
@@ -299,28 +323,34 @@ public class BLOCK {
 	static {
 		// these should be sorted by qs treatment from none to max!
 
-		// R8X10-R40X5-N40-U40
+		// D8
 		PreservationPolicy c1 = new PreservationPolicy();
-		c1.baseCategories.add(BaseCategory.lower_than_coverage(10));
-		c1.baseCategories.add(BaseCategory.match());
-		c1.treatment = QualityScoreTreatment.bin(8);
+		c1.baseCategories.add(BaseCategory.mismatch());
+		c1.treatment = QualityScoreTreatment.preserve();
 		policyList.add(c1);
 
-		PreservationPolicy c2 = new PreservationPolicy();
-		c1.baseCategories.add(BaseCategory.lower_than_coverage(5));
-		c1.baseCategories.add(BaseCategory.match());
-		c2.treatment = QualityScoreTreatment.bin(40);
-		policyList.add(c2);
-
-		PreservationPolicy c3 = new PreservationPolicy();
-		c1.baseCategories.add(BaseCategory.mismatch());
-		c3.treatment = QualityScoreTreatment.bin(40);
-		policyList.add(c3);
-
-		PreservationPolicy c4 = new PreservationPolicy();
-		c4.readCategory = ReadCategory.unplaced();
-		c4.treatment = QualityScoreTreatment.bin(40);
-		policyList.add(c4);
+		// // R8X10-R40X5-N40-U40
+		// PreservationPolicy c1 = new PreservationPolicy();
+		// c1.baseCategories.add(BaseCategory.lower_than_coverage(10));
+		// c1.baseCategories.add(BaseCategory.match());
+		// c1.treatment = QualityScoreTreatment.bin(8);
+		// policyList.add(c1);
+		//
+		// PreservationPolicy c2 = new PreservationPolicy();
+		// c1.baseCategories.add(BaseCategory.lower_than_coverage(5));
+		// c1.baseCategories.add(BaseCategory.match());
+		// c2.treatment = QualityScoreTreatment.bin(40);
+		// policyList.add(c2);
+		//
+		// PreservationPolicy c3 = new PreservationPolicy();
+		// c1.baseCategories.add(BaseCategory.mismatch());
+		// c3.treatment = QualityScoreTreatment.bin(40);
+		// policyList.add(c3);
+		//
+		// PreservationPolicy c4 = new PreservationPolicy();
+		// c4.readCategory = ReadCategory.unplaced();
+		// c4.treatment = QualityScoreTreatment.bin(40);
+		// policyList.add(c4);
 	}
 	static {
 		Collections.sort(policyList, new Comparator<PreservationPolicy>() {
@@ -346,7 +376,7 @@ public class BLOCK {
 	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
 		switch (t.type) {
 		case BIN:
-			return Illumina_binning_matrix[score - 33];
+			return (byte) (Illumina_binning_matrix[score - 33] + 33);
 		case DROP:
 			return -1;
 		case PRESERVE:
@@ -367,11 +397,13 @@ public class BLOCK {
 		if (!r.forcePreserveQualityScores) {
 			for (int i = 0; i < scores.length; i++) {
 				if (scores[i] > -1)
-					r.getReadFeatures().add(new BaseQualityScore(i, scores[i]));
+					r.getReadFeatures().add(
+							new BaseQualityScore(i + 1, scores[i]));
 			}
 			Collections
 					.sort(r.getReadFeatures(), readFeaturePositionComparator);
-		}
+		} else
+			r.setQualityScores(scores);
 	}
 
 	private static Comparator<ReadFeature> readFeaturePositionComparator = new Comparator<ReadFeature>() {
@@ -448,13 +480,14 @@ public class BLOCK {
 
 		for (BaseCategory c : p.baseCategories) {
 			int pos;
+			int refPos;
 			switch (c.type) {
 			case FLANKING_DELETION:
 				pos = 0;
 				for (CigarElement ce : s.getCigar().getCigarElements()) {
 					if (ce.getOperator() == CigarOperator.D) {
-						if (pos > 0)
-							mask[pos - 1] = true;
+						// if (pos > 0)
+						mask[pos] = true;
 						if (pos < mask.length)
 							mask[pos + 1] = true;
 					}
@@ -466,6 +499,7 @@ public class BLOCK {
 			case MATCH:
 			case MISMATCH:
 				pos = 0;
+				refPos = s.getAlignmentStart();
 				for (CigarElement ce : s.getCigar().getCigarElements()) {
 					switch (ce.getOperator()) {
 					case M:
@@ -473,16 +507,18 @@ public class BLOCK {
 					case EQ:
 						for (int i = 0; i < ce.getLength(); i++) {
 							boolean match = s.getReadBases()[pos + i] == t
-									.baseAt(s.getAlignmentStart() + pos + i);
+									.baseAt(refPos + i);
 							if ((c.type == BaseCategoryType.MATCH && match)
 									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
-								mask[pos] = true;
+								mask[pos + i] = true;
 							}
 						}
 						break;
 					}
 
 					pos += ce.getOperator().consumesReadBases() ? ce
+							.getLength() : 0;
+					refPos += ce.getOperator().consumesReferenceBases() ? ce
 							.getLength() : 0;
 				}
 				break;
@@ -534,6 +570,7 @@ public class BLOCK {
 			bases = new byte[windowSize];
 			coverage = new short[windowSize];
 			mismatches = new short[windowSize];
+			position = 1;
 
 			reset();
 		}
@@ -565,7 +602,7 @@ public class BLOCK {
 			if (newPos == position)
 				return;
 
-			System.arraycopy(reference, newPos, bases, 0, bases.length);
+			System.arraycopy(reference, newPos - 1, bases, 0, bases.length);
 
 			if (newPos > position && position + bases.length - newPos > 0) {
 				System.arraycopy(coverage, (newPos - position), coverage, 0,
@@ -581,7 +618,7 @@ public class BLOCK {
 		}
 
 		public void reset() {
-			System.arraycopy(reference, position, bases, 0, bases.length);
+			System.arraycopy(reference, position - 1, bases, 0, bases.length);
 			Arrays.fill(coverage, (short) 0);
 			Arrays.fill(mismatches, (short) 0);
 		}
@@ -701,6 +738,7 @@ public class BLOCK {
 
 		slice.coreBlock = new Block();
 		slice.coreBlock.content = bitBAOS.getBuffer();
+		slice.coreBlock.contentType = BlockContentType.CORE;
 		bos.close();
 
 		slice.external = new HashMap<>();
@@ -708,6 +746,8 @@ public class BLOCK {
 			ExposedByteArrayOutputStream os = map.get(i);
 
 			Block externalBlock = new Block();
+			externalBlock.contentType = BlockContentType.EXTERNAL;
+			externalBlock.contentId = i;
 			externalBlock.content = os.getBuffer();
 			slice.external.put(i, externalBlock);
 		}
@@ -855,10 +895,9 @@ public class BLOCK {
 
 	public static void main(String[] args) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
-
-		SAMFileReader samFileReader = new SAMFileReader(
-				new File(
-						"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam"));
+		File bamFile = new File(
+				"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam");
+		SAMFileReader samFileReader = new SAMFileReader(bamFile);
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(new File(
 						"c:/temp/human_g1k_v37.fasta"));
@@ -873,37 +912,44 @@ public class BLOCK {
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		int maxRecords = 50000;
+		int maxRecords = 100000;
 		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
 
 		int alStart = Integer.MAX_VALUE;
 		int alEnd = 0;
-		long baseCount = 0 ;
+		long baseCount = 0;
 		SAMRecordIterator iterator = samFileReader.iterator();
+		// while (!"SRR081241.20878257".equals(iterator.next().getReadName()))
+		// ;
+
 		do {
 			SAMRecord samRecord = iterator.next();
-			if (!samRecord.getReferenceName().equals(sequence.getName())
-					|| samRecords.size() >= maxRecords)
+			// if (!"SRR081241.20758946".equals(samRecord.getReadName()))
+			// continue;
+			if (!samRecord.getReferenceName().equals(sequence.getName()))
 				break;
 
-			baseCount += samRecord.getReadLength() ;
+			baseCount += samRecord.getReadLength();
 			samRecords.add(samRecord);
 			if (samRecord.getAlignmentStart() > 0
 					&& alStart > samRecord.getAlignmentStart())
 				alStart = samRecord.getAlignmentStart();
 			if (alEnd < samRecord.getAlignmentEnd())
 				alEnd = samRecord.getAlignmentEnd();
+
+			if (samRecords.size() >= maxRecords)
+				break;
 		} while (iterator.hasNext());
 
 		ReferenceTracks tracks = new ReferenceTracks(sequence.getContigIndex(),
-				sequence.getName(), sequence.getBases(), alEnd - alStart + 1);
+				sequence.getName(), sequence.getBases(), alEnd - alStart + 100);
 		tracks.moveForwardTo(alStart);
 
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
 		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
-		int prevAlStart = 1;
+		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		for (SAMRecord samRecord : samRecords) {
 			CramRecord cramRecord = f.createCramRecord(samRecord);
@@ -936,8 +982,10 @@ public class BLOCK {
 					break;
 				}
 
-				readPos += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
-				refPos += ce.getOperator().consumesReferenceBases() ? ce.getLength() : 0;
+				readPos += ce.getOperator().consumesReadBases() ? ce
+						.getLength() : 0;
+				refPos += ce.getOperator().consumesReferenceBases() ? ce
+						.getLength() : 0;
 			}
 
 			addQS(samRecord, cramRecord, tracks, policyList);
@@ -948,7 +996,8 @@ public class BLOCK {
 		for (CramRecord r : cramRecords) {
 			if (r.lastFragment) {
 				r.recordsToNextFragment = -1;
-				continue;
+				if (r.firstInPair)
+					continue;
 			}
 
 			String name = r.getReadName();
@@ -958,18 +1007,20 @@ public class BLOCK {
 				continue;
 			}
 
-			mate.recordsToNextFragment = r.index - mate.index;
+			mate.recordsToNextFragment = r.index - mate.index - 1;
+			mate.next = r;
+			r.previous = mate;
 		}
 		for (CramRecord r : cramRecords) {
 			if (!r.lastFragment && r.next == null)
 				r.detached = true;
 		}
 
-		for (int i=0; i<Math.min(cramRecords.size(), 10); i++)
+		for (int i = 0; i < Math.min(cramRecords.size(), 10); i++)
 			System.out.println(cramRecords.get(i).toString());
-		
+
 		System.out.println();
-		
+
 		long time1 = System.nanoTime();
 		Container c = writeContainer(cramRecords, samFileReader.getFileHeader());
 		long time2 = System.nanoTime();
@@ -979,14 +1030,43 @@ public class BLOCK {
 		time1 = System.nanoTime();
 		List<CramRecord> newRecords = records(c.h, c,
 				samFileReader.getFileHeader());
+
+		mateMap.clear();
+		{
+			int i = 0;
+			for (CramRecord r : newRecords)
+				r.index = i++;
+		}
+		for (CramRecord r : newRecords) {
+			if (r.lastFragment) {
+				r.recordsToNextFragment = -1;
+				if (r.firstInPair)
+					continue;
+			}
+
+			String name = r.getReadName();
+			CramRecord mate = mateMap.get(name);
+			if (mate == null) {
+				mateMap.put(name, r);
+				continue;
+			}
+
+			mate.recordsToNextFragment = r.index - mate.index - 1;
+			mate.next = r;
+			r.previous = mate;
+		}
+		for (CramRecord r : newRecords) {
+			if (!r.lastFragment && r.next == null)
+				r.detached = true;
+		}
+
 		time2 = System.nanoTime();
 		System.out.println("Container read in " + (time2 - time1) / 1000000
 				+ " milli seconds");
 
-		
-		for (int i=0; i<Math.min(newRecords.size(), 10); i++)
+		for (int i = 0; i < Math.min(newRecords.size(), 10); i++)
 			System.out.println(newRecords.get(i).toString());
-		
+
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		GZIPOutputStream gos = new GZIPOutputStream(baos);
 		long size = 0;
@@ -1004,6 +1084,62 @@ public class BLOCK {
 				* 8f / baseCount);
 		System.out.printf("Compressed container size: %d; %.2f\n", baos.size(),
 				baos.size() * 8f / baseCount);
+
+		File cramFile = new File("c:/temp/test1.cram1");
+		FileOutputStream fos = new FileOutputStream(cramFile);
+		BufferedOutputStream bos = new BufferedOutputStream(fos);
+		CramHeader cramHeader = new CramHeader(1, 0, bamFile.getName(),
+				samFileReader.getFileHeader());
+
+		ReadWrite.writeCramHeader(cramHeader, bos);
+		ReadWrite.writeContainer(c, bos);
+		bos.close();
+		fos.close();
+
+		time1 = System.nanoTime();
+		FileInputStream fis = new FileInputStream(cramFile);
+		BufferedInputStream bis = new BufferedInputStream(fis);
+		cramHeader = ReadWrite.readCramHeader(bis);
+		c = ReadWrite.readContainer(cramHeader.samFileHeader, bis);
+
+		newRecords = records(c.h, c, cramHeader.samFileHeader);
+
+		mateMap.clear();
+		{
+			int i = 0;
+			for (CramRecord r : newRecords)
+				r.index = i++;
+		}
+		for (CramRecord r : newRecords) {
+			if (r.lastFragment) {
+				r.recordsToNextFragment = -1;
+				if (r.firstInPair)
+					continue;
+			}
+
+			String name = r.getReadName();
+			CramRecord mate = mateMap.get(name);
+			if (mate == null) {
+				mateMap.put(name, r);
+				continue;
+			}
+
+			mate.recordsToNextFragment = r.index - mate.index - 1;
+			mate.next = r;
+			r.previous = mate;
+		}
+		for (CramRecord r : newRecords) {
+			if (!r.lastFragment && r.next == null)
+				r.detached = true;
+		}
+
+		time2 = System.nanoTime();
+		System.out.println("Container read in " + (time2 - time1) / 1000000
+				+ " milli seconds");
+
+		for (int i = 0; i < Math.min(newRecords.size(), 10); i++)
+			System.out.println(newRecords.get(i).toString());
+
 	}
 
 	// @formatter:off

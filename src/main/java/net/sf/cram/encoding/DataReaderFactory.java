@@ -31,6 +31,9 @@ public class DataReaderFactory {
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
+				if (h.eMap.get(key) == null) {
+					System.err.println("Encoding not found for key: " + key);
+				}
 				f.set(reader,
 						createReader(type, h.eMap.get(key), bis, inputMap));
 			}

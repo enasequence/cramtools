@@ -111,7 +111,7 @@ public class Writer {
 				malsc.writeData(r.mateAlignmentStart);
 				tsc.writeData(r.templateSize);
 			} else
-				distanceC.writeData(r.getRecordsToNextFragment());
+				distanceC.writeData(r.recordsToNextFragment);
 
 		}
 
