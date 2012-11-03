@@ -9,8 +9,9 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+import net.sf.cram.io.BitInputStream;
+import net.sf.cram.io.BitOutputStream;
+
 
 public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
 

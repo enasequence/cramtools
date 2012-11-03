@@ -13,21 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.cram.mask;
+package net.sf.cram.io;
 
-public interface PositionMask {
+import java.io.IOException;
 
-	public boolean isMasked(int position);
+public interface BitOutputStream {
 
-	public int[] getMaskedPositions();
+	public void write(int b, int nbits) throws IOException;
 
-	public boolean isEmpty();
+	public void write(long b, int nbits) throws IOException;
 
-	public int getMaskedCount();
+	public void write(byte b, int nbits) throws IOException;
 
-	public int getMinMaskedPosition();
+	public void write(boolean bit) throws IOException;
 
-	public int getMaxMaskedPosition();
+	public void write(boolean bit, long repeat) throws IOException;
 
-	public byte[] toByteArrayUsing(byte mask, byte nonMask);
+	public void flush() throws IOException;
+
+	public void close() throws IOException;
+
+	public int alignToByte() throws IOException;
+
+	public void write(byte[] data) throws IOException;
+
+	public void write(byte b) throws IOException;
+
 }

@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMUtils;
 
 public class CramRecord {
@@ -63,7 +64,7 @@ public class CramRecord {
 	public boolean mateNegativeStrand = false;
 
 	public int mateSequnceID = 0;
-	public long mateAlignmentStart = 0;
+	public int mateAlignmentStart = 0;
 
 	private byte mappingQuality;
 
@@ -349,5 +350,13 @@ public class CramRecord {
 
 	public void setReadName(String readName) {
 		this.readName = readName;
+	}
+
+	public int getSamFlags() {
+		throw new RuntimeException("Not implemented.") ;
+	}
+
+	public Cigar getCigar() {
+		throw new RuntimeException("Not implemented.") ;
 	}
 }

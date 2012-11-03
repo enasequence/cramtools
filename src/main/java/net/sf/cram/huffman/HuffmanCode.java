@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.compression.huffman;
+package net.sf.cram.huffman;
 
 import java.io.PrintStream;
 import java.util.Collections;

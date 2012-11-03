@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.compression.huffman;
+package net.sf.cram.mask;
 
-public abstract class HuffmanTree<T> implements Comparable<HuffmanTree<T>> {
-	public final int frequency;
+public interface PositionMask {
 
-	public HuffmanTree(int freq) {
-		frequency = freq;
-	}
+	public boolean isMasked(int position);
 
-	public int compareTo(HuffmanTree<T> tree) {
-		return frequency - tree.frequency;
-	}
+	public int[] getMaskedPositions();
+
+	public boolean isEmpty();
+
+	public int getMaskedCount();
+
+	public int getMinMaskedPosition();
+
+	public int getMaxMaskedPosition();
+
+	public byte[] toByteArrayUsing(byte mask, byte nonMask);
 }

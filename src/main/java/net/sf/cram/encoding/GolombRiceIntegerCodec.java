@@ -17,8 +17,9 @@ package net.sf.cram.encoding;
 
 import java.io.IOException;
 
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+import net.sf.cram.io.BitInputStream;
+import net.sf.cram.io.BitOutputStream;
+
 
 public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 	private int m;

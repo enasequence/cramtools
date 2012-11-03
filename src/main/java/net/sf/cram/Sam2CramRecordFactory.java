@@ -31,6 +31,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.mask.RefMaskUtils;
 import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -38,7 +39,6 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMTag;
-import uk.ac.ebi.ena.sra.cram.mask.RefMaskUtils;
 
 public class Sam2CramRecordFactory {
 	private enum TREAT_TYPE {

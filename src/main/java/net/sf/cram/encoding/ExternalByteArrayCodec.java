@@ -4,9 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
-import uk.ac.ebi.ena.sra.cram.io.IOUtils;
+import net.sf.cram.io.BitInputStream;
+import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.IOUtils;
+
 
 public class ExternalByteArrayCodec implements BitCodec<byte[]> {
 	private OutputStream os;

@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMTagUtil;
 
 public class ReadTag implements Comparable<ReadTag> {
@@ -52,6 +53,10 @@ public class ReadTag implements Comparable<ReadTag> {
 		}
 		
 		code = SAMTagUtil.getSingleton().makeBinaryTag(this.key) ;
+	}
+	
+	public SAMTagAndValue createSAMTag () {
+		throw new RuntimeException("Not implemented.") ;
 	}
 
 	public static ReadTag deriveTypeFromKeyAndType(String keyAndType, Object value) {

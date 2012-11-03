@@ -13,9 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.cram.mask;
+package net.sf.cram.mask;
 
-public interface ReadMaskFactory<T> {
 
-	public PositionMask createMask(T data) throws ReadMaskFormatException;
+public class ReadMaskException extends Exception {
+
+	public ReadMaskException() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public ReadMaskException(String message, Throwable cause) {
+		super(message, cause);
+		// TODO Auto-generated constructor stub
+	}
+
+	public ReadMaskException(String message) {
+		super(message);
+		// TODO Auto-generated constructor stub
+	}
+
+	public ReadMaskException(Throwable cause) {
+		super(cause);
+		// TODO Auto-generated constructor stub
+	}
+
 }

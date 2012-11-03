@@ -8,10 +8,10 @@ import java.util.Map;
 import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
-import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.io.BitInputStream;
+import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class ByteArrayLenEncoding implements Encoding<byte[]> {
 	public final static EncodingID ID = EncodingID.BYTE_ARRAY_LEN;

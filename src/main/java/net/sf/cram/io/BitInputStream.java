@@ -13,28 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.cram.mask;
+package net.sf.cram.io;
 
-public class ReadMaskFormatException extends ReadMaskException {
+import java.io.IOException;
 
-	public ReadMaskFormatException() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
+public interface BitInputStream {
 
-	public ReadMaskFormatException(String message, Throwable cause) {
-		super(message, cause);
-		// TODO Auto-generated constructor stub
-	}
+	public boolean readBit() throws IOException;
 
-	public ReadMaskFormatException(String message) {
-		super(message);
-		// TODO Auto-generated constructor stub
-	}
+	public int readBits(int len) throws IOException;
 
-	public ReadMaskFormatException(Throwable cause) {
-		super(cause);
-		// TODO Auto-generated constructor stub
-	}
+	public long readLongBits(int len) throws IOException;
 
+	public boolean endOfStream() throws IOException;
+
+	public boolean putBack(long b, int numBits);
+
+	public void alignToByte() throws IOException;
+
+	public int readAlignedBytes(byte[] array) throws IOException;
+
+	public byte readByte() throws IOException;
+
+	public boolean ensureMarker(long marker, int nofBits) throws IOException;
 }

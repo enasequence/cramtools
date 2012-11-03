@@ -30,6 +30,9 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.io.DefaultBitInputStream;
+import net.sf.cram.io.DefaultBitOutputStream;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.cram.structure.Block;
@@ -46,9 +49,6 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
-import uk.ac.ebi.ena.sra.cram.io.DefaultBitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.DefaultBitOutputStream;
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 public class BLOCK_PROTO {
 

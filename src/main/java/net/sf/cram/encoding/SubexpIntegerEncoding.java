@@ -4,11 +4,11 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class SubexpIntegerEncoding implements Encoding<Integer> {
 	public static final EncodingID ENCODING_ID = EncodingID.SUBEXP;

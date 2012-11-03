@@ -13,14 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.compression.huffman;
+package net.sf.cram.mask;
 
-public class HuffmanNode<T> extends HuffmanTree<T> {
-	public final HuffmanTree<T> left, right;
+public class ReadMaskFormatException extends ReadMaskException {
 
-	public HuffmanNode(HuffmanTree<T> l, HuffmanTree<T> r) {
-		super(l.frequency + r.frequency);
-		left = l;
-		right = r;
+	public ReadMaskFormatException() {
+		super();
+		// TODO Auto-generated constructor stub
 	}
+
+	public ReadMaskFormatException(String message, Throwable cause) {
+		super(message, cause);
+		// TODO Auto-generated constructor stub
+	}
+
+	public ReadMaskFormatException(String message) {
+		super(message);
+		// TODO Auto-generated constructor stub
+	}
+
+	public ReadMaskFormatException(Throwable cause) {
+		super(cause);
+		// TODO Auto-generated constructor stub
+	}
+
 }

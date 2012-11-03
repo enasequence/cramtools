@@ -8,9 +8,9 @@ import java.util.Map;
 import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.CompressionHeader;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 public class DataWriterFactory {
 

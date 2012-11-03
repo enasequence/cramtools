@@ -10,8 +10,8 @@ import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.io.BitInputStream;
 import net.sf.cram.structure.CompressionHeader;
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 
 public class DataReaderFactory {
 

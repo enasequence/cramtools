@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.compression.huffman;
+package net.sf.cram.huffman;
 
-public class HuffmanLeaf<T> extends HuffmanTree<T> {
-	// user object, attached to the leaf:
-	public final T value;
+public class HuffmanNode<T> extends HuffmanTree<T> {
+	public final HuffmanTree<T> left, right;
 
-	public HuffmanLeaf(int freq, T val) {
-		super(freq);
-		value = val;
+	public HuffmanNode(HuffmanTree<T> l, HuffmanTree<T> r) {
+		super(l.frequency + r.frequency);
+		left = l;
+		right = r;
 	}
 }

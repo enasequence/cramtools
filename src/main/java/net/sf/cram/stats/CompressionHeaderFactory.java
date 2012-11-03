@@ -29,9 +29,9 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.huffman.HuffmanCode;
+import net.sf.cram.huffman.HuffmanTree;
 import net.sf.cram.structure.CompressionHeader;
-import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
-import uk.ac.ebi.ena.sra.compression.huffman.HuffmanTree;
 
 public class CompressionHeaderFactory {
 

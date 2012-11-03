@@ -13,30 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.cram.io;
+package net.sf.cram.huffman;
 
-import java.io.IOException;
+public class HuffmanLeaf<T> extends HuffmanTree<T> {
+	// user object, attached to the leaf:
+	public final T value;
 
-public interface BitOutputStream {
-
-	public void write(int b, int nbits) throws IOException;
-
-	public void write(long b, int nbits) throws IOException;
-
-	public void write(byte b, int nbits) throws IOException;
-
-	public void write(boolean bit) throws IOException;
-
-	public void write(boolean bit, long repeat) throws IOException;
-
-	public void flush() throws IOException;
-
-	public void close() throws IOException;
-
-	public int alignToByte() throws IOException;
-
-	public void write(byte[] data) throws IOException;
-
-	public void write(byte b) throws IOException;
-
+	public HuffmanLeaf(int freq, T val) {
+		super(freq);
+		value = val;
+	}
 }

@@ -3,9 +3,9 @@ package net.sf.cram.encoding;
 import java.io.InputStream;
 import java.util.Map;
 
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 import net.sf.cram.EncodingID;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public interface Encoding<T> {
 	

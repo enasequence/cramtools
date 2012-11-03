@@ -1,4 +1,4 @@
-package uk.ac.ebi.ena.sra.cram.io;
+package net.sf.cram.io;
 
 import java.io.IOException;
 import java.io.InputStream;

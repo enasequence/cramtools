@@ -13,29 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package uk.ac.ebi.ena.sra.cram.mask;
+package net.sf.cram.huffman;
 
+public abstract class HuffmanTree<T> implements Comparable<HuffmanTree<T>> {
+	public final int frequency;
 
-public class ReadMaskException extends Exception {
-
-	public ReadMaskException() {
-		super();
-		// TODO Auto-generated constructor stub
+	public HuffmanTree(int freq) {
+		frequency = freq;
 	}
 
-	public ReadMaskException(String message, Throwable cause) {
-		super(message, cause);
-		// TODO Auto-generated constructor stub
+	public int compareTo(HuffmanTree<T> tree) {
+		return frequency - tree.frequency;
 	}
-
-	public ReadMaskException(String message) {
-		super(message);
-		// TODO Auto-generated constructor stub
-	}
-
-	public ReadMaskException(Throwable cause) {
-		super(cause);
-		// TODO Auto-generated constructor stub
-	}
-
 }

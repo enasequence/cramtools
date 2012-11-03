@@ -17,10 +17,11 @@ package net.sf.cram.encoding;
 
 import java.io.IOException;
 
+import net.sf.cram.io.BitInputStream;
+import net.sf.cram.io.BitOutputStream;
+
 import org.apache.commons.math.util.MathUtils;
 
-import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
-import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
 
 public class GammaIntegerCodec implements BitCodec<Integer> {
 	private int offset = 0;

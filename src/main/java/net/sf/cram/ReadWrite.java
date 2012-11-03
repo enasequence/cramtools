@@ -17,10 +17,10 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
-import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 import net.sf.cram.encoding.NullEncoding;
+import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;
 import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeader;
