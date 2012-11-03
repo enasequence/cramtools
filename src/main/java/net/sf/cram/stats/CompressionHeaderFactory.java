@@ -444,7 +444,7 @@ public class CompressionHeaderFactory {
 
 				int betaLength = (int) Math.round(Math.log(max) / Math.log(2)
 						+ 0.5);
-				if (bestC.len() > betaLength) {
+				if (bits > betaLength * count) {
 					bestEncoding = new BetaIntegerEncoding(betaLength);
 					bits = betaLength * count;
 				}
@@ -474,9 +474,6 @@ public class CompressionHeaderFactory {
 				}
 			}
 
-			System.err.printf("Best encoding for %s: %s, params array %s.\n",
-					name, bestEncoding.id(),
-					Arrays.toString(bestEncoding.toByteArray()));
 			return bestEncoding;
 		}
 	}

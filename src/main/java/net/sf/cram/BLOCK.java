@@ -92,8 +92,8 @@ public class BLOCK {
 		@Override
 		public String toString() {
 			return String.format(
-					"BLOCK: method=%d, type=%s, id=%d, content=%s.", method,
-					contentType.name(), contentId,
+					"BLOCK: method=%d, type=%s, id=%d, len=%d, content=%s.", method,
+					contentType.name(), contentId, content.length, 
 					Arrays.toString(Arrays.copyOf(content, 20)));
 		}
 	}
@@ -323,11 +323,17 @@ public class BLOCK {
 	static {
 		// these should be sorted by qs treatment from none to max!
 
-		// D8
+		// M40
 		PreservationPolicy c1 = new PreservationPolicy();
-		c1.baseCategories.add(BaseCategory.mismatch());
+		c1.readCategory = ReadCategory.higher_then_mapping_score(0) ;
 		c1.treatment = QualityScoreTreatment.preserve();
 		policyList.add(c1);
+		
+//		// N8
+//		PreservationPolicy c1 = new PreservationPolicy();
+//		c1.baseCategories.add(BaseCategory.mismatch());
+//		c1.treatment = QualityScoreTreatment.preserve();
+//		policyList.add(c1);
 
 		// // R8X10-R40X5-N40-U40
 		// PreservationPolicy c1 = new PreservationPolicy();
