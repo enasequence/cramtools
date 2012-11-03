@@ -1,4 +1,4 @@
-package net.sf.block;
+package uk.ac.ebi.ena.sra.cram.io;
 
 import java.io.IOException;
 import java.io.InputStream;

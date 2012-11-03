@@ -3,8 +3,9 @@ package net.sf.cram.encoding;
 import java.io.InputStream;
 import java.util.Map;
 
-import net.sf.block.ByteBufferUtils;
-import net.sf.block.ExposedByteArrayOutputStream;
+import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
+import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
+
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 

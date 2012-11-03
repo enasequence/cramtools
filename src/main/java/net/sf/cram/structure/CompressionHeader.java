@@ -1,7 +1,10 @@
-package net.sf.cram;
+package net.sf.cram.structure;
 
 import java.util.List;
 import java.util.Map;
+
+import net.sf.cram.EncodingKey;
+import net.sf.cram.EncodingParams;
 
 public class CompressionHeader {
 	public long firstRecordPosition ;

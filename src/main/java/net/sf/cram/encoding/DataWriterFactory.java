@@ -5,12 +5,12 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.sf.block.ExposedByteArrayOutputStream;
-import net.sf.cram.CompressionHeader;
 import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.structure.CompressionHeader;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
 public class DataWriterFactory {
 

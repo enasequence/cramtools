@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import net.sf.block.ByteBufferUtils;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
 
 public class ExternalIntegerCodec implements BitCodec<Integer> {
 	private OutputStream os;

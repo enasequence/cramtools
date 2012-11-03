@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
+
 public class Format {
 	private Definition definition;
 

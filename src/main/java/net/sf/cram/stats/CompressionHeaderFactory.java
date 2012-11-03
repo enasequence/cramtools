@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 
-import net.sf.cram.CompressionHeader;
 import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
@@ -30,6 +29,7 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.structure.CompressionHeader;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanCode;
 import uk.ac.ebi.ena.sra.compression.huffman.HuffmanTree;
 

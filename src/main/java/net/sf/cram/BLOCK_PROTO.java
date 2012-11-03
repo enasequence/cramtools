@@ -10,9 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +17,6 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
-import net.sf.block.ExposedByteArrayOutputStream;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.encoding.DataReaderFactory;
 import net.sf.cram.encoding.DataWriterFactory;
@@ -34,18 +30,17 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
-import net.sf.cram.lossy.BaseCategory;
-import net.sf.cram.lossy.BaseCategoryType;
-import net.sf.cram.lossy.PreservationPolicy;
 import net.sf.cram.lossy.QualityScorePreservation;
-import net.sf.cram.lossy.QualityScoreTreatment;
-import net.sf.cram.lossy.ReadCategory;
 import net.sf.cram.stats.CompressionHeaderFactory;
+import net.sf.cram.structure.Block;
+import net.sf.cram.structure.BlockContentType;
+import net.sf.cram.structure.CompressionHeader;
+import net.sf.cram.structure.Container;
+import net.sf.cram.structure.Slice;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
@@ -53,62 +48,11 @@ import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.DefaultBitOutputStream;
+import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
 
-public class BLOCK {
+public class BLOCK_PROTO {
 
-	public static class Container {
-		public int sequenceId = -1;
-		public int alignmentStart = -1;
-		public int alignmentSpan = -1;
-
-		public int nofRecords = -1;
-
-		public CompressionHeader h;
-
-		public Slice[] slices;
-		public int blockCount ;
-
-		@Override
-		public String toString() {
-			return String
-					.format("CHEADER: seqid=%d, astart=%d, aspan=%d, records=%d, slices=%d, blocks=%d.",
-							sequenceId, alignmentStart, alignmentSpan,
-							nofRecords, slices == null ? -1 : slices.length, blockCount);
-		}
-	}
-
-	public static class Slice {
-		public int sequenceId = -1;
-		public int alignmentStart = -1;
-		public int alignmentSpan = -1;
-
-		public int nofRecords = -1;
-
-		public BlockContentType contentType;
-		public Block coreBlock;
-		public Map<Integer, Block> external;
-	}
-
-	public static class Block {
-		public BlockContentType contentType;
-		public byte[] content;
-		public int contentId;
-		public int method;
-
-		@Override
-		public String toString() {
-			return String.format(
-					"BLOCK: method=%d, type=%s, id=%d, len=%d, content=%s.", method,
-					contentType.name(), contentId, content.length, 
-					Arrays.toString(Arrays.copyOf(content, 20)));
-		}
-	}
-
-	public enum BlockContentType {
-		FILE_HEADER, COMPRESSION_HEADER, MAPPED_SLICE, UNMAPPED_SLICE, EXTERNAL, CORE;
-	}
-
-	public static List<CramRecord> records(CompressionHeader h, Container c,
+	private static List<CramRecord> records(CompressionHeader h, Container c,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		List<CramRecord> records = new ArrayList<>();
@@ -118,7 +62,7 @@ public class BLOCK {
 		return records;
 	}
 
-	public static List<CramRecord> records(Slice s, CompressionHeader h,
+	private static List<CramRecord> records(Slice s, CompressionHeader h,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		SAMSequenceRecord sequence = fileHeader.getSequence(s.sequenceId);
@@ -147,57 +91,7 @@ public class BLOCK {
 		return records;
 	}
 
-	public static List<CramRecord> read(CramRecordCodec codec, byte[] core,
-			Map<Integer, Block> external) {
-		return null;
-	}
-
-	public static List<CramRecord> records(Container c, int sequence,
-			long alignmentStart, CompressionHeader h, SAMFileHeader fileHeader) {
-		return null;
-	}
-
-	public static List<PreservationPolicy> policyList = new ArrayList<>();
-	static {
-		// these should be sorted by qs treatment from none to max!
-
-		// M40
-		PreservationPolicy c1 = new PreservationPolicy();
-		c1.readCategory = ReadCategory.higher_than_mapping_score(0) ;
-		c1.treatment = QualityScoreTreatment.preserve();
-		policyList.add(c1);
-		
-//		// N8
-//		PreservationPolicy c1 = new PreservationPolicy();
-//		c1.baseCategories.add(BaseCategory.mismatch());
-//		c1.treatment = QualityScoreTreatment.preserve();
-//		policyList.add(c1);
-
-		// // R8X10-R40X5-N40-U40
-		// PreservationPolicy c1 = new PreservationPolicy();
-		// c1.baseCategories.add(BaseCategory.lower_than_coverage(10));
-		// c1.baseCategories.add(BaseCategory.match());
-		// c1.treatment = QualityScoreTreatment.bin(8);
-		// policyList.add(c1);
-		//
-		// PreservationPolicy c2 = new PreservationPolicy();
-		// c1.baseCategories.add(BaseCategory.lower_than_coverage(5));
-		// c1.baseCategories.add(BaseCategory.match());
-		// c2.treatment = QualityScoreTreatment.bin(40);
-		// policyList.add(c2);
-		//
-		// PreservationPolicy c3 = new PreservationPolicy();
-		// c1.baseCategories.add(BaseCategory.mismatch());
-		// c3.treatment = QualityScoreTreatment.bin(40);
-		// policyList.add(c3);
-		//
-		// PreservationPolicy c4 = new PreservationPolicy();
-		// c4.readCategory = ReadCategory.unplaced();
-		// c4.treatment = QualityScoreTreatment.bin(40);
-		// policyList.add(c4);
-	}
-	
-	public static Container writeContainer(List<CramRecord> records,
+	private static Container writeContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
@@ -235,7 +129,7 @@ public class BLOCK {
 		return c;
 	}
 
-	public static Slice writeSlice(List<CramRecord> records,
+	private static Slice writeSlice(List<CramRecord> records,
 			CompressionHeader h, SAMFileHeader fileHeader)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
@@ -483,7 +377,8 @@ public class BLOCK {
 		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
-		QualityScorePreservation preservation = new QualityScorePreservation("R8X10-R40X5-N40-U40") ;
+		QualityScorePreservation preservation = new QualityScorePreservation(
+				"R8X10-R40X5-N40-U40");
 		for (SAMRecord samRecord : samRecords) {
 			CramRecord cramRecord = f.createCramRecord(samRecord);
 			cramRecord.index = index++;

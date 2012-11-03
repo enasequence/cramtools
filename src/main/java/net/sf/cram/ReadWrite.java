@@ -17,13 +17,15 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import net.sf.block.ByteBufferUtils;
-import net.sf.block.ExposedByteArrayOutputStream;
-import net.sf.cram.BLOCK.Block;
-import net.sf.cram.BLOCK.BlockContentType;
-import net.sf.cram.BLOCK.Container;
-import net.sf.cram.BLOCK.Slice;
+import uk.ac.ebi.ena.sra.cram.io.ByteBufferUtils;
+import uk.ac.ebi.ena.sra.cram.io.ExposedByteArrayOutputStream;
+
 import net.sf.cram.encoding.NullEncoding;
+import net.sf.cram.structure.Block;
+import net.sf.cram.structure.BlockContentType;
+import net.sf.cram.structure.CompressionHeader;
+import net.sf.cram.structure.Container;
+import net.sf.cram.structure.Slice;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BufferedLineReader;
@@ -154,7 +156,7 @@ public class ReadWrite {
 		Block b = new Block();
 
 		int method = is.read();
-		b.contentType = BLOCK.BlockContentType.values()[is.read()];
+		b.contentType = BlockContentType.values()[is.read()];
 		b.contentId = ByteBufferUtils.readUnsignedITF8(is);
 		int compresssedSize = ByteBufferUtils.readUnsignedITF8(is);
 		int rawSize = ByteBufferUtils.readUnsignedITF8(is);
@@ -239,7 +241,7 @@ public class ReadWrite {
 
 		s.coreBlock = blocks.removeFirst();
 
-		s.external = new HashMap<Integer, BLOCK.Block>();
+		s.external = new HashMap<Integer, Block>();
 		for (int i = 0; i < externalCount; i++) {
 			s.external.put(externalIds[i], blocks.removeFirst());
 		}

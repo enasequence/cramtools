@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import net.sf.block.IOStreamUtils;
 import uk.ac.ebi.ena.sra.cram.io.BitInputStream;
 import uk.ac.ebi.ena.sra.cram.io.BitOutputStream;
+import uk.ac.ebi.ena.sra.cram.io.IOUtils;
 
 public class ExternalByteArrayCodec implements BitCodec<byte[]> {
 	private OutputStream os;
@@ -19,7 +19,7 @@ public class ExternalByteArrayCodec implements BitCodec<byte[]> {
 
 	@Override
 	public byte[] read(BitInputStream bis, int len) throws IOException {
-		return IOStreamUtils.readFully(is, len);
+		return IOUtils.readFully(is, len);
 	}
 
 	@Override
