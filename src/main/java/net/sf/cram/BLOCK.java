@@ -34,6 +34,12 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.lossy.BaseCategory;
+import net.sf.cram.lossy.BaseCategoryType;
+import net.sf.cram.lossy.PreservationPolicy;
+import net.sf.cram.lossy.QualityScorePreservation;
+import net.sf.cram.lossy.QualityScoreTreatment;
+import net.sf.cram.lossy.ReadCategory;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -109,46 +115,7 @@ public class BLOCK {
 		for (Slice s : c.slices)
 			records.addAll(records(s, h, fileHeader));
 
-		restoreTemplatesByDistance(records);
-		restoreTemplatesByName(records);
-		normalize(records);
-
 		return records;
-	}
-
-	private static void restoreTemplatesByDistance(List<CramRecord> records) {
-		for (int i = 0; i < records.size(); i++) {
-			CramRecord r = records.get(i);
-			long d = r.getRecordsToNextFragment();
-			if (!r.detached && r.next == null && d > 0
-					&& i + d < records.size()) {
-				CramRecord mate = records.get((int) (i + d));
-				r.next = mate;
-				mate.previous = r;
-			}
-		}
-	}
-
-	private static void restoreTemplatesByName(List<CramRecord> records) {
-		Map<String, CramRecord> map = new HashMap<String, CramRecord>();
-		for (CramRecord r : records) {
-			if (r.detached) {
-				String n = r.getReadName();
-				CramRecord next = map.get(n);
-				if (next != null) {
-					next = r;
-					r.previous = next;
-					map.remove(n);
-				} else
-					map.put(n, r);
-			}
-		}
-	}
-
-	private static void normalize(List<CramRecord> records) {
-		for (CramRecord r : records) {
-			// update template info based on '.next' and '.prev' pointers
-		}
 	}
 
 	public static List<CramRecord> records(Slice s, CompressionHeader h,
@@ -190,142 +157,13 @@ public class BLOCK {
 		return null;
 	}
 
-	// public static class PreservationPolicy {
-	// public boolean captureReadNames = false;
-	// public boolean captureUnplacedQualityScores = false;
-	// public boolean capturePlacedQualityScores = false;
-	// public boolean captureMappedQualityScore = false;
-	// public boolean captureUnmappedQualityScore = false;
-	// public boolean captureDeletionFlankingQualityScore = false;
-	// public boolean captureAllTags = false;
-	// public List<String> captureTags = new ArrayList<>();
-	//
-	// public boolean captureInsertionQualityScore = false;
-	// public boolean captureInsertions = true;
-	// public int capturePiledQualityScoreThreshold = 0;
-	// public byte captureQualityScoresForMappingQualityHigherThen =
-	// Byte.MAX_VALUE;
-	// public byte captureQualityScoresForMappingQualityLowerThen = 0;
-	//
-	// public List<String> captureSequences = new ArrayList<>();
-	// }
-
-	public static enum ReadCategoryType {
-		UNPLACED('P'), HIGHER_MAPPING_SCORE('M'), LOWER_MAPPING_SCORE('m');
-
-		public char code;
-
-		ReadCategoryType(char code) {
-			this.code = code;
-		}
-	}
-
-	public static class ReadCategory {
-		public final ReadCategoryType type;
-		public final int param;
-
-		private ReadCategory(ReadCategoryType type, int param) {
-			this.type = type;
-			this.param = param;
-		}
-
-		public static ReadCategory unplaced() {
-			return new ReadCategory(ReadCategoryType.UNPLACED, -1);
-		};
-
-		public static ReadCategory higher_then_mapping_score(int score) {
-			return new ReadCategory(ReadCategoryType.HIGHER_MAPPING_SCORE,
-					score);
-		};
-
-		public static ReadCategory lower_then_mapping_score(int score) {
-			return new ReadCategory(ReadCategoryType.LOWER_MAPPING_SCORE, score);
-		};
-	}
-
-	public static enum BaseCategoryType {
-		MATCH('R'), MISMATCH('N'), FLANKING_DELETION('D'), PILEUP('P'), LOWER_COVERAGE(
-				'X');
-
-		public char code;
-
-		BaseCategoryType(char code) {
-			this.code = code;
-		}
-	}
-
-	public static class BaseCategory {
-		public final BaseCategoryType type;
-		public final int param;
-
-		private BaseCategory(BaseCategoryType type, int param) {
-			this.type = type;
-			this.param = param;
-		}
-
-		public static BaseCategory match() {
-			return new BaseCategory(BaseCategoryType.MATCH, -1);
-		}
-
-		public static BaseCategory mismatch() {
-			return new BaseCategory(BaseCategoryType.MISMATCH, -1);
-		}
-
-		public static BaseCategory flanking_deletion() {
-			return new BaseCategory(BaseCategoryType.FLANKING_DELETION, -1);
-		}
-
-		public static BaseCategory pileup(int threshold) {
-			return new BaseCategory(BaseCategoryType.PILEUP, threshold);
-		}
-
-		public static BaseCategory lower_than_coverage(int coverage) {
-			return new BaseCategory(BaseCategoryType.LOWER_COVERAGE, coverage);
-		};
-	}
-
-	public static enum QualityScoreTreatmentType {
-		PRESERVE, BIN, DROP;
-	}
-
-	public static class QualityScoreTreatment {
-		public final QualityScoreTreatmentType type;
-		public final int param;
-
-		private QualityScoreTreatment(QualityScoreTreatmentType type, int param) {
-			this.type = type;
-			this.param = param;
-		}
-
-		public static QualityScoreTreatment preserve() {
-			return new QualityScoreTreatment(
-					QualityScoreTreatmentType.PRESERVE, 40);
-		}
-
-		public static QualityScoreTreatment drop() {
-			return new QualityScoreTreatment(QualityScoreTreatmentType.DROP, 40);
-		}
-
-		public static QualityScoreTreatment bin(int bins) {
-			return new QualityScoreTreatment(QualityScoreTreatmentType.BIN,
-					bins);
-		}
-	}
-
-	public static class PreservationPolicy {
-		ReadCategory readCategory;
-		List<BaseCategory> baseCategories = new ArrayList<>();
-
-		QualityScoreTreatment treatment;
-	}
-
 	public static List<PreservationPolicy> policyList = new ArrayList<>();
 	static {
 		// these should be sorted by qs treatment from none to max!
 
 		// M40
 		PreservationPolicy c1 = new PreservationPolicy();
-		c1.readCategory = ReadCategory.higher_then_mapping_score(0) ;
+		c1.readCategory = ReadCategory.higher_than_mapping_score(0) ;
 		c1.treatment = QualityScoreTreatment.preserve();
 		policyList.add(c1);
 		
@@ -358,319 +196,7 @@ public class BLOCK {
 		// c4.treatment = QualityScoreTreatment.bin(40);
 		// policyList.add(c4);
 	}
-	static {
-		Collections.sort(policyList, new Comparator<PreservationPolicy>() {
-
-			@Override
-			public int compare(PreservationPolicy o1, PreservationPolicy o2) {
-				QualityScoreTreatment t1 = o1.treatment;
-				QualityScoreTreatment t2 = o2.treatment;
-				int result = t2.type.ordinal() - t1.type.ordinal();
-				if (result != 0)
-					return result;
-
-				return 0;
-			}
-		});
-	}
-
-	public static final void applyBinning(byte[] scores) {
-		for (int i = 0; i < scores.length; i++)
-			scores[i] = Illumina_binning_matrix[scores[i]];
-	}
-
-	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
-		switch (t.type) {
-		case BIN:
-			return (byte) (Illumina_binning_matrix[score - 33] + 33);
-		case DROP:
-			return -1;
-		case PRESERVE:
-			return score;
-
-		}
-		throw new RuntimeException("Unknown quality score treatment type: "
-				+ t.type.name());
-	}
-
-	public static void addQS(SAMRecord s, CramRecord r, ReferenceTracks t,
-			List<PreservationPolicy> pp) {
-		byte[] scores = new byte[s.getReadLength()];
-		Arrays.fill(scores, (byte) -1);
-		for (PreservationPolicy p : pp)
-			addQS(s, r, scores, t, p);
-
-		if (!r.forcePreserveQualityScores) {
-			for (int i = 0; i < scores.length; i++) {
-				if (scores[i] > -1)
-					r.getReadFeatures().add(
-							new BaseQualityScore(i + 1, scores[i]));
-			}
-			Collections
-					.sort(r.getReadFeatures(), readFeaturePositionComparator);
-		} else
-			r.setQualityScores(scores);
-	}
-
-	private static Comparator<ReadFeature> readFeaturePositionComparator = new Comparator<ReadFeature>() {
-
-		@Override
-		public int compare(ReadFeature o1, ReadFeature o2) {
-			return o1.getPosition() - o2.getPosition();
-		}
-	};
-
-	public static void addQS(SAMRecord s, CramRecord r, byte[] scores,
-			ReferenceTracks t, PreservationPolicy p) {
-		int alSpan = s.getAlignmentEnd() - s.getAlignmentStart();
-		t.ensureRange(s.getAlignmentStart(), alSpan);
-		byte[] qs = s.getBaseQualities();
-
-		// check if read is falling into the read category:
-		if (p.readCategory != null) {
-			boolean properRead = false;
-			switch (p.readCategory.type) {
-			case UNPLACED:
-				properRead = s.getReadUnmappedFlag();
-				break;
-			case LOWER_MAPPING_SCORE:
-				properRead = s.getMappingQuality() < p.readCategory.param;
-				break;
-			case HIGHER_MAPPING_SCORE:
-				properRead = s.getMappingQuality() > p.readCategory.param;
-				break;
-
-			default:
-				throw new RuntimeException("Unknown read category: "
-						+ p.readCategory.type.name());
-			}
-
-			if (!properRead) // nothing to do here:
-				return;
-		}
-
-		// apply treamtent if there is no per-base policy:
-		if (p.baseCategories == null || p.baseCategories.isEmpty()) {
-			switch (p.treatment.type) {
-			case BIN:
-				if (r.getQualityScores() == null)
-					r.setQualityScores(s.getBaseQualities());
-				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
-						scores.length);
-				applyBinning(scores);
-				r.forcePreserveQualityScores = true;
-				break;
-			case PRESERVE:
-				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
-						scores.length);
-				r.forcePreserveQualityScores = true;
-				break;
-			case DROP:
-				r.setReadBases(null);
-				r.forcePreserveQualityScores = false;
-				break;
-
-			default:
-				throw new RuntimeException(
-						"Unknown quality score treatment type: "
-								+ p.treatment.type.name());
-			}
-
-			// nothing else to do here:
-			return;
-		}
-
-		// here we go, scan all bases to check if the policy applies:
-		boolean[] mask = new boolean[qs.length];
-		int alStart = s.getAlignmentStart();
-
-		for (BaseCategory c : p.baseCategories) {
-			int pos;
-			int refPos;
-			switch (c.type) {
-			case FLANKING_DELETION:
-				pos = 0;
-				for (CigarElement ce : s.getCigar().getCigarElements()) {
-					if (ce.getOperator() == CigarOperator.D) {
-						// if (pos > 0)
-						mask[pos] = true;
-						if (pos < mask.length)
-							mask[pos + 1] = true;
-					}
-
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
-				}
-				break;
-			case MATCH:
-			case MISMATCH:
-				pos = 0;
-				refPos = s.getAlignmentStart();
-				for (CigarElement ce : s.getCigar().getCigarElements()) {
-					switch (ce.getOperator()) {
-					case M:
-					case X:
-					case EQ:
-						for (int i = 0; i < ce.getLength(); i++) {
-							boolean match = s.getReadBases()[pos + i] == t
-									.baseAt(refPos + i);
-							if ((c.type == BaseCategoryType.MATCH && match)
-									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
-								mask[pos + i] = true;
-							}
-						}
-						break;
-					}
-
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
-					refPos += ce.getOperator().consumesReferenceBases() ? ce
-							.getLength() : 0;
-				}
-				break;
-			case LOWER_COVERAGE:
-				for (int i = 0; i < qs.length; i++)
-					if (t.coverageAt(alStart + i) < c.param)
-						mask[i] = true;
-				break;
-			case PILEUP:
-				for (int i = 0; i < qs.length; i++)
-					if (t.mismatchesAt(alStart + i) > c.param)
-						mask[i] = true;
-				break;
-
-			default:
-				break;
-			}
-
-			int maskedCount = 0;
-			for (int i = 0; i < mask.length; i++)
-				if (mask[i]) {
-					scores[i] = applyTreatment(qs[i], p.treatment);
-					maskedCount++;
-				}
-			// safety latch, store all qs if there are too many individual score
-			// to store:
-			if (maskedCount > s.getReadLength() / 2)
-				r.forcePreserveQualityScores = true;
-		}
-	}
-
-	public static class ReferenceTracks {
-		private int sequenceId;
-		private String sequenceName;
-		private byte[] reference;
-
-		private int position;
-
-		// a copy of ref bases for the given range:
-		private final byte[] bases;
-		private final short[] coverage;
-		private final short[] mismatches;
-
-		public ReferenceTracks(int sequenceId, String sequenceName,
-				byte[] reference, int windowSize) {
-			this.sequenceId = sequenceId;
-			this.sequenceName = sequenceName;
-			this.reference = reference;
-			bases = new byte[windowSize];
-			coverage = new short[windowSize];
-			mismatches = new short[windowSize];
-			position = 1;
-
-			reset();
-		}
-
-		public int getSequenceId() {
-			return sequenceId;
-		}
-
-		public String getSequenceName() {
-			return sequenceName;
-		}
-
-		public int getWindowPosition() {
-			return position;
-		}
-
-		public int getWindowLength() {
-			return bases.length;
-		}
-
-		public int getReferenceLength() {
-			return reference.length;
-		}
-
-		public void moveForwardTo(int newPos) {
-			if (newPos < position)
-				throw new RuntimeException(
-						"Cannot shift to smaller position on the reference.");
-			if (newPos == position)
-				return;
-
-			System.arraycopy(reference, newPos - 1, bases, 0, bases.length);
-
-			if (newPos > position && position + bases.length - newPos > 0) {
-				System.arraycopy(coverage, (newPos - position), coverage, 0,
-						(position - newPos + coverage.length));
-				System.arraycopy(mismatches, (newPos - position), mismatches,
-						0, (position - newPos + coverage.length));
-			} else {
-				Arrays.fill(coverage, (short) 0);
-				Arrays.fill(mismatches, (short) 0);
-			}
-
-			this.position = newPos;
-		}
-
-		public void reset() {
-			System.arraycopy(reference, position - 1, bases, 0, bases.length);
-			Arrays.fill(coverage, (short) 0);
-			Arrays.fill(mismatches, (short) 0);
-		}
-
-		public void ensureRange(int start, int length) {
-			if (length > bases.length)
-				throw new RuntimeException("Requested window is too big: "
-						+ length);
-			if (start < position)
-				throw new RuntimeException("Cannot move the window backwords: "
-						+ start);
-
-			if (start + length > position + bases.length)
-				moveForwardTo(start);
-		}
-
-		public final byte baseAt(int pos) {
-			return bases[pos - this.position];
-		}
-
-		public final short coverageAt(int pos) {
-			return coverage[pos - this.position];
-		}
-
-		public final short mismatchesAt(int pos) {
-			return mismatches[pos - this.position];
-		}
-
-		public final void addCoverage(int pos, int amount) {
-			coverage[pos - this.position] += amount;
-		}
-
-		public final void addMismatches(int pos, int amount) {
-			mismatches[pos - this.position] += amount;
-		}
-	}
-
-	public static void applyPolicies(List<ReadFeature> rfs) {
-		ReferenceTracks tracks = new ReferenceTracks(1, "seq1",
-				"AAAAAAAAAAAAAAAAAAAAAAAAAAA".getBytes(), 10);
-
-		for (PreservationPolicy p : policyList) {
-			// applye theme here somehow...
-		}
-	}
-
+	
 	public static Container writeContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
@@ -957,6 +483,7 @@ public class BLOCK {
 		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
+		QualityScorePreservation preservation = new QualityScorePreservation("R8X10-R40X5-N40-U40") ;
 		for (SAMRecord samRecord : samRecords) {
 			CramRecord cramRecord = f.createCramRecord(samRecord);
 			cramRecord.index = index++;
@@ -994,7 +521,7 @@ public class BLOCK {
 						.getLength() : 0;
 			}
 
-			addQS(samRecord, cramRecord, tracks, policyList);
+			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
 
 		// mating:
@@ -1148,55 +675,4 @@ public class BLOCK {
 
 	}
 
-	// @formatter:off
-	// NCBI binning scheme:
-	// Low High Value
-	// 0 0 0
-	// 1 1 1
-	// 2 2 2
-	// 3 14 9
-	// 15 19 17
-	// 20 24 22
-	// 25 29 28
-	// 30 nolimit 35
-	// @formatter:on
-	private static byte[] NCBI_binning_matrix = new byte[] {
-			// @formatter:off
-			0, 1, 2, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 17, 17, 17, 17, 17,
-			22, 22, 22, 22,
-			22,
-			28,
-			28,
-			28,
-			28,
-			28,
-			// @formatter:on
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
-			35 };
-
-	// @formatter:off
-	// Illumina binning scheme:
-	// 2-9 6
-	// 10-19 15
-	// 20-24 22
-	// 25-29 27
-	// 30-34 33
-	// 35-39 37
-	// ≥40 40
-	// @formatter:on
-	private static byte[] Illumina_binning_matrix = new byte[] {// @formatter:off
-	0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 22,
-			22, 22, 22, 22, 27, 27, 27, 27, 27, 33, 33, 33, 33, 33, 37, 37, 37,
-			37, 37, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-			40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-			40, 40, 40, 40 };
-	// @formatter:on
 }
