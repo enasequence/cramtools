@@ -422,9 +422,9 @@ public class BLOCK_PROTO {
 		// mating:
 		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
 		for (CramRecord r : cramRecords) {
-			if (r.lastFragment) {
+			if (r.lastSegment) {
 				r.recordsToNextFragment = -1;
-				if (r.firstInPair)
+				if (r.firstSegment)
 					continue;
 			}
 
@@ -440,7 +440,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : cramRecords) {
-			if (!r.lastFragment && r.next == null)
+			if (!r.lastSegment && r.next == null)
 				r.detached = true;
 		}
 
@@ -466,9 +466,9 @@ public class BLOCK_PROTO {
 				r.index = i++;
 		}
 		for (CramRecord r : newRecords) {
-			if (r.lastFragment) {
+			if (r.lastSegment) {
 				r.recordsToNextFragment = -1;
-				if (r.firstInPair)
+				if (r.firstSegment)
 					continue;
 			}
 
@@ -484,7 +484,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : newRecords) {
-			if (!r.lastFragment && r.next == null)
+			if (!r.lastSegment && r.next == null)
 				r.detached = true;
 		}
 
@@ -539,9 +539,9 @@ public class BLOCK_PROTO {
 				r.index = i++;
 		}
 		for (CramRecord r : newRecords) {
-			if (r.lastFragment) {
+			if (r.lastSegment) {
 				r.recordsToNextFragment = -1;
-				if (r.firstInPair)
+				if (r.firstSegment)
 					continue;
 			}
 
@@ -557,7 +557,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : newRecords) {
-			if (!r.lastFragment && r.next == null)
+			if (!r.lastSegment && r.next == null)
 				r.detached = true;
 		}
 

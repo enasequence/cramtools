@@ -85,7 +85,7 @@ public class Writer {
 	public DataWriter<Integer> mrc;
 
 	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.LONG)
-	public DataWriter<Long> malsc;
+	public DataWriter<Integer> malsc;
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataWriter<Integer> tsc;
@@ -101,19 +101,16 @@ public class Writer {
 		}
 
 		// mate record:
-		if (!r.isLastFragment()) {
-			if (r.detached) {
-				mbfc.writeData(r.getMateFlags());
-				if (!captureReadNames)
-					readNameC.writeData(r.getReadName().getBytes(charset));
+		if (r.detached) {
+			mbfc.writeData(r.getMateFlags());
+			if (!captureReadNames)
+				readNameC.writeData(r.getReadName().getBytes(charset));
 
-				mrc.writeData(r.mateSequnceID);
-				malsc.writeData(r.mateAlignmentStart);
-				tsc.writeData(r.templateSize);
-			} else
-				distanceC.writeData(r.recordsToNextFragment);
-
-		}
+			mrc.writeData(r.mateSequnceID);
+			malsc.writeData(r.mateAlignmentStart);
+			tsc.writeData(r.templateSize);
+		} else if (r.hasMateDownStream) 
+			distanceC.writeData(r.recordsToNextFragment);
 
 		// tag records:
 		if (r.tags != null) {

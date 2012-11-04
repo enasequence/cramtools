@@ -1,44 +1,213 @@
 package net.sf.cram;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import net.sf.cram.encoding.read_features.BaseQualityScore;
+import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.ReadBase;
+import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
+import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 
 public class CramNormalizer {
-	private SAMFileHeader header ;
-	private long readCounter ;
-	private String readNamePrefix ;
-	private int alignmentStart ;
-	private byte defaultQualityScore;
-	private SAMReadGroupRecord defaultReadGroup ;
-	
-	
-	public void restoreReferenceSequence(int sequenceId, String sequenceName, List<CramRecord> records) {
+	private SAMFileHeader header;
+	private int readCounter = 0;
+	private String readNamePrefix = "";
+	private int alignmentStart = 1;
+	private byte defaultQualityScore = '?';
+
+	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<>();
+	private byte[] ref;
+
+	public void normalize(List<CramRecord> records, boolean resetPairing) {
+		if (resetPairing)
+			pairingByIndexMap.clear();
+
+		for (CramRecord r : records) {
+			r.index = ++readCounter;
+
+			alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
+			r.setAlignmentStart(alignmentStart);
+
+			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
+			else
+				r.setSequenceName(header.getSequence(r.sequenceId)
+						.getSequenceName());
+		}
+
+		{// restore pairing first:
+			for (CramRecord r : records) {
+				if (!r.multiFragment || r.detached)
+					continue;
+
+				if (r.hasMateDownStream) {
+					pairingByIndexMap.put(r.index + r.recordsToNextFragment, r);
+				} else {
+					r.recordsToNextFragment = -1;
+					CramRecord prev = pairingByIndexMap.remove(r.index);
+					if (prev == null)
+						throw new RuntimeException("Pairing broken: "
+								+ r.toString());
+					else {
+						r.previous = prev;
+						prev.next = r;
+
+						r.mateAlignmentStart = prev.getAlignmentStart();
+						r.mateUmapped = prev.segmentUnmapped;
+						r.mateNegativeStrand = prev.negativeStrand;
+						r.mateSequnceID = prev.sequenceId;
+
+						prev.mateAlignmentStart = r.getAlignmentStart();
+						prev.mateUmapped = r.segmentUnmapped;
+						prev.mateNegativeStrand = r.negativeStrand;
+						prev.mateSequnceID = r.sequenceId;
+					}
+				}
+			}
+		}
+
+		// assign some read names if needed:
+		for (CramRecord r : records) {
+			if (r.getReadName() == null) {
+				String name = readNamePrefix + readCounter;
+				r.setReadName(name);
+				if (r.next != null)
+					r.next.setReadName(name);
+				if (r.previous != null)
+					r.previous.setReadName(name);
+			}
+		}
+
+		// resolve bases:
+		for (CramRecord r : records) {
+			byte[] bases = restoreReadBases(r, ref);
+			r.setReadBases(bases);
+		}
+
+		// restore read group:
+		for (CramRecord r : records) {
+			r.setReadGroupID(r.getReadGroupID());
+		}
+
+		// restore quality scores:
+		for (CramRecord r : records) {
+			if (r.forcePreserveQualityScores)
+				continue;
+			if (r.getReadFeatures() == null)
+				continue;
+
+			byte[] scores = new byte[r.getReadLength()];
+			Arrays.fill(scores, defaultQualityScore);
+			for (ReadFeature f : r.getReadFeatures()) {
+				if (f.getOperator() == BaseQualityScore.operator) {
+					int pos = f.getPosition();
+					byte q = ((BaseQualityScore) f).getQualityScore();
+
+					scores[pos] = q;
+				}
+
+				r.setQualityScores(scores);
+			}
+		}
+	}
+
+	public void restoreQualityScores(byte defaultQualityScore,
+			List<CramRecord> records) {
 
 	}
-	
-	public void restoreAlignmentStarts(int alignmentStart, List<CramRecord> records) {
 
+	private static final long calcRefLength(CramRecord record) {
+		if (record.getReadFeatures() == null
+				|| record.getReadFeatures().isEmpty())
+			return record.getReadLength();
+		long len = record.getReadLength();
+		for (ReadFeature rf : record.getReadFeatures()) {
+			switch (rf.getOperator()) {
+			case DeletionVariation.operator:
+				len += ((DeletionVariation) rf).getLength();
+				break;
+			case InsertionVariation.operator:
+				len -= ((InsertionVariation) rf).getSequence().length;
+				break;
+			default:
+				break;
+			}
+		}
+
+		return len;
 	}
 
-	public void restoreReadNames(long offset, String prefix, List<CramRecord> records) {
+	private static final byte[] restoreReadBases(CramRecord record, byte[] ref) {
+		int readLength = (int) record.getReadLength();
+		byte[] bases = new byte[readLength];
 
-	}
+		int posInRead = 1;
+		int alignmentStart = record.getAlignmentStart() - 1;
 
-	public void restoreReadBases(List<CramRecord> records) {
+		int posInSeq = 0;
+		if (record.getReadFeatures() == null
+				|| record.getReadFeatures().isEmpty()) {
+			System.arraycopy(ref, alignmentStart, bases, 0, bases.length);
+			return bases;
+		}
+		List<ReadFeature> variations = record.getReadFeatures();
+		for (ReadFeature v : variations) {
+			for (; posInRead < v.getPosition(); posInRead++)
+				bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
-	}
+			switch (v.getOperator()) {
+			case SubstitutionVariation.operator:
+				SubstitutionVariation sv = (SubstitutionVariation) v;
+				byte refBase = ref[alignmentStart + posInSeq];
+				byte base = sv.getBaseChange().getBaseForReference(refBase);
+				sv.setBase(base);
+				sv.setRefernceBase(refBase);
+				bases[posInRead++ - 1] = sv.getBase();
+				posInSeq++;
+				break;
+			case InsertionVariation.operator:
+				InsertionVariation iv = (InsertionVariation) v;
+				for (int i = 0; i < iv.getSequence().length; i++)
+					bases[posInRead++ - 1] = iv.getSequence()[i];
+				break;
+			case SoftClipVariation.operator:
+				SoftClipVariation sc = (SoftClipVariation) v;
+				for (int i = 0; i < sc.getSequence().length; i++)
+					bases[posInRead++ - 1] = sc.getSequence()[i];
+				break;
+			case DeletionVariation.operator:
+				DeletionVariation dv = (DeletionVariation) v;
+				posInSeq += dv.getLength();
+				break;
+			case InsertBase.operator:
+				InsertBase ib = (InsertBase) v;
+				bases[posInRead++ - 1] = ib.getBase();
+				break;
+			}
+		}
+		for (; posInRead <= readLength; posInRead++)
+			bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
-	public void restoreQualityScores(byte defaultQualityScore, List<CramRecord> records) {
+		// ReadBase overwrites bases:
+		for (ReadFeature v : variations) {
+			switch (v.getOperator()) {
+			case ReadBase.operator:
+				ReadBase rb = (ReadBase) v;
+				bases[v.getPosition() - 1] = rb.getBase();
+				break;
+			default:
+				break;
+			}
+		}
 
-	}
-
-	public void restoreMateInfo(SAMFileHeader header, List<CramRecord> records) {
-
-	}
-	
-	public void restoreReadGroups(SAMReadGroupRecord defaultReadGroup, SAMFileHeader header, List<CramRecord> records) {
-
+		return bases;
 	}
 }

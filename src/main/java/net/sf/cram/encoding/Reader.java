@@ -102,19 +102,16 @@ public class Reader {
 		}
 
 		// mate record:
-		if (!r.isLastFragment()) {
-			if (r.detached) {
-				r.setMateFlags(mbfc.readData());
-				if (!captureReadNames)
-					r.setReadName(new String(readNameC.readData(), charset));
+		if (r.detached) {
+			r.setMateFlags(mbfc.readData());
+			if (!captureReadNames)
+				r.setReadName(new String(readNameC.readData(), charset));
 
-				r.mateSequnceID = mrc.readData();
-				r.mateAlignmentStart = malsc.readData();
-				r.templateSize = tsc.readData();
-			} else
-				r.setRecordsToNextFragment(distanceC.readData());
-
-		}
+			r.mateSequnceID = mrc.readData();
+			r.mateAlignmentStart = malsc.readData();
+			r.templateSize = tsc.readData();
+		} else if (r.hasMateDownStream)
+			r.setRecordsToNextFragment(distanceC.readData());
 
 		// tag records:
 		if (r.tags != null) {

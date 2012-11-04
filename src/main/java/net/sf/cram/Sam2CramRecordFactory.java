@@ -107,7 +107,7 @@ public class Sam2CramRecordFactory {
 		CramRecord cramRecord = new CramRecord();
 		if (record.getReadPairedFlag()) {
 			cramRecord.mateAlignmentStart = record.getMateAlignmentStart();
-			cramRecord.mateMapped = !record.getMateUnmappedFlag();
+			cramRecord.mateUmapped = !record.getMateUnmappedFlag();
 			cramRecord.mateNegativeStrand = record.getMateNegativeStrandFlag();
 			cramRecord.mateSequnceID = record.getMateReferenceIndex();
 		} 

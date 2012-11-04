@@ -21,14 +21,12 @@ import java.util.List;
 
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.samtools.Cigar;
-import net.sf.samtools.SAMUtils;
 
 public class CramRecord {
 
 	public Collection<ReadTag> tags;
 
-	public boolean forcePreserveQualityScores = false;
-	public int index = 0 ;
+	public int index = 0;
 	private int alignmentStart;
 	public int alignmentStartOffsetFromPreviousRecord;
 
@@ -45,23 +43,29 @@ public class CramRecord {
 
 	// flags:
 	public Integer flags = null;
-	public boolean vendorFiltered = false;
-	public boolean negativeStrand;
-	public boolean readMapped;
-	public boolean lastFragment;
-	public boolean firstInPair = false;
-	public boolean properPair = false;
-	public boolean duplicate = false;
-	public boolean detached = false;
 	public boolean multiFragment = false;
+	public boolean properPair = false;
+	public boolean segmentUnmapped = false;
+	public boolean negativeStrand = false;
+	public boolean firstSegment = false;
+	public boolean lastSegment = false;
+	public boolean secondaryALignment = false;
+	public boolean vendorFiltered = false;
+	public boolean duplicate = false;
 
 	// pointers to the previous and next segments in the template:
 	public CramRecord next, previous;
 
 	// mate flags:
 	private Byte mateFlags = null;
-	public boolean mateMapped = false;
+	public boolean mateUmapped = false;
 	public boolean mateNegativeStrand = false;
+
+	// compression flags:
+	private Byte compressionFlags = null;
+	public boolean hasMateDownStream = false;
+	public boolean detached = false;
+	public boolean forcePreserveQualityScores = false;
 
 	public int mateSequnceID = 0;
 	public int mateAlignmentStart = 0;
@@ -77,27 +81,26 @@ public class CramRecord {
 	public int getFlags() {
 		if (flags == null) {
 			int b = 0;
-			b |= forcePreserveQualityScores ? 1 : 0;
-			
+			b |= multiFragment ? 1 : 0;
+
 			b <<= 1;
-			b |= detached ? 1 : 0;
+			b |= properPair ? 1 : 0;
 			b <<= 1;
-			b |= duplicate ? 1 : 0;
+			b |= segmentUnmapped ? 1 : 0;
+			b <<= 1;
+			b |= negativeStrand ? 1 : 0;
+
+			b <<= 1;
+			b |= firstSegment ? 1 : 0;
+			b <<= 1;
+			b |= lastSegment ? 1 : 0;
+			b <<= 1;
+			b |= secondaryALignment ? 1 : 0;
 			b <<= 1;
 			b |= vendorFiltered ? 1 : 0;
 			b <<= 1;
-			b |= properPair ? 1 : 0;
-			
-			b <<= 1;
-			b |= firstInPair ? 1 : 0;
-			b <<= 1;
-			b |= lastFragment ? 1 : 0;
-			b <<= 1;
-			b |= negativeStrand ? 1 : 0;
-			b <<= 1;
-			b |= readMapped ? 1 : 0;
-			
-			
+			b |= duplicate ? 1 : 0;
+
 			flags = new Integer(b);
 		}
 		return flags;
@@ -105,17 +108,29 @@ public class CramRecord {
 
 	public void setFlags(int value) {
 		int b = value;
-		readMapped = ((b & 1) == 0) ? false : true;
-		negativeStrand = ((b & 2) == 0) ? false : true;
-		lastFragment = ((b & 4) == 0) ? false : true;
-		firstInPair = ((b & 8) == 0) ? false : true;
+		b >>>= 1;
+		duplicate = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		vendorFiltered = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		secondaryALignment = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		lastSegment = ((b & 1) == 0) ? false : true;
 
-		properPair = ((b & 16) == 0) ? false : true;
-		vendorFiltered = ((b & 32) == 0) ? false : true;
-		duplicate = ((b & 64) == 0) ? false : true;
-		detached = ((b & 128) == 0) ? false : true;
-		
-		forcePreserveQualityScores = ((b & 256) == 0) ? false : true;
+		b >>>= 1;
+		firstSegment = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+
+		negativeStrand = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		segmentUnmapped = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		properPair = ((b & 1) == 0) ? false : true;
+
+		b >>>= 1;
+		multiFragment = ((b & 1) == 0) ? false : true;
+
+		this.flags = value;
 	}
 
 	public void resetFlags() {
@@ -125,7 +140,7 @@ public class CramRecord {
 	public byte getMateFlags() {
 		if (mateFlags == null) {
 			byte b = 0;
-			b |= mateMapped ? 1 : 0;
+			b |= mateUmapped ? 1 : 0;
 			b <<= 1;
 			b |= mateNegativeStrand ? 1 : 0;
 			mateFlags = new Byte(b);
@@ -135,12 +150,45 @@ public class CramRecord {
 
 	public void setMateFlags(byte value) {
 		int b = 0xFF & value;
-		mateMapped = ((b & 1) == 0) ? false : true;
-		mateNegativeStrand = ((b & 2) == 0) ? false : true;
+
+		mateNegativeStrand = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		mateUmapped = ((b & 1) == 0) ? false : true;
+
+		mateFlags = value;
 	}
 
 	public void resetMateFlags() {
 		mateFlags = null;
+	}
+
+	public byte getCompressionFlags() {
+		if (compressionFlags == null) {
+			byte b = 0;
+			b |= hasMateDownStream ? 1 : 0;
+			b <<= 1;
+			b |= detached ? 1 : 0;
+			b <<= 1;
+			b |= forcePreserveQualityScores ? 1 : 0;
+			compressionFlags = new Byte(b);
+		}
+		return compressionFlags;
+	}
+
+	public void setCompressionFlags(byte value) {
+		int b = 0xFF & value;
+		
+		forcePreserveQualityScores = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		detached = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		hasMateDownStream = ((b & 1) == 0) ? false : true;
+
+		compressionFlags = value;
+	}
+
+	public void resetCompressionFlags() {
+		compressionFlags = null;
 	}
 
 	public int getAlignmentStart() {
@@ -172,15 +220,15 @@ public class CramRecord {
 			return false;
 		if (vendorFiltered != r.vendorFiltered)
 			return false;
-		if (readMapped != r.readMapped)
+		if (segmentUnmapped != r.segmentUnmapped)
 			return false;
 		if (readLength != r.readLength)
 			return false;
-		if (lastFragment != r.lastFragment)
+		if (lastSegment != r.lastSegment)
 			return false;
 		if (recordsToNextFragment != r.recordsToNextFragment)
 			return false;
-		if (firstInPair != r.firstInPair)
+		if (firstSegment != r.firstSegment)
 			return false;
 		if (mappingQuality != r.mappingQuality)
 			return false;
@@ -249,11 +297,11 @@ public class CramRecord {
 	}
 
 	public boolean isLastFragment() {
-		return lastFragment;
+		return lastSegment;
 	}
 
 	public void setLastFragment(boolean lastFragment) {
-		this.lastFragment = lastFragment;
+		this.lastSegment = lastFragment;
 	}
 
 	public int getRecordsToNextFragment() {
@@ -265,11 +313,11 @@ public class CramRecord {
 	}
 
 	public boolean isReadMapped() {
-		return readMapped;
+		return segmentUnmapped;
 	}
 
 	public void setReadMapped(boolean readMapped) {
-		this.readMapped = readMapped;
+		this.segmentUnmapped = readMapped;
 	}
 
 	public List<ReadFeature> getReadFeatures() {
@@ -305,11 +353,11 @@ public class CramRecord {
 	}
 
 	public boolean isFirstInPair() {
-		return firstInPair;
+		return firstSegment;
 	}
 
 	public void setFirstInPair(boolean firstInPair) {
-		this.firstInPair = firstInPair;
+		this.firstSegment = firstInPair;
 	}
 
 	public byte getMappingQuality() {
@@ -352,11 +400,4 @@ public class CramRecord {
 		this.readName = readName;
 	}
 
-	public int getSamFlags() {
-		throw new RuntimeException("Not implemented.") ;
-	}
-
-	public Cigar getCigar() {
-		throw new RuntimeException("Not implemented.") ;
-	}
 }
