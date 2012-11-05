@@ -23,6 +23,7 @@ public class QualityScorePreservation {
 		this.specification = specification;
 		policyList = new ArrayList<>();
 		for (String s : specification.split("-")) {
+			if (s.length() == 0) continue ;
 			PreservationPolicy policy = parseSinglePolicy(s);
 			System.err.println("Adding preservation policy: "
 					+ policy.toString());
@@ -194,7 +195,7 @@ public class QualityScorePreservation {
 	private static final byte applyTreatment(byte score, QualityScoreTreatment t) {
 		switch (t.type) {
 		case BIN:
-			return (byte) (Binning.Illumina_binning_matrix[score - 33] + 33);
+			return (byte) (Binning.Illumina_binning_matrix[score]);
 		case DROP:
 			return -1;
 		case PRESERVE:

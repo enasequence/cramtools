@@ -272,11 +272,26 @@ public class Utils {
 
 	}
 
-	public static int computeInsertSize(SAMRecord firstEnd, SAMRecord secondEnd) {
-		if (firstEnd.getAlignmentStart() < secondEnd.getAlignmentStart())
-			return SamPairUtil.computeInsertSize(firstEnd, secondEnd);
-		else
-			return SamPairUtil.computeInsertSize(secondEnd, firstEnd);
+	public static int computeInsertSize(CramRecord firstEnd,
+			CramRecord secondEnd) {
+		if (firstEnd.segmentUnmapped || secondEnd.segmentUnmapped) {
+			return 0;
+		}
+		if (firstEnd.sequenceId != secondEnd.sequenceId) {
+			return 0;
+		}
+
+		final int firstEnd5PrimePosition = firstEnd.negativeStrand ? firstEnd
+				.calcualteAlignmentEnd() : firstEnd.getAlignmentStart();
+		final int secondEnd5PrimePosition = secondEnd.negativeStrand ? secondEnd
+				.calcualteAlignmentEnd() : secondEnd.getAlignmentStart();
+
+		int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition) ? +1
+				: -1;
+		// this seems to correlate with reality more, although Picard disagrees: 
+		adjustment = -adjustment ;
+		
+		return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
 	}
 
 	public static IndexedFastaSequenceFile createIndexedFastaSequenceFile(

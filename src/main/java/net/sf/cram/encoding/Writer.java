@@ -26,6 +26,9 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataWriter<Integer> bitFlagsC;
+	
+	@DataSeries(key = EncodingKey.CF_CompressionBitFlags, type = DataSeriesType.BYTE)
+	public DataWriter<Byte> compBitFlagsC;
 
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> readLengthC;
@@ -84,14 +87,18 @@ public class Writer {
 	@DataSeries(key = EncodingKey.NS_NextFragmentReferenceSequenceID, type = DataSeriesType.INT)
 	public DataWriter<Integer> mrc;
 
-	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.LONG)
+	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.INT)
 	public DataWriter<Integer> malsc;
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataWriter<Integer> tsc;
+	
+	public static int detachedCount = 0 ;
 
 	public void write(CramRecord r) throws IOException {
 		bitFlagsC.writeData(r.getFlags());
+		compBitFlagsC.writeData(r.getCompressionFlags()) ;
+		
 		readLengthC.writeData(r.getReadLength());
 		alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
 		readGroupC.writeData(r.getReadGroupID());
@@ -109,6 +116,8 @@ public class Writer {
 			mrc.writeData(r.mateSequnceID);
 			malsc.writeData(r.mateAlignmentStart);
 			tsc.writeData(r.templateSize);
+			
+			detachedCount++ ;
 		} else if (r.hasMateDownStream) 
 			distanceC.writeData(r.recordsToNextFragment);
 

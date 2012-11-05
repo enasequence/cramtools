@@ -107,21 +107,28 @@ public class Sam2CramRecordFactory {
 		CramRecord cramRecord = new CramRecord();
 		if (record.getReadPairedFlag()) {
 			cramRecord.mateAlignmentStart = record.getMateAlignmentStart();
-			cramRecord.mateUmapped = !record.getMateUnmappedFlag();
+			cramRecord.mateUmapped = record.getMateUnmappedFlag();
 			cramRecord.mateNegativeStrand = record.getMateNegativeStrandFlag();
 			cramRecord.mateSequnceID = record.getMateReferenceIndex();
-		} 
+		}
+		cramRecord.sequenceId = record.getReferenceIndex() ;
 		cramRecord.setReadName(record.getReadName());
-
 		cramRecord.setAlignmentStart(record.getAlignmentStart());
-		cramRecord.setNegativeStrand(record.getReadNegativeStrandFlag());
-		cramRecord.setReadMapped(!record.getReadUnmappedFlag());
+		
+		cramRecord.multiFragment = record.getReadPairedFlag() ;
+		cramRecord.properPair = record.getReadPairedFlag()
+				&& record.getProperPairFlag();
+		cramRecord.segmentUnmapped = record.getReadUnmappedFlag();
+		cramRecord.negativeStrand = record.getReadNegativeStrandFlag();
+		cramRecord.firstSegment = record.getReadPairedFlag()
+				&& record.getFirstOfPairFlag();
+		cramRecord.lastSegment = record.getReadPairedFlag()
+				&& record.getSecondOfPairFlag();
+		cramRecord.secondaryALignment = record.getNotPrimaryAlignmentFlag() ;
+		cramRecord.vendorFiltered = record.getReadFailsVendorQualityCheckFlag() ;
+		cramRecord.duplicate = record.getDuplicateReadFlag() ;
+		
 		cramRecord.setReadLength(record.getReadLength());
-		cramRecord.setFirstInPair(record.getReadPairedFlag()
-				&& record.getFirstOfPairFlag());
-
-		cramRecord.setProperPair(record.getReadPairedFlag()
-				&& record.getProperPairFlag());
 		cramRecord.setMappingQuality((byte) record.getMappingQuality());
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 
@@ -147,25 +154,16 @@ public class Sam2CramRecordFactory {
 				cramRecord.setLastFragment(true);
 		}
 
-		if (cramRecord.isReadMapped()) {
+		if (!cramRecord.segmentUnmapped) {
 			List<ReadFeature> features = checkedCreateVariations(cramRecord,
 					record);
 			cramRecord.setReadFeatures(features);
-		} else {
-			// if (captureUnmappedBases)
-			// cramRecord.setReadBases(record.getReadBases());
-			// if (captureUnmappedScores) {
-			// cramRecord.setQualityScores(record.getBaseQualities());
-			// for (int i = 0; i < cramRecord.getQualityScores().length; i++)
-			// cramRecord.getQualityScores()[i] += QS_asciiOffset;
-			// landedTotalScores += cramRecord.getReadLength();
-			// }
 		}
 
 		cramRecord.setReadBases(record.getReadBases());
 		cramRecord.setQualityScores(record.getBaseQualities());
-		for (int i = 0; i < cramRecord.getQualityScores().length; i++)
-			cramRecord.getQualityScores()[i] += QS_asciiOffset;
+//		for (int i = 0; i < cramRecord.getQualityScores().length; i++)
+//			cramRecord.getQualityScores()[i] += QS_asciiOffset;
 		landedTotalScores += cramRecord.getReadLength();
 
 		if (captureAllTags) {

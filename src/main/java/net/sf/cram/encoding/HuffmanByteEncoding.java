@@ -27,8 +27,8 @@ public class HuffmanByteEncoding implements Encoding<Byte> {
 	public byte[] toByteArray() {
 		ByteBuffer buf = ByteBuffer.allocate(1024);
 		ByteBufferUtils.writeUnsignedITF8(values.length, buf);
-		for (int value : values)
-			ByteBufferUtils.writeUnsignedITF8(value, buf);
+		for (byte value : values)
+			buf.put(value);
 
 		ByteBufferUtils.writeUnsignedITF8(bitLengths.length, buf);
 		for (int value : bitLengths)

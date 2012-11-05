@@ -19,8 +19,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.samtools.Cigar;
+import net.sf.cram.encoding.read_features.SoftClipVariation;
 
 public class CramRecord {
 
@@ -177,7 +180,7 @@ public class CramRecord {
 
 	public void setCompressionFlags(byte value) {
 		int b = 0xFF & value;
-		
+
 		forcePreserveQualityScores = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		detached = ((b & 1) == 0) ? false : true;
@@ -398,6 +401,33 @@ public class CramRecord {
 
 	public void setReadName(String readName) {
 		this.readName = readName;
+	}
+
+	public int calcualteAlignmentEnd() {
+		if (readFeatures == null || readFeatures.isEmpty())
+			return alignmentStart + readLength;
+		
+		int len = readLength;
+		for (ReadFeature f : readFeatures) {
+			switch (f.getOperator()) {
+			case InsertBase.operator:
+				len--;
+				break;
+			case InsertionVariation.operator:
+				len -= ((InsertionVariation) f).getSequence().length;
+				break;
+			case SoftClipVariation.operator:
+				len -= ((InsertionVariation) f).getSequence().length;
+				break;
+			case DeletionVariation.operator:
+				len += ((DeletionVariation) f).getLength();
+				break;
+
+			default:
+				break;
+			}
+		}
+		return alignmentStart + len;
 	}
 
 }

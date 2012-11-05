@@ -27,6 +27,9 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataReader<Integer> bitFlagsC;
+	
+	@DataSeries(key = EncodingKey.CF_CompressionBitFlags, type = DataSeriesType.BYTE)
+	public DataReader<Byte> compBitFlagsC;
 
 	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
 	public DataReader<Integer> readLengthC;
@@ -90,9 +93,13 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataReader<Integer> tsc;
+	
+	public static int detachedCount = 0 ;
 
 	public void read(CramRecord r) throws IOException {
 		r.setFlags(bitFlagsC.readData());
+		r.setCompressionFlags(compBitFlagsC.readData());
+		
 		r.setReadLength(readLengthC.readData());
 		r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
 		r.setReadGroupID(readGroupC.readData());
@@ -110,6 +117,7 @@ public class Reader {
 			r.mateSequnceID = mrc.readData();
 			r.mateAlignmentStart = malsc.readData();
 			r.templateSize = tsc.readData();
+			detachedCount ++ ;
 		} else if (r.hasMateDownStream)
 			r.setRecordsToNextFragment(distanceC.readData());
 

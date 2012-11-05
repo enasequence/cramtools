@@ -41,7 +41,13 @@ public class SubexpIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public byte[] toByteArray() {
-		return ByteBufferUtils.writeUnsignedITF8(k);
+		ByteBuffer buf = ByteBuffer.allocate(10) ;
+		ByteBufferUtils.writeUnsignedITF8(offset, buf);
+		ByteBufferUtils.writeUnsignedITF8(k, buf);
+		buf.flip() ;
+		byte[] bytes = new byte[buf.limit()] ;
+		buf.get(bytes) ;
+		return bytes ;
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -52,7 +53,7 @@ import net.sf.samtools.SAMSequenceRecord;
 
 public class BLOCK_PROTO {
 
-	private static List<CramRecord> records(CompressionHeader h, Container c,
+	static List<CramRecord> records(CompressionHeader h, Container c,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		List<CramRecord> records = new ArrayList<>();
@@ -83,7 +84,12 @@ public class BLOCK_PROTO {
 			r.setSequenceName(seqName);
 			r.sequenceId = sequence.getSequenceIndex();
 
-			reader.read(r);
+			try {
+				reader.read(r);
+			} catch (EOFException e) {
+				e.printStackTrace();
+				return records ;
+			}
 			records.add(r);
 
 		}
@@ -91,7 +97,7 @@ public class BLOCK_PROTO {
 		return records;
 	}
 
-	private static Container writeContainer(List<CramRecord> records,
+	static Container writeContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices

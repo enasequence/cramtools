@@ -67,6 +67,15 @@ public class CompressionHeaderFactory {
 					calculator.values(), calculator.bitLens()));
 		}
 
+		{ // compression bit flags encoding:
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				calculator.add(r.getCompressionFlags());
+			calculator.calculate();
+			h.eMap.put(EncodingKey.CF_CompressionBitFlags, HuffmanByteEncoding
+					.toParam(calculator.valuesAsBytes(), calculator.bitLens()));
+		}
+
 		{ // read length encoding:
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
@@ -270,6 +279,24 @@ public class CompressionHeaderFactory {
 		public int value = 0;
 	}
 
+	private static class BitCode implements Comparable<BitCode> {
+		int value;
+		int len;
+
+		public BitCode(int value, int len) {
+			this.value = value;
+			this.len = len;
+		}
+
+		@Override
+		public int compareTo(BitCode o) {
+			int result = value - o.value;
+			if (result != 0)
+				return result;
+			return len - o.len;
+		}
+	}
+
 	private static class HuffmanParamsCalculator {
 		private HashMap<Integer, MutableInt> countMap = new HashMap<>();
 		private int[] values = new int[] {};
@@ -345,12 +372,20 @@ public class CompressionHeaderFactory {
 			List<Integer> lens = new ArrayList<>();
 			HuffmanCode.getValuesAndBitLengths(valueList, lens, tree);
 
-			values = new int[valueList.size()];
-			bitLens = new int[valueList.size()];
+			// the following sorting is not really required, but whatever:
+			BitCode[] codes = new BitCode[valueList.size()];
+			for (int i = 0; i < valueList.size(); i++) {
+				codes[i] = new BitCode(valueList.get(i), lens.get(i));
+			}
+			Arrays.sort(codes);
 
-			for (int i = 0; i < bitLens.length; i++) {
-				bitLens[i] = lens.get(i);
-				values[i] = valueList.get(i);
+			values = new int[codes.length];
+			bitLens = new int[codes.length];
+
+			for (int i = 0; i < codes.length; i++) {
+				BitCode code = codes[i];
+				bitLens[i] = code.len;
+				values[i] = code.value;
 			}
 		}
 	}

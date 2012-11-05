@@ -21,10 +21,16 @@ public class CramNormalizer {
 	private int readCounter = 0;
 	private String readNamePrefix = "";
 	private int alignmentStart = 1;
-	private byte defaultQualityScore = '?';
+	private byte defaultQualityScore = '?'-'!';
 
 	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<>();
 	private byte[] ref;
+
+	public CramNormalizer(SAMFileHeader header, byte[] ref, int alignmentStart) {
+		this.header = header;
+		this.ref = ref;
+		this.alignmentStart = alignmentStart;
+	}
 
 	public void normalize(List<CramRecord> records, boolean resetPairing) {
 		if (resetPairing)
@@ -45,11 +51,17 @@ public class CramNormalizer {
 
 		{// restore pairing first:
 			for (CramRecord r : records) {
-				if (!r.multiFragment || r.detached)
+				if (!r.multiFragment || r.detached) {
+					r.recordsToNextFragment = -1;
+
+					r.next = null;
+					r.previous = null;
 					continue;
+				}
 
 				if (r.hasMateDownStream) {
-					pairingByIndexMap.put(r.index + r.recordsToNextFragment, r);
+					pairingByIndexMap.put(
+							r.index + r.recordsToNextFragment + 1, r);
 				} else {
 					r.recordsToNextFragment = -1;
 					CramRecord prev = pairingByIndexMap.remove(r.index);
@@ -69,6 +81,15 @@ public class CramNormalizer {
 						prev.mateUmapped = r.segmentUnmapped;
 						prev.mateNegativeStrand = r.negativeStrand;
 						prev.mateSequnceID = r.sequenceId;
+
+						if (r.firstSegment && prev.lastSegment) {
+							r.templateSize = Utils.computeInsertSize(r, prev);
+							prev.templateSize = -r.templateSize;
+						} else if (r.lastSegment && prev.firstSegment) {
+							prev.templateSize = Utils
+									.computeInsertSize(prev, r);
+							r.templateSize = -prev.templateSize;
+						}
 					}
 				}
 			}
@@ -99,22 +120,24 @@ public class CramNormalizer {
 
 		// restore quality scores:
 		for (CramRecord r : records) {
-			if (r.forcePreserveQualityScores)
-				continue;
-			if (r.getReadFeatures() == null)
-				continue;
+			if (!r.forcePreserveQualityScores) {
+				byte[] scores = new byte[r.getReadLength()];
+				Arrays.fill(scores, defaultQualityScore);
+				if (r.getReadFeatures() != null)
+					for (ReadFeature f : r.getReadFeatures()) {
+						if (f.getOperator() == BaseQualityScore.operator) {
+							int pos = f.getPosition();
+							byte q = ((BaseQualityScore) f).getQualityScore();
 
-			byte[] scores = new byte[r.getReadLength()];
-			Arrays.fill(scores, defaultQualityScore);
-			for (ReadFeature f : r.getReadFeatures()) {
-				if (f.getOperator() == BaseQualityScore.operator) {
-					int pos = f.getPosition();
-					byte q = ((BaseQualityScore) f).getQualityScore();
+							scores[pos] = q;
+						}
 
-					scores[pos] = q;
-				}
-
-				r.setQualityScores(scores);
+						r.setQualityScores(scores);
+					}
+			} else { 
+				byte[] scores = r.getQualityScores() ;
+				for (int i=0; i<scores.length; i++) 
+					if (scores[i] == -1) scores[i] = defaultQualityScore ;
 			}
 		}
 	}

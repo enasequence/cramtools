@@ -1,5 +1,6 @@
 package net.sf.cram.io;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,6 +10,7 @@ public class ByteBufferUtils {
 
 	public static final int readUnsignedITF8(InputStream is) throws IOException {
 		int b1 = is.read();
+		if (b1 == -1) throw new EOFException() ;
 
 		if ((b1 & 0b10000000) == 0)
 			return b1;

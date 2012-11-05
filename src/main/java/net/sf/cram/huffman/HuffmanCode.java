@@ -27,7 +27,8 @@ import java.util.TreeMap;
 public class HuffmanCode {
 
 	@Deprecated
-	public static <T> HuffmanTree<T> buildTreeUsingPriorityQueue(int[] charFreqs, T[] values) {
+	public static <T> HuffmanTree<T> buildTreeUsingPriorityQueue(
+			int[] charFreqs, T[] values) {
 		PriorityQueue<HuffmanTree<T>> queue = new PriorityQueue<HuffmanTree<T>>();
 
 		for (int i = 0; i < charFreqs.length; i++)
@@ -132,6 +133,7 @@ public class HuffmanCode {
 	private static class HuffmanBitCode<T> {
 		long bitCode;
 		int bitLentgh;
+		T value;
 	}
 
 	private static <T> void getBitCode(HuffmanTree<T> tree,

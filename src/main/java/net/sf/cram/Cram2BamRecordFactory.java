@@ -12,7 +12,6 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
-import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -41,17 +40,15 @@ public class Cram2BamRecordFactory {
 		if (samRecord.getReadPairedFlag()) {
 			samRecord.setMateReferenceIndex(cramRecord.mateSequnceID);
 			samRecord.setMateAlignmentStart(cramRecord.mateAlignmentStart);
+			samRecord.setMateNegativeStrandFlag(cramRecord.mateNegativeStrand);
+			samRecord.setMateUnmappedFlag(cramRecord.mateUmapped);
 		} else {
 			samRecord
 					.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
 			samRecord.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 		}
 
-		if (cramRecord.detached)
 		samRecord.setInferredInsertSize(cramRecord.templateSize);
-		else {
-			SamPairUtil.computeInsertSize(firstEnd, secondEnd)
-		}
 		samRecord.setReadBases(cramRecord.getReadBases());
 		samRecord.setBaseQualities(cramRecord.getQualityScores());
 
@@ -69,7 +66,7 @@ public class Cram2BamRecordFactory {
 		sr.setReadNegativeStrandFlag(cr.negativeStrand);
 		sr.setFirstOfPairFlag(cr.firstSegment);
 		sr.setSecondOfPairFlag(cr.lastSegment);
-		sr.setSecondOfPairFlag(cr.secondaryALignment);
+		sr.setNotPrimaryAlignmentFlag(cr.secondaryALignment);
 		sr.setReadFailsVendorQualityCheckFlag(cr.vendorFiltered);
 		sr.setDuplicateReadFlag(cr.duplicate);
 	}
@@ -90,7 +87,6 @@ public class Cram2BamRecordFactory {
 		CigarOperator co = null;
 		int rfLen = 0;
 		for (ReadFeature f : features) {
-			// if (lastOperator == CigarOperator.DELETION)
 
 			int gap = f.getPosition() - (lastOpPos + lastOpLen);
 			if (gap > 0) {

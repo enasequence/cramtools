@@ -1,0 +1,140 @@
+package net.sf.cram;
+
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+
+import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.structure.Container;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMFileWriterFactory;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
+
+public class Cram2Bam {
+	private static void printUsage(JCommander jc) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\n");
+		jc.usage(sb);
+
+		System.out.println("Version "
+				+ Cram2Bam.class.getPackage().getImplementationVersion());
+		System.out.println(sb.toString());
+	}
+
+	public static void main(String[] args) throws IOException,
+			IllegalArgumentException, IllegalAccessException {
+		Params params = new Params();
+		JCommander jc = new JCommander(params);
+		try {
+			jc.parse(args);
+		} catch (Exception e) {
+			System.out
+					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println(e.getMessage());
+			System.out.println();
+			System.out.println("See usage: -h");
+			System.exit(1);
+		}
+
+		if (args.length == 0 || params.help) {
+			printUsage(jc);
+			System.exit(1);
+		}
+
+		if (params.reference == null) {
+			System.out.println("A reference fasta file is required.");
+			System.exit(1);
+		}
+
+		if (params.cramFile == null) {
+			System.out.println("A CRAM input file is required. ");
+			System.exit(1);
+		}
+
+		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
+				.getReferenceSequenceFile(params.reference);
+
+		FileInputStream fis = new FileInputStream(params.cramFile);
+		BufferedInputStream bis = new BufferedInputStream(fis);
+
+		CramHeader cramHeader = ReadWrite.readCramHeader(bis);
+		SAMFileWriter writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(
+				cramHeader.samFileHeader, true, params.outputFile);
+
+		while (true) {
+			Container c = null;
+			try {
+				c = ReadWrite.readContainer(cramHeader.samFileHeader, bis);
+			} catch (EOFException e) {
+				writer.close();
+				break;
+			}
+
+			List<CramRecord> cramRecords = null;
+			try {
+				cramRecords = BLOCK_PROTO.records(c.h, c,
+						cramHeader.samFileHeader);
+			} catch (EOFException e) {
+				throw e ;
+			}
+			SAMSequenceRecord sequence = cramHeader.samFileHeader
+					.getSequence(c.sequenceId);
+			ReferenceSequence referenceSequence = referenceSequenceFile
+					.getSequence(sequence.getSequenceName());
+			byte[] ref = referenceSequence.getBases();
+
+			CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
+					ref, c.alignmentStart);
+			n.normalize(cramRecords, true);
+
+			Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
+					cramHeader.samFileHeader);
+
+			for (CramRecord r : cramRecords) {
+				SAMRecord s = c2sFactory.create(r);
+				writer.addAlignment(s);
+			}
+		}
+	}
+
+	@Parameters(commandDescription = "CRAM to BAM conversion. ")
+	static class Params {
+		@Parameter(names = { "--input-cram-file" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
+		File cramFile;
+
+		@Parameter(names = { "--reference-fasta-file" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
+		File reference;
+
+		@Parameter(names = { "--output-bam-file" }, converter = FileConverter.class, description = "The path to the output BAM file.")
+		File outputFile;
+
+		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
+		boolean help = false;
+
+		@Parameter(names = { "--default-quality-score" }, description = "Use this quality score (decimal representation of ASCII symbol) as a default value when the original quality score was lost due to compression. Minimum is 33.")
+		int defaultQS = '?';
+
+		@Parameter(names = { "--calculate-md-tag" }, description = "Calculate MD tag.")
+		boolean calculateMdTag = false;
+
+		@Parameter(names = { "--calculate-nm-tag" }, description = "Calculate NM tag.")
+		boolean calculateNmTag = false;
+
+		@Parameter()
+		List<String> sequences;
+
+	}
+
+}
