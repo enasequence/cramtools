@@ -104,7 +104,12 @@ public class Cram2Bam {
 
 			for (CramRecord r : cramRecords) {
 				SAMRecord s = c2sFactory.create(r);
-				writer.addAlignment(s);
+				try {
+					writer.addAlignment(s);
+				} catch (NullPointerException e) {
+					System.out.println(r.toString());
+					throw e ;
+				}
 			}
 		}
 	}

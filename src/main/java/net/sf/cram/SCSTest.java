@@ -42,7 +42,7 @@ public class SCSTest {
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		int maxRecords = 10000;
+		int maxRecords = 100000;
 		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
 		Map<String, List<SAMRecord>> origSamMap = new TreeMap<>();
 
@@ -177,6 +177,7 @@ public class SCSTest {
 		
 		for (int i=0; i<cramRecords.size(); i++) {
 			if (!old.get(i).getReadName().equals(cramRecords.get(i).getReadName())) {
+				System.err.println("Read name mismatch");
 				System.err.println(old.get(i).toString());
 				System.err.println(cramRecords.get(i).toString());
 			break ;

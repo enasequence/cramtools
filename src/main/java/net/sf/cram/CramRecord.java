@@ -111,7 +111,7 @@ public class CramRecord {
 
 	public void setFlags(int value) {
 		int b = value;
-		b >>>= 1;
+		
 		duplicate = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		vendorFiltered = ((b & 1) == 0) ? false : true;

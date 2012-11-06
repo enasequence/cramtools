@@ -146,10 +146,10 @@ public class CompressionHeaderFactory {
 			for (CramRecord r : records)
 				calculator.add(r.getReadFeatures().size());
 			calculator.calculate();
-
+			
 			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures,
-					HuffmanIntegerEncoding.toParam(calculator.values,
-							calculator.bitLens));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens()));
 		}
 
 		{ // feature position
@@ -271,6 +271,11 @@ public class CompressionHeaderFactory {
 			h.eMap.put(EncodingKey.TS_InsetSize,
 					ExternalIntegerEncoding.toParam(mateInfoID));
 		}
+		
+		{ // test mark
+			h.eMap.put(EncodingKey.TM_TestMark,
+					BetaIntegerEncoding.toParam(0, 32));
+		}
 
 		return h;
 	}
@@ -297,7 +302,7 @@ public class CompressionHeaderFactory {
 		}
 	}
 
-	private static class HuffmanParamsCalculator {
+	public static class HuffmanParamsCalculator {
 		private HashMap<Integer, MutableInt> countMap = new HashMap<>();
 		private int[] values = new int[] {};
 		private int[] bitLens = new int[] {};

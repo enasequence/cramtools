@@ -132,13 +132,15 @@ public class CramNormalizer {
 							scores[pos] = q;
 						}
 
-						r.setQualityScores(scores);
 					}
+				
+				r.setQualityScores(scores) ;
 			} else { 
 				byte[] scores = r.getQualityScores() ;
 				for (int i=0; i<scores.length; i++) 
 					if (scores[i] == -1) scores[i] = defaultQualityScore ;
 			}
+			
 		}
 	}
 

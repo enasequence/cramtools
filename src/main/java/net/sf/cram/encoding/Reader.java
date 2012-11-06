@@ -18,6 +18,7 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.samtools.util.RuntimeEOFException;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
@@ -95,6 +96,11 @@ public class Reader {
 	public DataReader<Integer> tsc;
 	
 	public static int detachedCount = 0 ;
+	private int recordCount = 0 ;
+	
+
+	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
+	public DataReader<Integer> testC;
 
 	public void read(CramRecord r) throws IOException {
 		r.setFlags(bitFlagsC.readData());
@@ -138,7 +144,7 @@ public class Reader {
 			}
 		}
 
-		if (r.isReadMapped()) {
+		if (!r.segmentUnmapped) {
 			// writing read features:
 			java.util.List<ReadFeature> rf = new ArrayList<>();
 			r.setReadFeatures(rf);
@@ -213,5 +219,14 @@ public class Reader {
 				r.setQualityScores(qs);
 			}
 		}
+		
+		int mark = testC.readData() ;
+		if (Writer.TEST_MARK != mark) {
+			System.err.println("Record counter=" + recordCount);
+			System.err.println(r.toString());
+			throw new RuntimeException("Test mark not found.") ;
+		}
+		
+		recordCount++ ;
 	}
 }
