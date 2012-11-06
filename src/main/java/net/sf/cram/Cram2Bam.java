@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -79,12 +80,12 @@ public class Cram2Bam {
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(bis);
-		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory() ;
-		samFileWriterFactory.setAsyncOutputBufferSize(1024*1024) ;
-		samFileWriterFactory.setCreateIndex(false) ;
-		samFileWriterFactory.setCreateMd5File(false) ;
-		samFileWriterFactory.setUseAsyncIo(true) ;
-		
+		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
+		samFileWriterFactory.setAsyncOutputBufferSize(1024 * 1024);
+		samFileWriterFactory.setCreateIndex(false);
+		samFileWriterFactory.setCreateMd5File(false);
+		samFileWriterFactory.setUseAsyncIo(true);
+
 		SAMFileWriter writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(
 				cramHeader.samFileHeader, true, params.outputFile);
 
@@ -121,20 +122,38 @@ public class Cram2Bam {
 
 			long c2sTime = 0;
 			long sWriteTime = 0;
+
+			FileOutputStream fos = new FileOutputStream(
+					params.cramFile.getAbsolutePath() + ".tram.gz");
+			BufferedOutputStream bos1 = new BufferedOutputStream(fos);
+			GZIPOutputStream gos = new GZIPOutputStream(bos1);
+			BufferedOutputStream bos2 = new BufferedOutputStream(fos);
+			ObjectOutputStream oos = new ObjectOutputStream(bos2);
+
+			long sumOfQS = 0;
 			for (CramRecord r : cramRecords) {
 				long time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
 				c2sTime += System.nanoTime() - time;
 				try {
 					time = System.nanoTime();
-					writer.addAlignment(s);
+					for (byte b : r.getQualityScores())
+						sumOfQS += b;
+					// writer.addAlignment(s);
+					// oos.writeObject(r) ;
 					sWriteTime += System.nanoTime() - time;
 				} catch (NullPointerException e) {
 					System.out.println(r.toString());
 					throw e;
 				}
 			}
+			oos.close();
+			bos2.close();
+			gos.close();
+			bos1.close();
+			fos.close();
 
+			System.out.println("Sum of quality scores: " + sumOfQS);
 			log.info(String.format("Container normalized in %d ms",
 					(time2 - time1) / 1000000));
 			log.info(String.format("Container converted to BAM in %d ms",

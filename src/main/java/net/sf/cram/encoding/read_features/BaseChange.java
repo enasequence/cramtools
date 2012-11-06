@@ -1,7 +1,9 @@
 package net.sf.cram.encoding.read_features;
 
+import java.io.Serializable;
 
-public class BaseChange {
+
+public class BaseChange implements Serializable{
 	private int change;
 
 	public BaseChange(int change) {

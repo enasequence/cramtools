@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +26,7 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 
-public class CramRecord {
+public class CramRecord implements Serializable{
 
 	public Collection<ReadTag> tags;
 

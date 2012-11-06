@@ -435,17 +435,17 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-			for (int i = 2; i < 20; i++)
-				calcs.add(new EncodingLengthCalculator(
-						new GolombIntegerEncoding(i)));
-
-			for (int i = 2; i < 20; i++)
-				calcs.add(new EncodingLengthCalculator(
-						new GolombRiceIntegerEncoding(i)));
+//			for (int i = 2; i < 20; i++)
+//				calcs.add(new EncodingLengthCalculator(
+//						new GolombIntegerEncoding(i)));
+//
+//			for (int i = 2; i < 20; i++)
+//				calcs.add(new EncodingLengthCalculator(
+//						new GolombRiceIntegerEncoding(i)));
 
 			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1)));
 
-			for (int i = 2; i < 20; i++)
+			for (int i = 2; i < 5; i++)
 				calcs.add(new EncodingLengthCalculator(
 						new SubexpIntegerEncoding(i)));
 		}
