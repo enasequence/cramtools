@@ -306,7 +306,7 @@ public class QualityScorePreservation {
 					if (ce.getOperator() == CigarOperator.D) {
 						// if (pos > 0)
 						mask[pos] = true;
-						if (pos < mask.length)
+						if (pos+1 < mask.length)
 							mask[pos + 1] = true;
 					}
 

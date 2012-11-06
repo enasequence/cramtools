@@ -44,6 +44,7 @@ import net.sf.cram.structure.Slice;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
@@ -52,13 +53,19 @@ import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 
 public class BLOCK_PROTO {
+	private static Log log = Log.getInstance(BLOCK_PROTO.class);
 
 	static List<CramRecord> records(CompressionHeader h, Container c,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
+		long time1 = System.nanoTime();
 		List<CramRecord> records = new ArrayList<>();
 		for (Slice s : c.slices)
 			records.addAll(records(s, h, fileHeader));
+
+		long time2 = System.nanoTime();
+
+		log.info(String.format("CONTAINER PARSE TIME: %d ms.",(time2 - time1) / 1000000));
 
 		return records;
 	}
@@ -88,7 +95,7 @@ public class BLOCK_PROTO {
 				reader.read(r);
 			} catch (EOFException e) {
 				e.printStackTrace();
-				return records ;
+				return records;
 			}
 			records.add(r);
 
@@ -104,8 +111,7 @@ public class BLOCK_PROTO {
 		long time1 = System.nanoTime();
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
 		long time2 = System.nanoTime();
-		System.out.println("Compression header built in " + (time2 - time1)
-				/ 1000000 + " ms.");
+
 		h.mappedQualityScoreIncluded = true;
 		h.unmappedQualityScoreIncluded = true;
 		h.readNamesIncluded = true;
@@ -117,6 +123,8 @@ public class BLOCK_PROTO {
 		Container c = new Container();
 		c.h = h;
 		c.nofRecords = records.size();
+
+		long time3 = System.nanoTime();
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
 					Math.min(records.size(), i + recordsPerSlice));
@@ -130,8 +138,14 @@ public class BLOCK_PROTO {
 				c.alignmentSpan = slice.alignmentSpan - c.alignmentStart;
 			}
 		}
+		long time4 = System.nanoTime();
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
+
+		log.info(String
+				.format("CONTAINER BUILD TIME: header %d ms, slices %d ms, total %d ms.",
+						(time2 - time1) / 1000000, (time4 - time3) / 1000000,
+						(time4 - time1) / 1000000));
 		return c;
 	}
 

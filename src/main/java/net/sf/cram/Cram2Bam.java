@@ -1,17 +1,22 @@
 package net.sf.cram;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
@@ -23,6 +28,8 @@ import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
 
 public class Cram2Bam {
+	private static Log log = Log.getInstance(Cram2Bam.class);
+
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("\n");
@@ -63,6 +70,8 @@ public class Cram2Bam {
 			System.exit(1);
 		}
 
+		Log.setGlobalLogLevel(LogLevel.INFO);
+
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.reference);
 
@@ -70,6 +79,12 @@ public class Cram2Bam {
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(bis);
+		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory() ;
+		samFileWriterFactory.setAsyncOutputBufferSize(1024*1024) ;
+		samFileWriterFactory.setCreateIndex(false) ;
+		samFileWriterFactory.setCreateMd5File(false) ;
+		samFileWriterFactory.setUseAsyncIo(true) ;
+		
 		SAMFileWriter writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(
 				cramHeader.samFileHeader, true, params.outputFile);
 
@@ -87,7 +102,7 @@ public class Cram2Bam {
 				cramRecords = BLOCK_PROTO.records(c.h, c,
 						cramHeader.samFileHeader);
 			} catch (EOFException e) {
-				throw e ;
+				throw e;
 			}
 			SAMSequenceRecord sequence = cramHeader.samFileHeader
 					.getSequence(c.sequenceId);
@@ -95,22 +110,37 @@ public class Cram2Bam {
 					.getSequence(sequence.getSequenceName());
 			byte[] ref = referenceSequence.getBases();
 
+			long time1 = System.nanoTime();
 			CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
 					ref, c.alignmentStart);
 			n.normalize(cramRecords, true);
+			long time2 = System.nanoTime();
 
 			Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
 					cramHeader.samFileHeader);
 
+			long c2sTime = 0;
+			long sWriteTime = 0;
 			for (CramRecord r : cramRecords) {
+				long time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
+				c2sTime += System.nanoTime() - time;
 				try {
+					time = System.nanoTime();
 					writer.addAlignment(s);
+					sWriteTime += System.nanoTime() - time;
 				} catch (NullPointerException e) {
 					System.out.println(r.toString());
-					throw e ;
+					throw e;
 				}
 			}
+
+			log.info(String.format("Container normalized in %d ms",
+					(time2 - time1) / 1000000));
+			log.info(String.format("Container converted to BAM in %d ms",
+					c2sTime / 1000000));
+			log.info(String.format("BAM records written out in %d ms",
+					sWriteTime / 1000000));
 		}
 	}
 

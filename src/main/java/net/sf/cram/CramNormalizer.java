@@ -21,7 +21,7 @@ public class CramNormalizer {
 	private int readCounter = 0;
 	private String readNamePrefix = "";
 	private int alignmentStart = 1;
-	private byte defaultQualityScore = '?'-'!';
+	private byte defaultQualityScore = '?' - '!';
 
 	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<>();
 	private byte[] ref;
@@ -129,18 +129,25 @@ public class CramNormalizer {
 							int pos = f.getPosition();
 							byte q = ((BaseQualityScore) f).getQualityScore();
 
-							scores[pos] = q;
+							try {
+								scores[pos-1] = q;
+							} catch (ArrayIndexOutOfBoundsException e) {
+								System.err.println("PROBLEM CAUSED BY:");
+								System.err.println(r.toString());
+								throw e;
+							}
 						}
 
 					}
-				
-				r.setQualityScores(scores) ;
-			} else { 
-				byte[] scores = r.getQualityScores() ;
-				for (int i=0; i<scores.length; i++) 
-					if (scores[i] == -1) scores[i] = defaultQualityScore ;
+
+				r.setQualityScores(scores);
+			} else {
+				byte[] scores = r.getQualityScores();
+				for (int i = 0; i < scores.length; i++)
+					if (scores[i] == -1)
+						scores[i] = defaultQualityScore;
 			}
-			
+
 		}
 	}
 

@@ -14,9 +14,12 @@ import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.encoding.Writer;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.structure.Container;
+import net.sf.cram.structure.Slice;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
@@ -167,6 +170,8 @@ public class Bam2Cram {
 			System.out.println("A BAM file is required. ");
 			System.exit(1);
 		}
+		
+		Log.setGlobalLogLevel(LogLevel.INFO) ;
 
 		File bamFile = params.bamFile;
 		SAMFileReader samFileReader = new SAMFileReader(bamFile);
@@ -197,16 +202,30 @@ public class Bam2Cram {
 				samFileReader.getFileHeader());
 		ReadWrite.writeCramHeader(h, os);
 
+		long bases = 0;
+		long coreBytes = 0;
+		long[] externalBytes = new long[10];
+
 		do {
 			SAMRecord samRecord = iterator.next();
 			if (samRecord.getReferenceIndex() != prevSeqId) {
 				if (!samRecords.isEmpty()) {
 					List<CramRecord> records = convert(samRecords,
 							samFileReader.getFileHeader(), ref, preservation);
-					samRecords.clear() ;
+					samRecords.clear();
 					Container container = BLOCK_PROTO.writeContainer(records,
 							samFileReader.getFileHeader());
+					records.clear();
 					ReadWrite.writeContainer(container, os);
+
+					for (Slice s : container.slices) {
+						coreBytes += s.coreBlock.compressedContentSize;
+						for (Integer i : s.external.keySet())
+							externalBytes[i] += s.external.get(i).compressedContentSize;
+
+						s.coreBlock = null;
+						s.external.clear();
+					}
 				}
 
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -218,14 +237,24 @@ public class Bam2Cram {
 			}
 
 			samRecords.add(samRecord);
-			
+			bases += samRecord.getReadLength();
+
 			if (samRecords.size() >= params.maxContainerSize) {
 				List<CramRecord> records = convert(samRecords,
 						samFileReader.getFileHeader(), ref, preservation);
-				samRecords.clear() ;
+				samRecords.clear();
 				Container container = BLOCK_PROTO.writeContainer(records,
 						samFileReader.getFileHeader());
+				records.clear();
 				ReadWrite.writeContainer(container, os);
+				for (Slice s : container.slices) {
+					coreBytes += s.coreBlock.compressedContentSize;
+					for (Integer i : s.external.keySet())
+						externalBytes[i] += s.external.get(i).compressedContentSize;
+
+					s.coreBlock = null;
+					s.external.clear();
+				}
 			}
 
 			if (params.maxRecords-- < 1)
@@ -234,6 +263,14 @@ public class Bam2Cram {
 		iterator.close();
 		samFileReader.close();
 		
+		System.out.printf("STATS: core %.2f b/b", 8f
+				* coreBytes / bases);
+		for (int i = 0; i < externalBytes.length; i++)
+			if (externalBytes[i] > 0)
+				System.out.printf(", ex%d %.2f b/b, ", i, 8f
+						* externalBytes[i] / bases);
+		System.out.println();
+
 		System.out.println(Writer.detachedCount);
 	}
 
@@ -258,10 +295,10 @@ public class Bam2Cram {
 		boolean help = false;
 
 		@Parameter(names = { "--max-slice-size" }, hidden = true)
-		int maxSliceSize = 1000;
+		int maxSliceSize = 10000;
 
 		@Parameter(names = { "--max-container-size" }, hidden = true)
-		int maxContainerSize = 10000;
+		int maxContainerSize = 100000;
 
 		// not implemented yet:
 		// @Parameter(names = { "--capture-all-tags" }, description =

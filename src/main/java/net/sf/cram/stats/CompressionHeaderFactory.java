@@ -32,8 +32,10 @@ import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.cram.huffman.HuffmanCode;
 import net.sf.cram.huffman.HuffmanTree;
 import net.sf.cram.structure.CompressionHeader;
+import net.sf.picard.util.Log;
 
 public class CompressionHeaderFactory {
+	private static Log log = Log.getInstance(CompressionHeaderFactory.class) ;
 
 	public CompressionHeader build(List<CramRecord> records) {
 		CompressionHeader h = new CompressionHeader();
@@ -51,6 +53,11 @@ public class CompressionHeaderFactory {
 
 		int mateInfoID = exCounter++;
 		h.externalIds.add(mateInfoID);
+		
+		log.debug("Assigned external id to bases: " + baseID);
+		log.debug("Assigned external id to quality scores: " + qualityScoreID);
+		log.debug("Assigned external id to read names: " + readNameID);
+		log.debug("Assigned external id to mate info: " + mateInfoID);
 
 		h.eMap = new TreeMap<>();
 		for (EncodingKey key : EncodingKey.values())

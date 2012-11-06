@@ -17,7 +17,6 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
@@ -26,12 +25,14 @@ import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.Slice;
+import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BufferedLineReader;
 
 public class ReadWrite {
-	private static final byte[] CHECK = "CHECK".getBytes();
+	private static final byte[] CHECK = "".getBytes();
+	private static Log log = Log.getInstance(ReadWrite.class);
 
 	private static final boolean check(InputStream is) throws IOException {
 		DataInputStream dis = new DataInputStream(is);
@@ -41,7 +42,7 @@ public class ReadWrite {
 		boolean result = Arrays.equals(CHECK, bytes);
 
 		if (!result)
-			System.err.printf("Expected %s but got %s.\n", new String(CHECK),
+			log.error("Expected %s but got %s.\n", new String(CHECK),
 					new String(bytes));
 
 		return result;
@@ -108,10 +109,10 @@ public class ReadWrite {
 
 	private static void writeBlock(Block b, OutputStream os) throws IOException {
 
-		System.err.println("WRITING " + b.toString());
+		log.debug("WRITING BLOCK: " + b.toString());
 
-		int rawSize = b.content.length;
-		int compressedSize = rawSize;
+		b.rawContentSize = b.content.length;
+		b.compressedContentSize = b.rawContentSize;
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
 		switch (b.method) {
 		case 0:
@@ -120,7 +121,7 @@ public class ReadWrite {
 			GZIPOutputStream gos = new GZIPOutputStream(baos);
 			gos.write(b.content);
 			gos.close();
-			compressedSize = baos.size();
+			b.compressedContentSize = baos.size();
 			break;
 		default:
 			throw new RuntimeException("Unknown compression method: "
@@ -137,9 +138,9 @@ public class ReadWrite {
 		// content id:
 		ByteBufferUtils.writeUnsignedITF8(b.contentId, buf);
 		// compresses size in bytes:
-		ByteBufferUtils.writeUnsignedITF8(compressedSize, buf);
+		ByteBufferUtils.writeUnsignedITF8(b.compressedContentSize, buf);
 		// raw size in bytes:
-		ByteBufferUtils.writeUnsignedITF8(rawSize, buf);
+		ByteBufferUtils.writeUnsignedITF8(b.rawContentSize, buf);
 
 		buf.flip();
 		byte[] header = new byte[buf.limit()];
@@ -182,7 +183,7 @@ public class ReadWrite {
 		b.content = new byte[rawSize];
 		dis.readFully(b.content);
 
-		System.out.println("READ " + b.toString());
+		log.debug("READ BLOCK: " + b.toString());
 		return b;
 	}
 
@@ -397,9 +398,9 @@ public class ReadWrite {
 
 				h.eMap.put(eKey, new EncodingParams(id, paramBytes));
 
-				System.err.printf("ENCODING: %s, %s, %s.\n", eKey.name(),
-						id.name(),
-						Arrays.toString(Arrays.copyOf(paramBytes, 20)));
+				log.debug(String.format("FOUND ENCODING: %s, %s, %s.",
+						eKey.name(), id.name(),
+						Arrays.toString(Arrays.copyOf(paramBytes, 20))));
 			}
 		}
 
@@ -426,6 +427,7 @@ public class ReadWrite {
 	public static void writeContainer(Container c, OutputStream os)
 			throws IOException {
 
+		long time1 = System.nanoTime();
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
 
 		Block block = createCompressionHeaderBlock(c);
@@ -462,12 +464,16 @@ public class ReadWrite {
 		os.write(header);
 		os.write(baos.getBuffer(), 0, baos.size());
 
-		System.out.println(c.toString());
+		long time2 = System.nanoTime();
+
+		log.debug("WRITTEN CONTAINER: " + c.toString());
+		log.info("CONTAINER WRITTEN IN " + (time2 - time1) / 1000000 + " ms.");
 	}
 
 	public static Container readContainer(SAMFileHeader samFileHeader,
 			InputStream is) throws IOException {
 
+		long time1 = System.nanoTime();
 		Container c = new Container();
 		int containerByteSize = ByteBufferUtils.readUnsignedITF8(is);
 		c.sequenceId = ByteBufferUtils.readUnsignedITF8(is);
@@ -476,7 +482,7 @@ public class ReadWrite {
 		c.nofRecords = ByteBufferUtils.readUnsignedITF8(is);
 		c.blockCount = ByteBufferUtils.readUnsignedITF8(is);
 
-		System.err.println(c.toString());
+		// System.err.println(c.toString());
 
 		LinkedList<Block> blocks = new LinkedList<>();
 		for (int i = 0; i < c.blockCount; i++) {
@@ -491,6 +497,11 @@ public class ReadWrite {
 		}
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
+
+		long time2 = System.nanoTime();
+
+		log.debug("READ CONTAINER: " + c.toString());
+		log.info("CONTAINER READ IN " + (time2 - time1) / 1000000 + " ms.");
 
 		return c;
 	}
