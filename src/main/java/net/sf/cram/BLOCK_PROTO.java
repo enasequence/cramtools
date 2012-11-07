@@ -65,7 +65,9 @@ public class BLOCK_PROTO {
 
 		long time2 = System.nanoTime();
 
-		log.info(String.format("CONTAINER PARSE TIME: %d ms.",(time2 - time1) / 1000000));
+		c.parseMS = time2 - time1;
+		// log.info(String.format("CONTAINER PARSE TIME: %d ms.",(time2 - time1)
+		// / 1000000));
 
 		return records;
 	}
@@ -128,6 +130,8 @@ public class BLOCK_PROTO {
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
 					Math.min(records.size(), i + recordsPerSlice));
+			for (CramRecord r : sliceRecords)
+				c.bases += r.getReadLength();
 			Slice slice = writeSlice(sliceRecords, h, fileHeader);
 			slices.add(slice);
 
@@ -142,10 +146,12 @@ public class BLOCK_PROTO {
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
 
-		log.info(String
-				.format("CONTAINER BUILD TIME: header %d ms, slices %d ms, total %d ms.",
-						(time2 - time1) / 1000000, (time4 - time3) / 1000000,
-						(time4 - time1) / 1000000));
+		c.buildHeaderMS = time2 - time1;
+		c.buildSlicesMS = time4 - time3;
+		// log.info(String
+		// .format("CONTAINER BUILD TIME: header %d ms, slices %d ms, total %d ms.",
+		// (time2 - time1) / 1000000, (time4 - time3) / 1000000,
+		// (time4 - time1) / 1000000));
 		return c;
 	}
 

@@ -467,7 +467,8 @@ public class ReadWrite {
 		long time2 = System.nanoTime();
 
 		log.debug("WRITTEN CONTAINER: " + c.toString());
-		log.info("CONTAINER WRITTEN IN " + (time2 - time1) / 1000000 + " ms.");
+		c.writeMS = time2-time1 ;
+//		log.info("CONTAINER WRITTEN IN " + (time2 - time1) / 1000000 + " ms.");
 	}
 
 	public static Container readContainer(SAMFileHeader samFileHeader,
@@ -501,7 +502,8 @@ public class ReadWrite {
 		long time2 = System.nanoTime();
 
 		log.debug("READ CONTAINER: " + c.toString());
-		log.info("CONTAINER READ IN " + (time2 - time1) / 1000000 + " ms.");
+		c.readMS = time2-time1 ;
+//		log.info("CONTAINER READ IN " + (time2 - time1) / 1000000 + " ms.");
 
 		return c;
 	}

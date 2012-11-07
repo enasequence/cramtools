@@ -1,15 +1,11 @@
 package net.sf.cram;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.List;
-import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
@@ -123,43 +119,26 @@ public class Cram2Bam {
 			long c2sTime = 0;
 			long sWriteTime = 0;
 
-			FileOutputStream fos = new FileOutputStream(
-					params.cramFile.getAbsolutePath() + ".tram.gz");
-			BufferedOutputStream bos1 = new BufferedOutputStream(fos);
-			GZIPOutputStream gos = new GZIPOutputStream(bos1);
-			BufferedOutputStream bos2 = new BufferedOutputStream(fos);
-			ObjectOutputStream oos = new ObjectOutputStream(bos2);
-
-			long sumOfQS = 0;
 			for (CramRecord r : cramRecords) {
 				long time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
 				c2sTime += System.nanoTime() - time;
 				try {
 					time = System.nanoTime();
-					for (byte b : r.getQualityScores())
-						sumOfQS += b;
-					// writer.addAlignment(s);
-					// oos.writeObject(r) ;
+					writer.addAlignment(s);
 					sWriteTime += System.nanoTime() - time;
 				} catch (NullPointerException e) {
 					System.out.println(r.toString());
 					throw e;
 				}
 			}
-			oos.close();
-			bos2.close();
-			gos.close();
-			bos1.close();
-			fos.close();
 
-			System.out.println("Sum of quality scores: " + sumOfQS);
-			log.info(String.format("Container normalized in %d ms",
-					(time2 - time1) / 1000000));
-			log.info(String.format("Container converted to BAM in %d ms",
-					c2sTime / 1000000));
-			log.info(String.format("BAM records written out in %d ms",
-					sWriteTime / 1000000));
+			log.info(String
+					.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
+							c.readMS / 1000000, c.parseMS / 1000000,
+							c2sTime / 1000000, (time2 - time1) / 1000000,
+							sWriteTime / 1000000));
+
 		}
 	}
 

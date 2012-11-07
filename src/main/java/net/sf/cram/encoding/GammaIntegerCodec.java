@@ -20,9 +20,6 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-import org.apache.commons.math.util.MathUtils;
-
-
 public class GammaIntegerCodec implements BitCodec<Integer> {
 	private int offset = 0;
 	private boolean lenCodingBit = false;
@@ -56,7 +53,7 @@ public class GammaIntegerCodec implements BitCodec<Integer> {
 			throw new IllegalArgumentException("Gamma codec handles only positive values: " + value);
 
 		long newValue = value + offset;
-		int betaCodeLength = 1 + (int) MathUtils.log(2, newValue);
+		int betaCodeLength = 1 + (int) (Math.log(newValue)/Math.log(2));
 		if (betaCodeLength > 1)
 			bos.write(0L, betaCodeLength - 1);
 
@@ -67,7 +64,7 @@ public class GammaIntegerCodec implements BitCodec<Integer> {
 	@Override
 	public final long numberOfBits(Integer  value) {
 		long newValue = value + offset;
-		int betaCodeLength = 1 + (int) MathUtils.log(2, newValue);
+		int betaCodeLength = 1 + (int) (Math.log(newValue)/Math.log(2));
 		return betaCodeLength * 2 - 1;
 	}
 

@@ -9,12 +9,12 @@
 	<property name="lib.home" value="${basedir}/lib" />
 	<property name="target.dir" value="${basedir}/target" />
 	<property name="classes" value="${target.dir}/classes" />
-	<property name="crammerClasses" value="../crammer/target/classes" />
+	<property name="crammerClasses" value="target/classes" />
 	<property name="jar.file.name" value="cramone.jar" />
 
 	<path id="classpath">
 		<fileset dir="${lib.home}" includes="*.jar" />
-		<fileset dir="../crammer/lib" includes="*.jar" />
+		<fileset dir="lib" includes="*.jar" />
 	</path>
 
 	<path id="build.classpath">
@@ -42,14 +42,14 @@
 			<format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
 		</tstamp>
 
-		<jar destfile="${basedir}/cramone.jar" filesetmanifest="skip" duplicate="preserve">
+		<jar destfile="${basedir}/cramtools.jar" filesetmanifest="skip" duplicate="preserve">
 			<fileset dir="${classes}" />
 			<zipgroupfileset dir="lib" includes="*.jar" >
 				<exclude name="**/SAMFileReader.class" />
 			</zipgroupfileset>
 
 			<manifest>
-				<attribute name="Main-Class" value="net.sf.cram.Coder" />
+				<attribute name="Main-Class" value="net.sf.cram.CramTools" />
 				<attribute name="Class-Path" value="" />
 				<attribute name="Built-By" value="${user.name}" />
 				<attribute name="Implementation-Version" value="${version.num}-b${build.number}" />
@@ -90,7 +90,7 @@
 	</target>
 
 	<target name="compile" depends="setup">
-		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java:../crammer/src/main/java">
+		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java:../picard/src/java">
 			<include name="**/*.java" />
 			<classpath refid="classpath" />
 		</javac>
