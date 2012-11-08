@@ -59,7 +59,7 @@ public class CramFileIterator implements SAMRecordIterator {
 
 		List<CramRecord> cramRecords = null;
 		try {
-			cramRecords = BLOCK_PROTO.records(c.h, c, cramHeader.samFileHeader);
+			cramRecords = BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader);
 		} catch (EOFException e) {
 			throw e;
 		}
@@ -88,7 +88,7 @@ public class CramFileIterator implements SAMRecordIterator {
 		}
 		log.info(String.format(
 				"CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
-				c.readMS / 1000000, c.parseMS / 1000000, c2sTime / 1000000,
+				c.readTime / 1000000, c.parseTime / 1000000, c2sTime / 1000000,
 				(time2 - time1) / 1000000));
 	}
 

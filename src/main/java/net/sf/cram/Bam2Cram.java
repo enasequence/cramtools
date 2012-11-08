@@ -213,7 +213,7 @@ public class Bam2Cram {
 					List<CramRecord> records = convert(samRecords,
 							samFileReader.getFileHeader(), ref, preservation);
 					samRecords.clear();
-					Container container = BLOCK_PROTO.writeContainer(records,
+					Container container = BLOCK_PROTO.buildContainer(records,
 							samFileReader.getFileHeader(), params.preserveReadNames);
 					records.clear();
 					ReadWrite.writeContainer(container, os);
@@ -243,7 +243,7 @@ public class Bam2Cram {
 				List<CramRecord> records = convert(samRecords,
 						samFileReader.getFileHeader(), ref, preservation);
 				samRecords.clear();
-				Container container = BLOCK_PROTO.writeContainer(records,
+				Container container = BLOCK_PROTO.buildContainer(records,
 						samFileReader.getFileHeader(), params.preserveReadNames);
 				records.clear();
 				ReadWrite.writeContainer(container, os);

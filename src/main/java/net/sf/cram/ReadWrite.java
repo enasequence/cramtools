@@ -435,7 +435,11 @@ public class ReadWrite {
 		writeBlock(block, baos);
 		c.blockCount = 1;
 
-		for (Slice s : c.slices) {
+		List<Integer> landmarks = new ArrayList<Integer>();
+		for (int i = 0; i < c.slices.length; i++) {
+			Slice s = c.slices[i];
+			landmarks.add(baos.size());
+
 			Block sliceBlock = createMappedSliceHeaderBlock(s);
 			sliceBlock.method = 0;
 			writeBlock(sliceBlock, baos);
@@ -448,6 +452,9 @@ public class ReadWrite {
 			}
 			c.blockCount += 2 + s.external.size();
 		}
+		c.landmarks = new int[landmarks.size()];
+		for (int i = 0; i < c.landmarks.length; i++)
+			c.landmarks[i] = landmarks.get(i);
 
 		ByteBuffer buf = ByteBuffer.allocate(1024);
 		ByteBufferUtils.writeUnsignedITF8(baos.size(), buf);
@@ -456,6 +463,9 @@ public class ReadWrite {
 		ByteBufferUtils.writeUnsignedITF8(c.alignmentSpan, buf);
 		ByteBufferUtils.writeUnsignedITF8(c.nofRecords, buf);
 		ByteBufferUtils.writeUnsignedITF8(c.blockCount, buf);
+		ByteBufferUtils.writeUnsignedITF8(c.landmarks.length, buf);
+		for (int i = 0; i < c.landmarks.length; i++)
+			ByteBufferUtils.writeUnsignedITF8(c.landmarks[i], buf);
 
 		buf.flip();
 		byte[] header = new byte[buf.limit()];
@@ -467,12 +477,17 @@ public class ReadWrite {
 		long time2 = System.nanoTime();
 
 		log.debug("WRITTEN CONTAINER: " + c.toString());
-		c.writeMS = time2-time1 ;
-//		log.info("CONTAINER WRITTEN IN " + (time2 - time1) / 1000000 + " ms.");
+		c.writeTime = time2 - time1;
 	}
 
 	public static Container readContainer(SAMFileHeader samFileHeader,
 			InputStream is) throws IOException {
+		return readContainer(samFileHeader, is, 0, Integer.MAX_VALUE);
+	}
+
+	public static Container readContainer(SAMFileHeader samFileHeader,
+			InputStream is, int fromBlock, int howManySlices)
+			throws IOException {
 
 		long time1 = System.nanoTime();
 		Container c = new Container();
@@ -482,8 +497,12 @@ public class ReadWrite {
 		c.alignmentSpan = ByteBufferUtils.readUnsignedITF8(is);
 		c.nofRecords = ByteBufferUtils.readUnsignedITF8(is);
 		c.blockCount = ByteBufferUtils.readUnsignedITF8(is);
+		c.landmarks = new int[ByteBufferUtils.readUnsignedITF8(is)];
+		for (int i = 0; i < c.landmarks.length; i++)
+			c.landmarks[i] = ByteBufferUtils.readUnsignedITF8(is);
 
-		// System.err.println(c.toString());
+		if (fromBlock > 0)
+			is.skip(c.landmarks[fromBlock]);
 
 		LinkedList<Block> blocks = new LinkedList<Block>();
 		for (int i = 0; i < c.blockCount; i++) {
@@ -502,8 +521,7 @@ public class ReadWrite {
 		long time2 = System.nanoTime();
 
 		log.debug("READ CONTAINER: " + c.toString());
-		c.readMS = time2-time1 ;
-//		log.info("CONTAINER READ IN " + (time2 - time1) / 1000000 + " ms.");
+		c.readTime = time2 - time1;
 
 		return c;
 	}

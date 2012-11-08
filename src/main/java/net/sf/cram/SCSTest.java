@@ -165,11 +165,11 @@ public class SCSTest {
 		}
 		
 		List<CramRecord> old = cramRecords ;
-		Container c = BLOCK_PROTO.writeContainer(cramRecords, samFileReader.getFileHeader(), true) ;
+		Container c = BLOCK_PROTO.buildContainer(cramRecords, samFileReader.getFileHeader(), true) ;
 		System.err.println("Written " + Writer.detachedCount + " detached records.");
 		
 		try {
-			cramRecords = BLOCK_PROTO.records(c.h, c, samFileReader.getFileHeader()) ;
+			cramRecords = BLOCK_PROTO.getRecords(c.h, c, samFileReader.getFileHeader()) ;
 		} catch (Exception e1) {
 			System.err.println("Read " + Reader.detachedCount + " detached records.");
 			throw new RuntimeException(e1) ;

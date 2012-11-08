@@ -55,24 +55,22 @@ import net.sf.samtools.SAMSequenceRecord;
 public class BLOCK_PROTO {
 	private static Log log = Log.getInstance(BLOCK_PROTO.class);
 
-	static List<CramRecord> records(CompressionHeader h, Container c,
+	static List<CramRecord> getRecords(CompressionHeader h, Container c,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		long time1 = System.nanoTime();
 		List<CramRecord> records = new ArrayList<CramRecord>();
 		for (Slice s : c.slices)
-			records.addAll(records(s, h, fileHeader));
+			records.addAll(getRecords(s, h, fileHeader));
 
 		long time2 = System.nanoTime();
 
-		c.parseMS = time2 - time1;
-		// log.info(String.format("CONTAINER PARSE TIME: %d ms.",(time2 - time1)
-		// / 1000000));
+		c.parseTime = time2 - time1;
 
 		return records;
 	}
 
-	private static List<CramRecord> records(Slice s, CompressionHeader h,
+	private static List<CramRecord> getRecords(Slice s, CompressionHeader h,
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		SAMSequenceRecord sequence = fileHeader.getSequence(s.sequenceId);
@@ -106,7 +104,7 @@ public class BLOCK_PROTO {
 		return records;
 	}
 
-	static Container writeContainer(List<CramRecord> records,
+	static Container buildContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader, boolean preserveReadNames) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
@@ -132,7 +130,7 @@ public class BLOCK_PROTO {
 					Math.min(records.size(), i + recordsPerSlice));
 			for (CramRecord r : sliceRecords)
 				c.bases += r.getReadLength();
-			Slice slice = writeSlice(sliceRecords, h, fileHeader);
+			Slice slice = buildSlice(sliceRecords, h, fileHeader);
 			slices.add(slice);
 
 			// assuming one sequence per container max:
@@ -146,16 +144,12 @@ public class BLOCK_PROTO {
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
 
-		c.buildHeaderMS = time2 - time1;
-		c.buildSlicesMS = time4 - time3;
-		// log.info(String
-		// .format("CONTAINER BUILD TIME: header %d ms, slices %d ms, total %d ms.",
-		// (time2 - time1) / 1000000, (time4 - time3) / 1000000,
-		// (time4 - time1) / 1000000));
+		c.buildHeaderTime = time2 - time1;
+		c.buildSlicesTime = time4 - time3;
 		return c;
 	}
 
-	private static Slice writeSlice(List<CramRecord> records,
+	private static Slice buildSlice(List<CramRecord> records,
 			CompressionHeader h, SAMFileHeader fileHeader)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
@@ -310,13 +304,13 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = writeContainer(records, samFileHeader, true);
+		Container c = buildContainer(records, samFileHeader, true);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
 
 		time1 = System.nanoTime();
-		List<CramRecord> readRecords = records(c.h, c, samFileHeader);
+		List<CramRecord> readRecords = getRecords(c.h, c, samFileHeader);
 		time2 = System.nanoTime();
 		System.out.println("Container read in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -476,13 +470,13 @@ public class BLOCK_PROTO {
 		System.out.println();
 
 		long time1 = System.nanoTime();
-		Container c = writeContainer(cramRecords, samFileReader.getFileHeader(), preserveReadNames);
+		Container c = buildContainer(cramRecords, samFileReader.getFileHeader(), preserveReadNames);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
 
 		time1 = System.nanoTime();
-		List<CramRecord> newRecords = records(c.h, c,
+		List<CramRecord> newRecords = getRecords(c.h, c,
 				samFileReader.getFileHeader());
 
 		mateMap.clear();
@@ -556,7 +550,7 @@ public class BLOCK_PROTO {
 		cramHeader = ReadWrite.readCramHeader(bis);
 		c = ReadWrite.readContainer(cramHeader.samFileHeader, bis);
 
-		newRecords = records(c.h, c, cramHeader.samFileHeader);
+		newRecords = getRecords(c.h, c, cramHeader.samFileHeader);
 
 		mateMap.clear();
 		{

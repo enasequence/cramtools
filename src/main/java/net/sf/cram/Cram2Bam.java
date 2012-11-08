@@ -96,7 +96,7 @@ public class Cram2Bam {
 
 			List<CramRecord> cramRecords = null;
 			try {
-				cramRecords = BLOCK_PROTO.records(c.h, c,
+				cramRecords = BLOCK_PROTO.getRecords(c.h, c,
 						cramHeader.samFileHeader);
 			} catch (EOFException e) {
 				throw e;
@@ -135,7 +135,7 @@ public class Cram2Bam {
 
 			log.info(String
 					.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
-							c.readMS / 1000000, c.parseMS / 1000000,
+							c.readTime / 1000000, c.parseTime / 1000000,
 							c2sTime / 1000000, (time2 - time1) / 1000000,
 							sWriteTime / 1000000));
 

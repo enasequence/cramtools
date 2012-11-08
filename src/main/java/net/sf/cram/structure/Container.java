@@ -13,14 +13,15 @@ public class Container {
 
 	public Slice[] slices;
 	public int blockCount;
+	public int[] landmarks ;
 	
 	public long bases ;
-	public long buildHeaderMS ;
-	public long buildSlicesMS ;
-	public long writeMS ;
+	public long buildHeaderTime ;
+	public long buildSlicesTime ;
+	public long writeTime ;
 	
-	public long parseMS ;
-	public long readMS ;
+	public long parseTime ;
+	public long readTime ;
 
 	@Override
 	public String toString() {
