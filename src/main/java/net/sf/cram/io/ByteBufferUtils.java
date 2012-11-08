@@ -12,24 +12,24 @@ public class ByteBufferUtils {
 		int b1 = is.read();
 		if (b1 == -1) throw new EOFException() ;
 
-		if ((b1 & 0b10000000) == 0)
+		if ((b1 & 128) == 0)
 			return b1;
 
-		if ((b1 & 0b01000000) == 0)
-			return ((b1 & 0b01111111) << 8) | is.read();
+		if ((b1 & 64) == 0)
+			return ((b1 & 127) << 8) | is.read();
 
-		if ((b1 & 0b00100000) == 0) {
+		if ((b1 & 32) == 0) {
 			int b2 = is.read();
 			int b3 = is.read();
-			return ((b1 & 0b00111111) << 16) | b2 << 8 | b3;
+			return ((b1 & 63) << 16) | b2 << 8 | b3;
 		}
 
-		if ((b1 & 0b00010000) == 0)
-			return ((b1 & 0b00011111) << 24) | is.read() << 16 | is.read() << 8
+		if ((b1 & 16) == 0)
+			return ((b1 & 31) << 24) | is.read() << 16 | is.read() << 8
 					| is.read();
 
-		return ((b1 & 0b00001111) << 28) | is.read() << 20 | is.read() << 12
-				| is.read() << 4 | (0b00001111 & is.read());
+		return ((b1 & 15) << 28) | is.read() << 20 | is.read() << 12
+				| is.read() << 4 | (15 & is.read());
 	}
 	
 	public static final int writeUnsignedITF8(int value, OutputStream os) throws IOException {
@@ -39,27 +39,27 @@ public class ByteBufferUtils {
 		}
 
 		if ((value >>> 14) == 0) {
-			os.write( ((value >> 8) | 0b10000000));
+			os.write( ((value >> 8) | 128));
 			os.write( (value & 0xFF));
 			return 16;
 		}
 
 		if ((value >>> 21) == 0) {
-			os.write( ((value >> 16) | 0b11000000));
+			os.write( ((value >> 16) | 192));
 			os.write( ((value >> 8) & 0xFF));
 			os.write( (value & 0xFF));
 			return 24;
 		}
 
 		if ((value >>> 28) == 0) {
-			os.write( ((value >> 24) | 0b11100000));
+			os.write( ((value >> 24) | 224));
 			os.write( ((value >> 16) & 0xFF));
 			os.write( ((value >> 8) & 0xFF));
 			os.write( (value & 0xFF));
 			return 32 ;
 		}
 
-		os.write( ((value >> 28) | 0b11110000));
+		os.write( ((value >> 28) | 240));
 		os.write( ((value >> 20) & 0xFF));
 		os.write( ((value >> 12) & 0xFF));
 		os.write( ((value >> 4) & 0xFF));
@@ -90,25 +90,25 @@ public class ByteBufferUtils {
 	public static final int readUnsignedITF8(ByteBuffer buf) {
 		int b1 = 0xFF & buf.get();
 
-		if ((b1 & 0b10000000) == 0)
+		if ((b1 & 128) == 0)
 			return b1;
 
-		if ((b1 & 0b01000000) == 0)
-			return ((b1 & 0b01111111) << 8) | (0xFF & buf.get());
+		if ((b1 & 64) == 0)
+			return ((b1 & 127) << 8) | (0xFF & buf.get());
 
-		if ((b1 & 0b00100000) == 0) {
+		if ((b1 & 32) == 0) {
 			int b2 = 0xFF & buf.get();
 			int b3 = 0xFF & buf.get();
-			return ((b1 & 0b00111111) << 16) | b2 << 8 | b3;
+			return ((b1 & 63) << 16) | b2 << 8 | b3;
 		}
 
-		if ((b1 & 0b00010000) == 0)
-			return ((b1 & 0b00011111) << 24) | (0xFF & buf.get()) << 16
+		if ((b1 & 16) == 0)
+			return ((b1 & 31) << 24) | (0xFF & buf.get()) << 16
 					| (0xFF & buf.get()) << 8 | (0xFF & buf.get());
 
-		return ((b1 & 0b00001111) << 28) | (0xFF & buf.get()) << 20
+		return ((b1 & 15) << 28) | (0xFF & buf.get()) << 20
 				| (0xFF & buf.get()) << 12 | (0xFF & buf.get()) << 4
-				| (0b00001111 & buf.get());
+				| (15 & buf.get());
 	}
 
 	public static final void writeUnsignedITF8(int value, ByteBuffer buf) {
@@ -118,27 +118,27 @@ public class ByteBufferUtils {
 		}
 
 		if ((value >>> 14) == 0) {
-			buf.put((byte) ((value >> 8) | 0b10000000));
+			buf.put((byte) ((value >> 8) | 128));
 			buf.put((byte) (value & 0xFF));
 			return;
 		}
 
 		if ((value >>> 21) == 0) {
-			buf.put((byte) ((value >> 16) | 0b11000000));
+			buf.put((byte) ((value >> 16) | 192));
 			buf.put((byte) ((value >> 8) & 0xFF));
 			buf.put((byte) (value & 0xFF));
 			return;
 		}
 
 		if ((value >>> 28) == 0) {
-			buf.put((byte) ((value >> 24) | 0b11100000));
+			buf.put((byte) ((value >> 24) | 224));
 			buf.put((byte) ((value >> 16) & 0xFF));
 			buf.put((byte) ((value >> 8) & 0xFF));
 			buf.put((byte) (value & 0xFF));
 			return;
 		}
 
-		buf.put((byte) ((value >> 28) | 0b11110000));
+		buf.put((byte) ((value >> 28) | 240));
 		buf.put((byte) ((value >> 20) & 0xFF));
 		buf.put((byte) ((value >> 12) & 0xFF));
 		buf.put((byte) ((value >> 4) & 0xFF));

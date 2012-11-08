@@ -130,7 +130,7 @@ public class Reader {
 		// tag records:
 		if (r.tags != null) {
 			int tagCount = tagCountC.readData();
-			r.tags = new ArrayList<>();
+			r.tags = new ArrayList<ReadTag>();
 			for (int i = 0; i < tagCount; i++) {
 				byte[] name = tagNameAndTypeC.readData();
 				String tagId = new String(new byte[] { name[0], name[1], ':',
@@ -146,7 +146,7 @@ public class Reader {
 
 		if (!r.segmentUnmapped) {
 			// writing read features:
-			java.util.List<ReadFeature> rf = new ArrayList<>();
+			java.util.List<ReadFeature> rf = new ArrayList<ReadFeature>();
 			r.setReadFeatures(rf);
 			int size = nfc.readData();
 			int prevPos = 0;
@@ -220,12 +220,12 @@ public class Reader {
 			}
 		}
 		
-		int mark = testC.readData() ;
-		if (Writer.TEST_MARK != mark) {
-			System.err.println("Record counter=" + recordCount);
-			System.err.println(r.toString());
-			throw new RuntimeException("Test mark not found.") ;
-		}
+//		int mark = testC.readData() ;
+//		if (Writer.TEST_MARK != mark) {
+//			System.err.println("Record counter=" + recordCount);
+//			System.err.println(r.toString());
+//			throw new RuntimeException("Test mark not found.") ;
+//		}
 		
 		recordCount++ ;
 	}

@@ -43,8 +43,8 @@ public class SCSTest {
 		}
 
 		int maxRecords = 100000;
-		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
-		Map<String, List<SAMRecord>> origSamMap = new TreeMap<>();
+		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(maxRecords);
+		Map<String, List<SAMRecord>> origSamMap = new TreeMap<String, List<SAMRecord>>();
 
 		int alStart = Integer.MAX_VALUE;
 		int alEnd = 0;
@@ -60,7 +60,7 @@ public class SCSTest {
 			samRecords.add(samRecord);
 			List<SAMRecord> list = origSamMap.get(samRecord.getReadName());
 			if (list == null) {
-				list = new ArrayList<>(2);
+				list = new ArrayList<SAMRecord>(2);
 				origSamMap.put(samRecord.getReadName(), list);
 			}
 			list.add(samRecord);
@@ -83,7 +83,7 @@ public class SCSTest {
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
+		List<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		QualityScorePreservation preservation = new QualityScorePreservation(
@@ -165,14 +165,14 @@ public class SCSTest {
 		}
 		
 		List<CramRecord> old = cramRecords ;
-		Container c = BLOCK_PROTO.writeContainer(cramRecords, samFileReader.getFileHeader()) ;
+		Container c = BLOCK_PROTO.writeContainer(cramRecords, samFileReader.getFileHeader(), true) ;
 		System.err.println("Written " + Writer.detachedCount + " detached records.");
 		
 		try {
 			cramRecords = BLOCK_PROTO.records(c.h, c, samFileReader.getFileHeader()) ;
 		} catch (Exception e1) {
 			System.err.println("Read " + Reader.detachedCount + " detached records.");
-			throw e1 ;
+			throw new RuntimeException(e1) ;
 		}
 		
 		for (int i=0; i<cramRecords.size(); i++) {
@@ -199,15 +199,15 @@ public class SCSTest {
 		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
 				samFileReader.getFileHeader());
 
-		List<SAMRecord> newSAMRecords = new ArrayList<>();
-		Map<String, List<SAMRecord>> newSamMap = new TreeMap<>();
+		List<SAMRecord> newSAMRecords = new ArrayList<SAMRecord>();
+		Map<String, List<SAMRecord>> newSamMap = new TreeMap<String, List<SAMRecord>>();
 		for (CramRecord r : cramRecords) {
 			SAMRecord s = c2sFactory.create(r);
 			newSAMRecords.add(s);
 
 			List<SAMRecord> list = newSamMap.get(s.getReadName());
 			if (list == null) {
-				list = new ArrayList<>(2);
+				list = new ArrayList<SAMRecord>(2);
 				newSamMap.put(s.getReadName(), list);
 			}
 			list.add(s);

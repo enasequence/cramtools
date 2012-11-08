@@ -21,7 +21,7 @@ public class QualityScorePreservation {
 
 	public QualityScorePreservation(String specification) {
 		this.specification = specification;
-		policyList = new ArrayList<>();
+		policyList = new ArrayList<PreservationPolicy>();
 		for (String s : specification.split("-")) {
 			if (s.length() == 0) continue ;
 			PreservationPolicy policy = parseSinglePolicy(s);
@@ -83,7 +83,7 @@ public class QualityScorePreservation {
 
 	private static final PreservationPolicy parseSinglePolicy(String spec) {
 		PreservationPolicy p = new PreservationPolicy();
-		LinkedList<Character> list = new LinkedList<>();
+		LinkedList<Character> list = new LinkedList<Character>();
 		for (char b : spec.toCharArray())
 			list.add(b);
 

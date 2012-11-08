@@ -39,7 +39,7 @@ public class CompressionHeaderFactory {
 
 	public CompressionHeader build(List<CramRecord> records) {
 		CompressionHeader h = new CompressionHeader();
-		h.externalIds = new ArrayList<>();
+		h.externalIds = new ArrayList<Integer>();
 		int exCounter = 0;
 
 		int baseID = exCounter++;
@@ -59,11 +59,11 @@ public class CompressionHeaderFactory {
 		log.debug("Assigned external id to read names: " + readNameID);
 		log.debug("Assigned external id to mate info: " + mateInfoID);
 
-		h.eMap = new TreeMap<>();
+		h.eMap = new TreeMap<EncodingKey, EncodingParams>();
 		for (EncodingKey key : EncodingKey.values())
 			h.eMap.put(key, NullEncoding.toParam());
 
-		h.tMap = new TreeMap<>();
+		h.tMap = new TreeMap<String, EncodingParams>();
 
 		{ // bit flags encoding:
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
@@ -280,8 +280,8 @@ public class CompressionHeaderFactory {
 		}
 		
 		{ // test mark
-			h.eMap.put(EncodingKey.TM_TestMark,
-					BetaIntegerEncoding.toParam(0, 32));
+//			h.eMap.put(EncodingKey.TM_TestMark,
+//					BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;
@@ -310,7 +310,7 @@ public class CompressionHeaderFactory {
 	}
 
 	public static class HuffmanParamsCalculator {
-		private HashMap<Integer, MutableInt> countMap = new HashMap<>();
+		private HashMap<Integer, MutableInt> countMap = new HashMap<Integer, MutableInt>();
 		private int[] values = new int[] {};
 		private int[] bitLens = new int[] {};
 
@@ -380,8 +380,8 @@ public class CompressionHeaderFactory {
 				tree = HuffmanCode.buildTree(freqs, Utils.autobox(values));
 			}
 
-			List<Integer> valueList = new ArrayList<>();
-			List<Integer> lens = new ArrayList<>();
+			List<Integer> valueList = new ArrayList<Integer>();
+			List<Integer> lens = new ArrayList<Integer>();
 			HuffmanCode.getValuesAndBitLengths(valueList, lens, tree);
 
 			// the following sorting is not really required, but whatever:
@@ -426,11 +426,11 @@ public class CompressionHeaderFactory {
 	}
 
 	private static class IntegerEncodingCalculator {
-		private List<EncodingLengthCalculator> calcs = new ArrayList<>();
+		private List<EncodingLengthCalculator> calcs = new ArrayList<EncodingLengthCalculator>();
 		private int max = 0;
 		private int count = 0;
 		private String name;
-		private HashMap<Integer, MutableInt> dictionary = new HashMap<>();
+		private HashMap<Integer, MutableInt> dictionary = new HashMap<Integer, MutableInt>();
 		private int dictionaryThreshold = 100;
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {

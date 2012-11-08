@@ -59,7 +59,7 @@ public class BLOCK_PROTO {
 			SAMFileHeader fileHeader) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		long time1 = System.nanoTime();
-		List<CramRecord> records = new ArrayList<>();
+		List<CramRecord> records = new ArrayList<CramRecord>();
 		for (Slice s : c.slices)
 			records.addAll(records(s, h, fileHeader));
 
@@ -78,7 +78,7 @@ public class BLOCK_PROTO {
 		SAMSequenceRecord sequence = fileHeader.getSequence(s.sequenceId);
 		String seqName = sequence.getSequenceName();
 		DataReaderFactory f = new DataReaderFactory();
-		Map<Integer, InputStream> inputMap = new HashMap<>();
+		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
 			inputMap.put(exId, new ByteArrayInputStream(
 					s.external.get(exId).content));
@@ -87,7 +87,7 @@ public class BLOCK_PROTO {
 		Reader reader = f.buildReader(new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.content)), inputMap, h);
 
-		List<CramRecord> records = new ArrayList<>();
+		List<CramRecord> records = new ArrayList<CramRecord>();
 		for (int i = 0; i < s.nofRecords; i++) {
 			CramRecord r = new CramRecord();
 			r.setSequenceName(seqName);
@@ -107,7 +107,7 @@ public class BLOCK_PROTO {
 	}
 
 	static Container writeContainer(List<CramRecord> records,
-			SAMFileHeader fileHeader) throws IllegalArgumentException,
+			SAMFileHeader fileHeader, boolean preserveReadNames) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
@@ -116,11 +116,11 @@ public class BLOCK_PROTO {
 
 		h.mappedQualityScoreIncluded = true;
 		h.unmappedQualityScoreIncluded = true;
-		h.readNamesIncluded = true;
+		h.readNamesIncluded = preserveReadNames;
 
 		int recordsPerSlice = 10000;
 
-		List<Slice> slices = new ArrayList<>();
+		List<Slice> slices = new ArrayList<Slice>();
 
 		Container c = new Container();
 		c.h = h;
@@ -159,7 +159,7 @@ public class BLOCK_PROTO {
 			CompressionHeader h, SAMFileHeader fileHeader)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
-		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<>();
+		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<Integer, ExposedByteArrayOutputStream>();
 		for (int id : h.externalIds) {
 			map.put(id, new ExposedByteArrayOutputStream());
 		}
@@ -193,7 +193,7 @@ public class BLOCK_PROTO {
 		slice.coreBlock.contentType = BlockContentType.CORE;
 		bos.close();
 
-		slice.external = new HashMap<>();
+		slice.external = new HashMap<Integer, Block>();
 		for (Integer i : map.keySet()) {
 			ExposedByteArrayOutputStream os = map.get(i);
 
@@ -215,7 +215,7 @@ public class BLOCK_PROTO {
 
 		long baseCount = 0;
 		Random random = new Random();
-		List<CramRecord> records = new ArrayList<>();
+		List<CramRecord> records = new ArrayList<CramRecord>();
 		for (int i = 0; i < 100000; i++) {
 			int len = random.nextInt(100) + 50;
 			byte[] bases = new byte[len];
@@ -310,7 +310,7 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = writeContainer(records, samFileHeader);
+		Container c = writeContainer(records, samFileHeader, true);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -345,7 +345,7 @@ public class BLOCK_PROTO {
 				baos.size() * 8f / baseCount);
 	}
 
-	public static void main(String[] args) throws IllegalArgumentException,
+	public static void main(String[] args, boolean preserveReadNames) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		File bamFile = new File(
 				"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam");
@@ -365,7 +365,7 @@ public class BLOCK_PROTO {
 		}
 
 		int maxRecords = 100000;
-		List<SAMRecord> samRecords = new ArrayList<>(maxRecords);
+		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(maxRecords);
 
 		int alStart = Integer.MAX_VALUE;
 		int alEnd = 0;
@@ -400,7 +400,7 @@ public class BLOCK_PROTO {
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		List<CramRecord> cramRecords = new ArrayList<>(maxRecords);
+		List<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		QualityScorePreservation preservation = new QualityScorePreservation(
@@ -476,7 +476,7 @@ public class BLOCK_PROTO {
 		System.out.println();
 
 		long time1 = System.nanoTime();
-		Container c = writeContainer(cramRecords, samFileReader.getFileHeader());
+		Container c = writeContainer(cramRecords, samFileReader.getFileHeader(), preserveReadNames);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");

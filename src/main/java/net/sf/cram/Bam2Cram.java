@@ -50,7 +50,7 @@ public class Bam2Cram {
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref);
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		List<CramRecord> cramRecords = new ArrayList<>();
+		List<CramRecord> cramRecords = new ArrayList<CramRecord>() ;
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		for (SAMRecord samRecord : samRecords) {
@@ -188,7 +188,7 @@ public class Bam2Cram {
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		List<SAMRecord> samRecords = new ArrayList<>(params.maxContainerSize);
+		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(params.maxContainerSize);
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
@@ -214,7 +214,7 @@ public class Bam2Cram {
 							samFileReader.getFileHeader(), ref, preservation);
 					samRecords.clear();
 					Container container = BLOCK_PROTO.writeContainer(records,
-							samFileReader.getFileHeader());
+							samFileReader.getFileHeader(), params.preserveReadNames);
 					records.clear();
 					ReadWrite.writeContainer(container, os);
 
@@ -244,7 +244,7 @@ public class Bam2Cram {
 						samFileReader.getFileHeader(), ref, preservation);
 				samRecords.clear();
 				Container container = BLOCK_PROTO.writeContainer(records,
-						samFileReader.getFileHeader());
+						samFileReader.getFileHeader(), params.preserveReadNames);
 				records.clear();
 				ReadWrite.writeContainer(container, os);
 				for (Slice s : container.slices) {
@@ -276,13 +276,13 @@ public class Bam2Cram {
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
 	static class Params {
-		@Parameter(names = { "--input-bam-file" }, converter = FileConverter.class, description = "Path to a BAM file to be converted to CRAM. Omit if standard input (pipe).")
+		@Parameter(names = { "--input-bam-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM file to be converted to CRAM. Omit if standard input (pipe).")
 		File bamFile;
 
-		@Parameter(names = { "--reference-fasta-file" }, converter = FileConverter.class, description = "The reference fasta file, uncompressed and indexed (.fai file, use 'samtools faidx'). ")
+		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "The reference fasta file, uncompressed and indexed (.fai file, use 'samtools faidx'). ")
 		File referenceFasta;
 
-		@Parameter(names = { "--output-cram-file" }, converter = FileConverter.class, description = "The path for the output CRAM file. Omit if standard output (pipe).")
+		@Parameter(names = { "--output-cram-file", "-O" }, converter = FileConverter.class, description = "The path for the output CRAM file. Omit if standard output (pipe).")
 		File outputCramFile = null;
 
 		@Parameter(names = { "--max-records" }, description = "Stop after compressing this many records. ")
@@ -315,7 +315,7 @@ public class Bam2Cram {
 		@Parameter(names = { "--preserve-read-names" }, description = "Preserve all read names.")
 		boolean preserveReadNames = false;
 
-		@Parameter(names = { "--lossy-quality-score-spec" }, description = "A string specifying what quality scores should be preserved.")
+		@Parameter(names = { "--lossy-quality-score-spec", "-L" }, description = "A string specifying what quality scores should be preserved.")
 		String qsSpec = "";
 	}
 }

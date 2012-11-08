@@ -1,9 +1,13 @@
 package net.sf.cram;
 
+import java.io.BufferedInputStream;
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import net.sf.cram.ReadWrite.CramHeader;
@@ -11,12 +15,14 @@ import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.util.Log;
+import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeEOFException;
 
-public class CramFileIterator implements CloseableIterator<SAMRecord> {
+public class CramFileIterator implements SAMRecordIterator {
 	private static Log log = Log.getInstance(CramFileIterator.class);
 	private InputStream is;
 	private CramHeader cramHeader;
@@ -30,9 +36,9 @@ public class CramFileIterator implements CloseableIterator<SAMRecord> {
 		this.is = is;
 		this.referenceSequenceFile = referenceSequenceFile;
 		cramHeader = ReadWrite.readCramHeader(is);
-		records = new ArrayList<>(100000) ;
+		records = new ArrayList<SAMRecord>(100000);
 	}
-	
+
 	public CramHeader getCramHeader() {
 		return cramHeader;
 	}
@@ -40,7 +46,7 @@ public class CramFileIterator implements CloseableIterator<SAMRecord> {
 	private void nextContainer() throws IOException, IllegalArgumentException,
 			IllegalAccessException {
 		if (records == null)
-			records = new ArrayList<>(100000);
+			records = new ArrayList<SAMRecord>(100000);
 		records.clear();
 		recordCounter = 0;
 
@@ -91,7 +97,8 @@ public class CramFileIterator implements CloseableIterator<SAMRecord> {
 		if (recordCounter + 1 >= records.size()) {
 			try {
 				nextContainer();
-				if (records.isEmpty()) return false ;
+				if (records.isEmpty())
+					return false;
 			} catch (Exception e) {
 				throw new RuntimeEOFException(e);
 			}
@@ -118,6 +125,35 @@ public class CramFileIterator implements CloseableIterator<SAMRecord> {
 			is.close();
 		} catch (IOException e) {
 		}
+	}
+
+	public static class CramFileIterable implements Iterable<SAMRecord> {
+		private ReferenceSequenceFile referenceSequenceFile;
+		private File cramFile;
+
+		public CramFileIterable(File cramFile, ReferenceSequenceFile referenceSequenceFile) {
+			this.referenceSequenceFile = referenceSequenceFile;
+			this.cramFile = cramFile;
+		}
+
+		@Override
+		public Iterator<SAMRecord> iterator() {
+			try {
+				FileInputStream fis = new FileInputStream(cramFile);
+				BufferedInputStream bis = new BufferedInputStream(fis);
+				CramFileIterator iterator = new CramFileIterator(bis,
+						referenceSequenceFile);
+				return iterator;
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+	}
+
+	@Override
+	public SAMRecordIterator assertSorted(SortOrder sortOrder) {
+		throw new RuntimeException("Not implemented.") ;
 	}
 
 }

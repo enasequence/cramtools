@@ -23,7 +23,7 @@ public class CramNormalizer {
 	private int alignmentStart = 1;
 	private byte defaultQualityScore = '?' - '!';
 
-	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<>();
+	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<Integer, CramRecord>();
 	private byte[] ref;
 
 	public CramNormalizer(SAMFileHeader header, byte[] ref, int alignmentStart) {
@@ -98,7 +98,7 @@ public class CramNormalizer {
 		// assign some read names if needed:
 		for (CramRecord r : records) {
 			if (r.getReadName() == null) {
-				String name = readNamePrefix + readCounter;
+				String name = readNamePrefix + r.index;
 				r.setReadName(name);
 				if (r.next != null)
 					r.next.setReadName(name);

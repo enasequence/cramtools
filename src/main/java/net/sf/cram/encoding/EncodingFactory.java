@@ -15,7 +15,7 @@ public class EncodingFactory {
 			case HUFFMAN:
 				return (Encoding<T>) new HuffmanByteEncoding();
 			case NULL:
-				return new NullEncoding<>();
+				return new NullEncoding<T>();
 
 			default:
 				break;
@@ -28,7 +28,7 @@ public class EncodingFactory {
 			case HUFFMAN:
 				return (Encoding<T>) new HuffmanIntegerEncoding();
 			case NULL:
-				return new NullEncoding<>();
+				return new NullEncoding<T>();
 			case EXTERNAL:
 				return (Encoding<T>) new ExternalIntegerEncoding();
 			case GOLOMB:
@@ -50,7 +50,7 @@ public class EncodingFactory {
 		case LONG:
 			switch (id) {
 			case NULL:
-				return new NullEncoding<>();
+				return new NullEncoding<T>();
 			case GOLOMB:
 				return (Encoding<T>) new GolombLongEncoding();
 			case EXTERNAL:
@@ -64,7 +64,7 @@ public class EncodingFactory {
 		case BYTE_ARRAY:
 			switch (id) {
 			case NULL:
-				return new NullEncoding<>();
+				return new NullEncoding<T>();
 			case BYTE_ARRAY_LEN:
 				return (Encoding<T>) new ByteArrayLenEncoding();
 			case EXTERNAL:

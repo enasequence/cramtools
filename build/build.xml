@@ -10,7 +10,7 @@
 	<property name="target.dir" value="${basedir}/target" />
 	<property name="classes" value="${target.dir}/classes" />
 	<property name="crammerClasses" value="target/classes" />
-	<property name="jar.file.name" value="cramone.jar" />
+	<property name="jar.file.name" value="cramtools-1.0.jar" />
 
 	<path id="classpath">
 		<fileset dir="${lib.home}" includes="*.jar" />
@@ -42,10 +42,10 @@
 			<format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
 		</tstamp>
 
-		<jar destfile="${basedir}/cramtools.jar" filesetmanifest="skip" duplicate="preserve">
+		<jar destfile="${basedir}/${jar.file.name}" filesetmanifest="skip" duplicate="preserve">
 			<fileset dir="${classes}" />
 			<zipgroupfileset dir="lib" includes="*.jar" >
-				<exclude name="**/SAMFileReader.class" />
+				<exclude name="**/SamFileValidator.class" />
 			</zipgroupfileset>
 
 			<manifest>
@@ -86,11 +86,11 @@
 
 	<target name="clean">
 		<delete dir="${target.dir}" includeEmptyDirs="true" />
-		<delete file="cramtools.jar" />
+		<delete file="${jar.file.name}" />
 	</target>
 
 	<target name="compile" depends="setup">
-		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java:../picard/src/java">
+		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java">
 			<include name="**/*.java" />
 			<classpath refid="classpath" />
 		</javac>

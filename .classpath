@@ -4,7 +4,8 @@
 	<classpathentry kind="src" path="src/test/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="lib/jcommander-1.7.jar"/>
+	<classpathentry kind="lib" path="lib/sam-1.79.jar"/>
+	<classpathentry kind="lib" path="lib/picard-1.79.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/picard"/>
-	<classpathentry kind="output" path="target"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>

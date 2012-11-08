@@ -407,7 +407,7 @@ public class ReadWrite {
 		{ // tag encoding map:
 			int byteSize = ByteBufferUtils.readUnsignedITF8(buf);
 			int mapSize = ByteBufferUtils.readUnsignedITF8(buf);
-			h.tMap = new TreeMap<>();
+			h.tMap = new TreeMap<String, EncodingParams>();
 			for (int i = 0; i < mapSize; i++) {
 				String key = new String(new byte[] { buf.get(), buf.get(),
 						buf.get() });
@@ -485,14 +485,14 @@ public class ReadWrite {
 
 		// System.err.println(c.toString());
 
-		LinkedList<Block> blocks = new LinkedList<>();
+		LinkedList<Block> blocks = new LinkedList<Block>();
 		for (int i = 0; i < c.blockCount; i++) {
 			blocks.add(readBlock(is));
 		}
 
 		c.h = readCompressionHeader(blocks.removeFirst());
 
-		List<Slice> slices = new ArrayList<>();
+		List<Slice> slices = new ArrayList<Slice>();
 		while (!blocks.isEmpty()) {
 			slices.add(readMappedSlice(blocks));
 		}

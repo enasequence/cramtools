@@ -144,13 +144,13 @@ public class Cram2Bam {
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
 	static class Params {
-		@Parameter(names = { "--input-cram-file" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
+		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
 		File cramFile;
 
-		@Parameter(names = { "--reference-fasta-file" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
+		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
 		File reference;
 
-		@Parameter(names = { "--output-bam-file" }, converter = FileConverter.class, description = "The path to the output BAM file.")
+		@Parameter(names = { "--output-bam-file", "-O" }, converter = FileConverter.class, description = "The path to the output BAM file.")
 		File outputFile;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")

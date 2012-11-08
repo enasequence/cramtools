@@ -15,7 +15,6 @@ import net.sf.picard.sam.SamFileValidator;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.picard.util.ProgressLogger;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.SAMValidationError.Type;
 
@@ -80,29 +79,29 @@ public class ValidateCramFile {
 				referenceSequenceFile);
 
 		CramHeader cramHeader = iterator.getCramHeader();
+		iterator.close();
 
 		ProgressLogger progress = new ProgressLogger(log, 100000,
 				"Validated Read");
 		SamFileValidator v = new SamFileValidator(new PrintWriter(System.out),
 				1);
-		List<SAMValidationError.Type> errors = new ArrayList<>();
+		List<SAMValidationError.Type> errors = new ArrayList<SAMValidationError.Type>();
 		errors.add(Type.MATE_NOT_FOUND);
 		errors.add(Type.MISSING_TAG_NM);
 		v.setErrorsToIgnore(errors);
 		v.init(referenceSequenceFile, cramHeader.samFileHeader);
-		while (iterator.hasNext()) {
-			SAMRecord s = iterator.next();
-			v.validateRecord(progress, s, cramHeader.samFileHeader);
-		}
+		v.validateSamRecords(new CramFileIterator.CramFileIterable(
+				params.cramFile, referenceSequenceFile),
+				cramHeader.samFileHeader);
 		log.info("Elapsed seconds: " + progress.getElapsedSeconds());
 	}
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
 	static class Params {
-		@Parameter(names = { "--input-cram-file" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
+		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
 		File cramFile;
 
-		@Parameter(names = { "--reference-fasta-file" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
+		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
 		File reference;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")

@@ -5,7 +5,7 @@ import java.util.List;
 
 public class PreservationPolicy {
 	public ReadCategory readCategory;
-	public List<BaseCategory> baseCategories = new ArrayList<>();
+	public List<BaseCategory> baseCategories = new ArrayList<BaseCategory>();
 
 	public QualityScoreTreatment treatment;
 
