@@ -28,7 +28,7 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataReader<Integer> bitFlagsC;
-	
+
 	@DataSeries(key = EncodingKey.CF_CompressionBitFlags, type = DataSeriesType.BYTE)
 	public DataReader<Byte> compBitFlagsC;
 
@@ -50,11 +50,11 @@ public class Reader {
 	@DataSeries(key = EncodingKey.TC_TagCount, type = DataSeriesType.BYTE)
 	public DataReader<Byte> tagCountC;
 
-	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> tagNameAndTypeC;
+	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.INT)
+	public DataReader<Integer> tagNameAndTypeC;
 
 	@DataSeriesMap(name = "TAG")
-	public Map<String, DataReader<byte[]>> tagValueCodecs;
+	public Map<Integer, DataReader<byte[]>> tagValueCodecs;
 
 	@DataSeries(key = EncodingKey.FN_NumberOfReadFeatures, type = DataSeriesType.INT)
 	public DataReader<Integer> nfc;
@@ -94,10 +94,9 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataReader<Integer> tsc;
-	
-	public static int detachedCount = 0 ;
-	private int recordCount = 0 ;
-	
+
+	public static int detachedCount = 0;
+	private int recordCount = 0;
 
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataReader<Integer> testC;
@@ -105,7 +104,7 @@ public class Reader {
 	public void read(CramRecord r) throws IOException {
 		r.setFlags(bitFlagsC.readData());
 		r.setCompressionFlags(compBitFlagsC.readData());
-		
+
 		r.setReadLength(readLengthC.readData());
 		r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
 		r.setReadGroupID(readGroupC.readData());
@@ -123,25 +122,28 @@ public class Reader {
 			r.mateSequnceID = mrc.readData();
 			r.mateAlignmentStart = malsc.readData();
 			r.templateSize = tsc.readData();
-			detachedCount ++ ;
+			detachedCount++;
 		} else if (r.hasMateDownStream)
 			r.setRecordsToNextFragment(distanceC.readData());
 
 		// tag records:
-		if (r.tags != null) {
-			int tagCount = tagCountC.readData();
-			r.tags = new ArrayList<ReadTag>();
+		int tagCount = tagCountC.readData();
+		if (tagCount > 0) {
+			r.tags = new ArrayList<ReadTag>(tagCount);
 			for (int i = 0; i < tagCount; i++) {
-				byte[] name = tagNameAndTypeC.readData();
-				String tagId = new String(new byte[] { name[0], name[1], ':',
-						name[2] }, charset);
-				DataReader<byte[]> dataReader = tagValueCodecs.get(tagId);
-				ReadTag tag = ReadTag.deriveTypeFromKeyAndType(
-						tagId,
-						ReadTag.deriveTypeFromKeyAndType(tagId,
-								dataReader.readData()));
+				int id = tagNameAndTypeC.readData();
+				DataReader<byte[]> dataReader = tagValueCodecs.get(id);
+				byte[] data = dataReader.readData();
+				ReadTag tag = new ReadTag(id, data) ; 
 				r.tags.add(tag);
 			}
+
+		}
+		int mark = testC.readData();
+		if (Writer.TEST_MARK != mark) {
+			System.err.println("Record counter=" + recordCount);
+			System.err.println(r.toString());
+			throw new RuntimeException("Test mark not found.");
 		}
 
 		if (!r.segmentUnmapped) {
@@ -219,14 +221,7 @@ public class Reader {
 				r.setQualityScores(qs);
 			}
 		}
-		
-//		int mark = testC.readData() ;
-//		if (Writer.TEST_MARK != mark) {
-//			System.err.println("Record counter=" + recordCount);
-//			System.err.println(r.toString());
-//			throw new RuntimeException("Test mark not found.") ;
-//		}
-		
-		recordCount++ ;
+
+		recordCount++;
 	}
 }

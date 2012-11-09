@@ -87,7 +87,8 @@ public class Cram2Bam {
 		if (params.decrypt) {
 			// CipherInputStream_256 cipherInputStream_256 = new
 			// CipherInputStream_256(bis, pass, 128) ;
-			// InputStream is = cipherInputStream_256.getCipherInputStream() ;
+			// InputStream is = cipherInputStream_256.getCipherInputStream()
+			;
 			is = new SeekableCipherStream_256(new SeekableFileStream(
 					params.cramFile), pass, 1, 128);
 		}

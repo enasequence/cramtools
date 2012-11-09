@@ -75,7 +75,7 @@ public class ValidateCramFile {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		CramFileIterator iterator = new CramFileIterator(bis,
+		SAMIterator iterator = new SAMIterator(bis,
 				referenceSequenceFile);
 
 		CramHeader cramHeader = iterator.getCramHeader();
@@ -87,10 +87,10 @@ public class ValidateCramFile {
 				1);
 		List<SAMValidationError.Type> errors = new ArrayList<SAMValidationError.Type>();
 		errors.add(Type.MATE_NOT_FOUND);
-		errors.add(Type.MISSING_TAG_NM);
+//		errors.add(Type.MISSING_TAG_NM);
 		v.setErrorsToIgnore(errors);
 		v.init(referenceSequenceFile, cramHeader.samFileHeader);
-		v.validateSamRecords(new CramFileIterator.CramFileIterable(
+		v.validateSamRecords(new SAMIterator.CramFileIterable(
 				params.cramFile, referenceSequenceFile),
 				cramHeader.samFileHeader);
 		log.info("Elapsed seconds: " + progress.getElapsedSeconds());

@@ -22,16 +22,18 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeEOFException;
 
-public class CramFileIterator implements SAMRecordIterator {
-	private static Log log = Log.getInstance(CramFileIterator.class);
+public class SAMIterator implements SAMRecordIterator {
+	private static Log log = Log.getInstance(SAMIterator.class);
 	private InputStream is;
 	private CramHeader cramHeader;
 	private ArrayList<SAMRecord> records;
 	private int recordCounter = 0;
 	private SAMRecord nextRecord = null;
-	private ReferenceSequenceFile referenceSequenceFile;;
+	private ReferenceSequenceFile referenceSequenceFile;
+	private boolean restoreNMTag = true;
+	private boolean restoreMDTag = true;
 
-	public CramFileIterator(InputStream is,
+	public SAMIterator(InputStream is,
 			ReferenceSequenceFile referenceSequenceFile) throws IOException {
 		this.is = is;
 		this.referenceSequenceFile = referenceSequenceFile;
@@ -84,6 +86,7 @@ public class CramFileIterator implements SAMRecordIterator {
 			long time = System.nanoTime();
 			SAMRecord s = c2sFactory.create(r);
 			c2sTime += System.nanoTime() - time;
+			Utils.calculateMdAndNmTags(s, ref, restoreMDTag, restoreNMTag) ;
 			records.add(s);
 		}
 		log.info(String.format(
@@ -141,7 +144,7 @@ public class CramFileIterator implements SAMRecordIterator {
 			try {
 				FileInputStream fis = new FileInputStream(cramFile);
 				BufferedInputStream bis = new BufferedInputStream(fis);
-				CramFileIterator iterator = new CramFileIterator(bis,
+				SAMIterator iterator = new SAMIterator(bis,
 						referenceSequenceFile);
 				return iterator;
 			} catch (IOException e) {

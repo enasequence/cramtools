@@ -15,7 +15,7 @@ public class CompressionHeader {
 	public boolean readNamesIncluded;
 	
 	public Map<EncodingKey, EncodingParams> eMap;
-	public Map<String, EncodingParams> tMap;
+	public Map<Integer, EncodingParams> tMap;
 	public int[] landmarks ;
 
 	public byte[][] substitutionCodes = new byte[256][256] ;

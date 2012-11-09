@@ -54,7 +54,8 @@ public class Cram2BamRecordFactory {
 
 		if (cramRecord.tags != null)
 			for (ReadTag tag : cramRecord.tags)
-				samRecord.getAttributes().add(tag.createSAMTag());
+//				samRecord.getAttributes().add(tag.createSAMTag());
+		samRecord.setAttribute(tag.getKey(), tag.getValue()) ;
 
 		return samRecord;
 	}

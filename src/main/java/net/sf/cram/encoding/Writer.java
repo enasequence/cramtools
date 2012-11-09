@@ -49,11 +49,11 @@ public class Writer {
 	@DataSeries(key = EncodingKey.TC_TagCount, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> tagCountC;
 
-	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.BYTE_ARRAY)
-	public DataWriter<byte[]> tagNameAndTypeC;
+	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.INT)
+	public DataWriter<Integer> tagNameAndTypeC;
 
 	@DataSeriesMap(name = "TAG")
-	public Map<String, DataWriter<byte[]>> tagValueCodecs;
+	public Map<Integer, DataWriter<byte[]>> tagValueCodecs;
 
 	@DataSeries(key = EncodingKey.FN_NumberOfReadFeatures, type = DataSeriesType.INT)
 	public DataWriter<Integer> nfc;
@@ -127,18 +127,16 @@ public class Writer {
 			distanceC.writeData(r.recordsToNextFragment);
 
 		// tag records:
+		tagCountC.writeData(r.tags == null ? 0 : (byte) r.tags.size());
 		if (r.tags != null) {
-			tagCountC.writeData((byte) r.tags.size());
 			for (ReadTag tag : r.tags) {
-				byte[] name = new byte[] { (byte) tag.getKey().charAt(0),
-						(byte) tag.getKey().charAt(1), (byte) tag.getType() };
-				tagNameAndTypeC.writeData(name);
+				tagNameAndTypeC.writeData(tag.keyType3BytesAsInt);
 
-				DataWriter<byte[]> writer = tagValueCodecs.get(tag
-						.getKeyAndType());
+				DataWriter<byte[]> writer = tagValueCodecs.get(tag.keyType3BytesAsInt);
 				writer.writeData(tag.getValueAsByteArray());
 			}
 		}
+		testC.writeData(TEST_MARK) ;
 
 		if (!r.segmentUnmapped) {
 			// writing read features:
@@ -209,6 +207,5 @@ public class Writer {
 			}
 		}
 		
-		testC.writeData(TEST_MARK) ;
 	}
 }

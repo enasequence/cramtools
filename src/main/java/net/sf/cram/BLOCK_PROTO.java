@@ -94,8 +94,8 @@ public class BLOCK_PROTO {
 			try {
 				reader.read(r);
 			} catch (EOFException e) {
-				e.printStackTrace();
-				return records;
+				e.printStackTrace() ;
+				throw e;  
 			}
 			records.add(r);
 
@@ -365,13 +365,9 @@ public class BLOCK_PROTO {
 		int alEnd = 0;
 		long baseCount = 0;
 		SAMRecordIterator iterator = samFileReader.iterator();
-		// while (!"SRR081241.20878257".equals(iterator.next().getReadName()))
-		// ;
 
 		do {
 			SAMRecord samRecord = iterator.next();
-			// if (!"SRR081241.20758946".equals(samRecord.getReadName()))
-			// continue;
 			if (!samRecord.getReferenceName().equals(sequence.getName()))
 				break;
 

@@ -1,14 +1,17 @@
 package net.sf.cram.stats;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.ReadTag;
 import net.sf.cram.Utils;
 import net.sf.cram.encoding.BetaIntegerEncoding;
 import net.sf.cram.encoding.BitCodec;
@@ -18,8 +21,6 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GammaIntegerEncoding;
-import net.sf.cram.encoding.GolombIntegerEncoding;
-import net.sf.cram.encoding.GolombRiceIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
@@ -35,6 +36,7 @@ import net.sf.cram.structure.CompressionHeader;
 import net.sf.picard.util.Log;
 
 public class CompressionHeaderFactory {
+	private static final Charset charset = Charset.forName("US-ASCII");
 	private static Log log = Log.getInstance(CompressionHeaderFactory.class);
 
 	public CompressionHeader build(List<CramRecord> records) {
@@ -54,16 +56,20 @@ public class CompressionHeaderFactory {
 		int mateInfoID = exCounter++;
 		h.externalIds.add(mateInfoID);
 
+		int tagValueExtID = exCounter++;
+		h.externalIds.add(tagValueExtID);
+
 		log.debug("Assigned external id to bases: " + baseID);
 		log.debug("Assigned external id to quality scores: " + qualityScoreID);
 		log.debug("Assigned external id to read names: " + readNameID);
 		log.debug("Assigned external id to mate info: " + mateInfoID);
+		log.debug("Assigned external id to tag values: " + tagValueExtID);
 
 		h.eMap = new TreeMap<EncodingKey, EncodingParams>();
 		for (EncodingKey key : EncodingKey.values())
 			h.eMap.put(key, NullEncoding.toParam());
 
-		h.tMap = new TreeMap<String, EncodingParams>();
+		h.tMap = new TreeMap<Integer, EncodingParams>();
 
 		{ // bit flags encoding:
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
@@ -142,11 +148,57 @@ public class CompressionHeaderFactory {
 							.toByteArray()));
 		}
 
-		// tag count
+		{ // tag count
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				calculator.add(r.tags == null ? 0 : r.tags.size());
+			calculator.calculate();
 
-		// tag name and type
+			h.eMap.put(EncodingKey.TC_TagCount, HuffmanIntegerEncoding.toParam(
+					calculator.values(), calculator.bitLens()));
+		}
 
-		// tag values
+		{ // tag name and type
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records) {
+				if (r.tags == null)
+					continue;
+				for (ReadTag tag : r.tags)
+					calculator.add(tag.keyType3BytesAsInt);
+			}
+			calculator.calculate();
+
+			h.eMap.put(EncodingKey.TN_TagNameAndType, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
+		}
+
+		{ // tag values
+			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, CompressionHeaderFactory.HuffmanParamsCalculator>();
+			for (CramRecord r : records) {
+				if (r.tags == null)
+					continue;
+				for (ReadTag tag : r.tags) {
+					HuffmanParamsCalculator c = cc.get(tag.keyType3BytesAsInt);
+					if (c == null) {
+						c = new HuffmanParamsCalculator();
+						cc.put(tag.keyType3BytesAsInt, c);
+					}
+					c.add(tag.getValueAsByteArray().length);
+				}
+			}
+
+			if (!cc.isEmpty())
+				for (Integer key : cc.keySet()) {
+					HuffmanParamsCalculator c = cc.get(key);
+					c.calculate();
+
+					h.tMap.put(key, ByteArrayLenEncoding.toParam(
+							HuffmanIntegerEncoding.toParam(c.values(),
+									c.bitLens()),
+							ExternalByteArrayEncoding.toParam(tagValueExtID)));
+
+				}
+		}
 
 		{ // number of read features
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
@@ -296,8 +348,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // test mark
-			// h.eMap.put(EncodingKey.TM_TestMark,
-			// BetaIntegerEncoding.toParam(0, 32));
+			h.eMap.put(EncodingKey.TM_TestMark,
+					BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;

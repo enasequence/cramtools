@@ -42,8 +42,8 @@ public class DataReaderFactory {
 				DataSeriesMap dsm = f.getAnnotation(DataSeriesMap.class);
 				String name = dsm.name();
 				if ("TAG".equals(name)) {
-					Map<String, DataReader<byte[]>> map = new HashMap<String, DataReader<byte[]>>();
-					for (String key : h.tMap.keySet()) {
+					Map<Integer, DataReader<byte[]>> map = new HashMap<Integer, DataReader<byte[]>>();
+					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
 						DataReader<byte[]> tagReader = createReader(
 								DataSeriesType.BYTE_ARRAY, params, bis,
@@ -61,31 +61,36 @@ public class DataReaderFactory {
 	private <T> DataReader<T> createReader(DataSeriesType valueType,
 			EncodingParams params, BitInputStream bis,
 			Map<Integer, InputStream> inputMap) {
-		if (params.id == EncodingID.NULL) {
-			switch (valueType) {
-			case BYTE:
-				return (DataReader<T>) new SingleValueReader<Byte>(new Byte(
-						(byte) 0));
-			case INT:
-				return (DataReader<T>) new SingleValueReader<Integer>(
-						new Integer(0));
-			case LONG:
-				return (DataReader<T>) new SingleValueReader<Long>(new Long(0));
-			case BYTE_ARRAY:
-				return (DataReader<T>) new SingleValueReader<byte[]>(
-						new byte[] {});
-
-			default:
-				break;
-			}
-		}
+		if (params.id == EncodingID.NULL)
+			return buildNullReader(valueType);
 
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
+		if (encoding == null)
+			throw new RuntimeException("Encoding not found for value type "
+					+ valueType.name() + ", id=" + params.id);
 		encoding.fromByteArray(params.params);
 
 		return new DefaultDataReader<T>(encoding.buildCodec(inputMap, null),
 				bis);
+	}
+
+	private static <T> DataReader<T> buildNullReader(DataSeriesType valueType) {
+		switch (valueType) {
+		case BYTE:
+			return (DataReader<T>) new SingleValueReader<Byte>(new Byte(
+					(byte) 0));
+		case INT:
+			return (DataReader<T>) new SingleValueReader<Integer>(
+					new Integer(0));
+		case LONG:
+			return (DataReader<T>) new SingleValueReader<Long>(new Long(0));
+		case BYTE_ARRAY:
+			return (DataReader<T>) new SingleValueReader<byte[]>(new byte[] {});
+
+		default:
+			throw new RuntimeException("Unknown data type: " + valueType.name());
+		}
 	}
 
 	private static class DefaultDataReader<T> implements DataReader<T> {

@@ -15,8 +15,22 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+
+import net.sf.samtools.SAMBinaryTagAndUnsignedArrayValue;
+import net.sf.samtools.SAMBinaryTagAndValue;
+import net.sf.samtools.SAMException;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFormatException;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMTagUtil;
+import net.sf.samtools.TagValueAndUnsignedArrayFlag;
+import net.sf.samtools.util.StringUtil;
 
 public class ReadTag implements Comparable<ReadTag> {
 	private static final long MAX_INT = Integer.MAX_VALUE;
@@ -29,10 +43,24 @@ public class ReadTag implements Comparable<ReadTag> {
 	// non-null
 	private String key;
 	private String keyAndType;
+	public String keyType3Bytes;
+	public int keyType3BytesAsInt;
 	private char type;
 	private Object value;
-	public short code ;
+	public short code;
 	private byte index;
+
+	public ReadTag(int id, byte[] dataAsByteArray) {
+		char type = (char) (0xFF & id);
+		key = new String(new char[] { (char) ((id >> 16) & 0xFF),
+				(char) ((id >> 8) & 0xFF) });
+		value = restoreValueFromByteArray(type, dataAsByteArray);
+		keyType3Bytes = this.key + this.type;
+
+		keyType3BytesAsInt = id;
+
+		code = SAMTagUtil.getSingleton().makeBinaryTag(this.key);
+	}
 
 	public ReadTag(String key, char type, Object value) {
 		if (key == null)
@@ -51,19 +79,51 @@ public class ReadTag implements Comparable<ReadTag> {
 			this.key = key.substring(0, 2);
 			this.type = key.charAt(3);
 		}
-		
-		code = SAMTagUtil.getSingleton().makeBinaryTag(this.key) ;
-	}
-	
-	public SAMTagAndValue createSAMTag () {
-		throw new RuntimeException("Not implemented.") ;
+
+		keyType3Bytes = this.key + this.type;
+		keyType3BytesAsInt = nameType3BytesToInt(this.key, this.type);
+
+		code = SAMTagUtil.getSingleton().makeBinaryTag(this.key);
 	}
 
-	public static ReadTag deriveTypeFromKeyAndType(String keyAndType, Object value) {
+	public static int nameType3BytesToInt(String name, char type) {
+		int value = 0xFF & name.charAt(0);
+		value <<= 8;
+		value |= 0xFF & name.charAt(1);
+		value <<= 8;
+		value |= 0xFF & type;
+
+		return value;
+	}
+
+	public static String intToNameType3Bytes(int value) {
+		byte b3 = (byte) (0xFF & value);
+		byte b2 = (byte) (0xFF & (value >> 8));
+		byte b1 = (byte) (0xFF & (value >> 16));
+
+		return new String(new byte[] { b1, b2, b3 });
+	}
+
+	public static String intToNameType4Bytes(int value) {
+		byte b3 = (byte) (0xFF & value);
+		byte b2 = (byte) (0xFF & (value >> 8));
+		byte b1 = (byte) (0xFF & (value >> 16));
+
+		return new String(new byte[] { b1, b2, ':', b3 });
+	}
+
+	public SAMTagAndValue createSAMTag() {
+		return new SAMTagAndValue(key, value);
+	}
+
+	public static ReadTag deriveTypeFromKeyAndType(String keyAndType,
+			Object value) {
 		if (keyAndType.length() != 4)
-			throw new RuntimeException("Tag key and type must be 4 char long: " + keyAndType);
+			throw new RuntimeException("Tag key and type must be 4 char long: "
+					+ keyAndType);
 
-		return new ReadTag(keyAndType.substring(0, 2), keyAndType.charAt(3), value);
+		return new ReadTag(keyAndType.substring(0, 2), keyAndType.charAt(3),
+				value);
 	}
 
 	public static ReadTag deriveTypeFromValue(String key, Object value) {
@@ -116,107 +176,12 @@ public class ReadTag implements Comparable<ReadTag> {
 	}
 
 	public byte[] getValueAsByteArray() {
-		if (value.getClass().isArray()) {
-			if (value instanceof byte[])
-				return toByteArray((byte[]) value);
-			if (value instanceof short[])
-				return toByteArray((short[]) value);
-			if (value instanceof int[])
-				return toByteArray((int[]) value);
-
-			throw new RuntimeException("Unsupported tag array type.");
-		}
-		return value.toString().getBytes();
-	}
-
-	private static byte[] toByteArray(byte[] value) {
-		byte[] array = new byte[value.length + 1];
-		array[0] = 'c';
-		System.arraycopy(value, 0, array, 1, value.length);
-		return array;
-	}
-
-	private static Object fromByteArray(byte[] array, int offset, int length) {
-		byte first = array[offset];
-		switch (first) {
-		case 'c':
-			byte[] byteArrayValue = new byte[length - 1];
-			System.arraycopy(array, 1 + offset, byteArrayValue, 0, byteArrayValue.length);
-			return byteArrayValue;
-		case 's':
-			short[] shortArrayValue = new short[(length - 1) / 2];
-			int p = offset + 1;
-			for (int i = 0; i < shortArrayValue.length; i++) {
-				shortArrayValue[i] = (short) (0xFFFF & ((array[p++] << 8) | array[p++]));
-			}
-			return shortArrayValue;
-		case 'i':
-			int[] intArrayValue = new int[(length - 1) / 4];
-			p = offset + 1;
-			for (int i = 0; i < intArrayValue.length; i++) {
-				intArrayValue[i] = (array[p++] << 24) | (array[p++] << 16) | (array[p++] << 8) | array[p++];
-			}
-			return intArrayValue;
-
-		default:
-			throw new RuntimeException("Unknown array type in tag: " + (char) first);
-		}
-	}
-
-	private static byte[] toByteArray(short[] value) {
-		byte[] array = new byte[2 * value.length + 1];
-		array[0] = 's';
-		int i = 1;
-		for (short s : value) {
-			array[i++] = (byte) (0xFF & (s >> 8));
-			array[i++] = (byte) (0xFF & s);
-		}
-		return array;
-	}
-
-	private static byte[] toByteArray(int[] value) {
-		byte[] array = new byte[4 * value.length + 1];
-		array[0] = 'i';
-		int i = 1;
-		for (int s : value) {
-			array[i++] = (byte) (0xFF & (s >> 24));
-			array[i++] = (byte) (0xFF & (s >> 16));
-			array[i++] = (byte) (0xFF & (s >> 8));
-			array[i++] = (byte) (0xFF & s);
-		}
-		return array;
+		return writeSingleValue((byte)type, value, false) ;
 	}
 
 	public static Object restoreValueFromByteArray(char type, byte[] array) {
-		return restoreValueFromByteArray(type, array, 0, array.length);
-	}
-
-	public static Object restoreValueFromByteArray(char type, byte[] array, int offset, int length) {
-		switch (type) {
-		case 'Z':
-			return new String(array, offset, length);
-		case 'A':
-			return new String(array, offset, length).charAt(0);
-		case 'f':
-			return Float.valueOf(new String(array, offset, length));
-
-		case 'I':
-			return Long.valueOf(new String(array, offset, length));
-		case 'i':
-		case 'S':
-			return Integer.valueOf(new String(array, offset, length));
-		case 's':
-			return Short.valueOf(new String(array, offset, length));
-		case 'C':
-			return Integer.valueOf(new String(array, offset, length));
-		case 'c':
-			return Byte.valueOf(new String(array, offset, length));
-		case 'B':
-			return fromByteArray(array, offset, length);
-
-		default:
-			throw new RuntimeException("Unknown tag type: " + type);
-		}
+		ByteBuffer buf = ByteBuffer.wrap(array) ;
+		return readSingleValue((byte) type, buf, null) ;
 	}
 
 	// copied from net.sf.samtools.BinaryTagCodec 1.62:
@@ -228,26 +193,31 @@ public class ReadTag implements Comparable<ReadTag> {
 		} else if (value instanceof Float) {
 			return 'f';
 		} else if (value instanceof Number) {
-			if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)) {
-				throw new IllegalArgumentException("Unrecognized tag type " + value.getClass().getName());
+			if (!(value instanceof Byte || value instanceof Short
+					|| value instanceof Integer || value instanceof Long)) {
+				throw new IllegalArgumentException("Unrecognized tag type "
+						+ value.getClass().getName());
 			}
 			return getIntegerType(((Number) value).longValue());
 		} /*
 		 * Note that H tag type is never written anymore, because B style is
 		 * more compact. else if (value instanceof byte[]) { return 'H'; }
 		 */
-		else if (value instanceof byte[] || value instanceof short[] || value instanceof int[]
-				|| value instanceof float[]) {
+		else if (value instanceof byte[] || value instanceof short[]
+				|| value instanceof int[] || value instanceof float[]) {
 			return 'B';
 		} else {
-			throw new IllegalArgumentException("When writing BAM, unrecognized tag type " + value.getClass().getName());
+			throw new IllegalArgumentException(
+					"When writing BAM, unrecognized tag type "
+							+ value.getClass().getName());
 		}
 	}
 
 	// copied from net.sf.samtools.BinaryTagCodec:
 	static private char getIntegerType(final long val) {
 		if (val > MAX_UINT) {
-			throw new IllegalArgumentException("Integer attribute value too large to be encoded in BAM");
+			throw new IllegalArgumentException(
+					"Integer attribute value too large to be encoded in BAM");
 		}
 		if (val > MAX_INT) {
 			return 'I';
@@ -273,15 +243,269 @@ public class ReadTag implements Comparable<ReadTag> {
 		if (val >= Integer.MIN_VALUE) {
 			return 'i';
 		}
-		throw new IllegalArgumentException("Integer attribute value too negative to be encoded in BAM");
+		throw new IllegalArgumentException(
+				"Integer attribute value too negative to be encoded in BAM");
 	}
 
 	public void setIndex(byte i) {
-		this.index = i ;
+		this.index = i;
 	}
-	
-	public byte getIndex () {
-		return index ;
+
+	public byte getIndex() {
+		return index;
+	}
+
+	// yeah, I'm that risky:
+	private static final ByteBuffer buf = ByteBuffer
+			.allocateDirect(1024 * 1024);
+	static {
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+	}
+	private static final Charset charset = Charset.forName("US-ASCII");
+
+	public static byte[] writeSingleValue(byte tagType, Object value,
+			boolean isUnsignedArray) {
+
+		buf.clear();
+		switch (tagType) {
+		case 'Z':
+			String s = (String) value;
+			buf.put(s.getBytes(charset));
+			buf.put((byte) 0);
+			break;
+		case 'A':
+			buf.put((Byte) value);
+			break;
+		case 'I':
+			// this is tricky:
+			buf.putLong((Long) value);
+			buf.position(buf.position() - 4);
+			break;
+		case 'i':
+			buf.putInt((Integer) value);
+			break;
+		case 's':
+			buf.putShort(((Number) value).shortValue());
+			break;
+		case 'S':
+			// Convert to unsigned short stored in an int
+			buf.putInt(((Number) value).intValue());
+			buf.position(buf.position() - 2);
+			break;
+		case 'c':
+			buf.put(((Number) value).byteValue());
+			break;
+		case 'C':
+			// Convert to unsigned byte stored in an int
+			buf.putShort(((Integer) value).shortValue());
+			buf.position(buf.position() - 1);
+			break;
+		case 'f':
+			buf.putFloat((Float) value);
+			break;
+		case 'H':
+			s = StringUtil.bytesToHexString((byte[]) value);
+			buf.put(s.getBytes(charset));
+			buf.put((byte) 0);
+			break;
+		case 'B':
+			writeArray(value, isUnsignedArray, buf);
+			break;
+		default:
+			throw new SAMFormatException("Unrecognized tag type: "
+					+ (char) tagType);
+		}
+
+		buf.flip();
+		byte[] bytes = new byte[buf.limit()];
+		buf.get(bytes);
+
+		return bytes;
+	}
+
+	private static void writeArray(final Object value,
+			final boolean isUnsignedArray, ByteBuffer buf) {
+		if (value instanceof byte[]) {
+			buf.put((byte) (isUnsignedArray ? 'C' : 'c'));
+			final byte[] array = (byte[]) value;
+			buf.putInt(array.length);
+			for (final byte element : array)
+				buf.put(element);
+
+		} else if (value instanceof short[]) {
+			buf.put((byte) (isUnsignedArray ? 'S' : 's'));
+			final short[] array = (short[]) value;
+			buf.putInt(array.length);
+			for (final short element : array)
+				buf.putShort(element);
+
+		} else if (value instanceof int[]) {
+			buf.put((byte) (isUnsignedArray ? 'I' : 'i'));
+			final int[] array = (int[]) value;
+			buf.putInt(array.length);
+			for (final int element : array)
+				buf.putInt(element);
+
+		} else if (value instanceof float[]) {
+			buf.put((byte) 'f');
+			final float[] array = (float[]) value;
+			buf.putInt(array.length);
+			for (final float element : array)
+				buf.putFloat(element);
+
+		} else
+			throw new SAMException("Unrecognized array value type: "
+					+ value.getClass());
+	}
+
+	public static Object readSingleValue(final byte tagType,
+			final ByteBuffer byteBuffer,
+			final SAMFileReader.ValidationStringency validationStringency) {
+		switch (tagType) {
+		case 'Z':
+			return readNullTerminatedString(byteBuffer);
+		case 'A':
+			return (char) byteBuffer.get();
+		case 'I':
+			final long val = byteBuffer.getInt() & 0xffffffffL;
+			if (val <= Integer.MAX_VALUE) {
+				return (int) val;
+			}
+			throw new RuntimeException(
+					"Tag value is too large to store as signed integer.");
+		case 'i':
+			return byteBuffer.getInt();
+		case 's':
+			return (int) byteBuffer.getShort();
+		case 'S':
+			// Convert to unsigned short stored in an int
+			return byteBuffer.getShort() & 0xffff;
+		case 'c':
+			return (int) byteBuffer.get();
+		case 'C':
+			// Convert to unsigned byte stored in an int
+			return (int) byteBuffer.get() & 0xff;
+		case 'f':
+			return byteBuffer.getFloat();
+		case 'H':
+			final String hexRep = readNullTerminatedString(byteBuffer);
+			return StringUtil.hexStringToBytes(hexRep);
+		case 'B':
+			final TagValueAndUnsignedArrayFlag valueAndFlag = readArray(
+					byteBuffer, validationStringency);
+			return valueAndFlag.value ;
+		default:
+			throw new SAMFormatException("Unrecognized tag type: "
+					+ (char) tagType);
+		}
+	}
+
+	/**
+	 * Read value of specified type.
+	 * 
+	 * @param byteBuffer
+	 *            Little-ending byte buffer to read value from.
+	 * @return CVO containing the value in in-memory Object form, and a flag
+	 *         indicating whether it is unsigned or not.
+	 */
+	private static TagValueAndUnsignedArrayFlag readArray(
+			final ByteBuffer byteBuffer,
+			final SAMFileReader.ValidationStringency validationStringency) {
+		final byte arrayType = byteBuffer.get();
+		final boolean isUnsigned = Character.isUpperCase(arrayType);
+		final int length = byteBuffer.getInt();
+		final Object value;
+		switch (Character.toLowerCase(arrayType)) {
+		case 'c': {
+			final byte[] array = new byte[length];
+			value = array;
+			byteBuffer.get(array);
+			break;
+		}
+		case 's': {
+			final short[] array = new short[length];
+			value = array;
+			for (int i = 0; i < length; ++i) {
+				array[i] = byteBuffer.getShort();
+			}
+			break;
+		}
+
+		case 'i': {
+			final int[] array = new int[length];
+			value = array;
+			for (int i = 0; i < length; ++i) {
+				array[i] = byteBuffer.getInt();
+			}
+			break;
+		}
+
+		case 'f': {
+			final float[] array = new float[length];
+			value = array;
+			for (int i = 0; i < length; ++i) {
+				array[i] = byteBuffer.getFloat();
+			}
+			break;
+		}
+
+		default:
+			throw new SAMFormatException("Unrecognized tag array type: "
+					+ (char) arrayType);
+		}
+		return new TagValueAndUnsignedArrayFlag(value, isUnsigned);
+	}
+
+	private static String readNullTerminatedString(final ByteBuffer byteBuffer) {
+		// Count the number of bytes in the string
+		byteBuffer.mark();
+		final int startPosition = byteBuffer.position();
+		while (byteBuffer.get() != 0) {
+		}
+		final int endPosition = byteBuffer.position();
+
+		// Don't count null terminator
+		final byte[] buf = new byte[endPosition - startPosition - 1];
+		// Go back to the start of the string and read out the bytes
+		byteBuffer.reset();
+		byteBuffer.get(buf);
+		// Skip over the null terminator
+		byteBuffer.get();
+		return StringUtil.bytesToString(buf);
+	}
+
+	public static void main(String[] args) {
+		SAMFileHeader h = new SAMFileHeader();
+		SAMRecord r = new SAMRecord(h);
+		r.setAttribute("OQ", "A:LKAS:LKASDJKL".getBytes());
+		r.setAttribute("XA", 1333123);
+		r.setAttribute("XB", (byte) 31);
+		r.setAttribute("XB", 'Q');
+		r.setAttribute("XC", "A STRING");
+
+		int intValue = 1123123123;
+		byte[] data = writeSingleValue((byte) 'i', intValue, false);
+		ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+		byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+		Object value = readSingleValue((byte) 'i', byteBuffer, null);
+		if (intValue != ((Integer) value).intValue())
+			throw new RuntimeException("Failed for " + intValue);
+
+		String sValue = "qwe";
+		data = writeSingleValue((byte) 'Z', sValue, false);
+		byteBuffer = ByteBuffer.wrap(data);
+		byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+		value = readSingleValue((byte) 'Z', byteBuffer, null);
+		if (!sValue.equals(value))
+			throw new RuntimeException("Failed for " + sValue);
+
+		byte[] baValue = "qwe".getBytes();
+		data = writeSingleValue((byte) 'B', baValue, false);
+		byteBuffer = ByteBuffer.wrap(data);
+		byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+		value = readSingleValue((byte) 'B', byteBuffer, null);
+		if (!Arrays.equals(baValue, (byte[]) value))
+			throw new RuntimeException("Failed for " + baValue);
 	}
 
 }

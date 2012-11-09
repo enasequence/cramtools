@@ -5,17 +5,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
-
-import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
-import uk.ac.ebi.embl.ega_cipher.CipherStream_256;
+import java.util.TreeSet;
 
 import net.sf.cram.ReadWrite.CramHeader;
-import net.sf.cram.encoding.Writer;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.Slice;
@@ -23,12 +20,12 @@ import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
+import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -38,9 +35,26 @@ import com.beust.jcommander.converters.FileConverter;
 public class Bam2Cram {
 	private static Log log = Log.getInstance(Bam2Cram.class);
 
+	private static Set<String> tagsNamesToSet(String tags) {
+		Set<String> set = new TreeSet<String>();
+		if (tags == null || tags.length() == 0)
+			return set;
+
+		String[] chunks = tags.split(":");
+		for (String s : chunks) {
+			if (s.length() != 2)
+				throw new RuntimeException(
+						"Expecting column delimited tags names but got: '"
+								+ tags + "'");
+			set.add(s);
+		}
+		return set;
+	}
+
 	private static List<CramRecord> convert(List<SAMRecord> samRecords,
 			SAMFileHeader samFileHeader, byte[] ref,
-			QualityScorePreservation preservation) {
+			QualityScorePreservation preservation, boolean captureAllTags,
+			String captureTags, String ignoreTags) {
 
 		int sequenceId = samRecords.get(0).getReferenceIndex();
 		String sequenceName = samRecords.get(0).getReferenceName();
@@ -71,6 +85,10 @@ public class Bam2Cram {
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref);
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
+		f.captureAllTags = captureAllTags;
+		f.captureTags = tagsNamesToSet(captureTags);
+		f.ignoreTags.addAll(tagsNamesToSet(captureTags));
+
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
@@ -242,24 +260,29 @@ public class Bam2Cram {
 
 		do {
 			SAMRecord samRecord = iterator.next();
-			if (samRecord.getReferenceIndex() != prevSeqId) {
+			if (samRecord.getReferenceIndex() != prevSeqId
+					|| samRecords.size() >= params.maxContainerSize) {
 				if (!samRecords.isEmpty()) {
 					List<CramRecord> records = convert(samRecords,
-							samFileReader.getFileHeader(), ref, preservation);
+							samFileReader.getFileHeader(), ref, preservation,
+							params.captureAllTags, params.captureTags,
+							params.ignoreTags);
 					samRecords.clear();
 					Container container = BLOCK_PROTO.buildContainer(records,
 							samFileReader.getFileHeader(),
 							params.preserveReadNames);
 					records.clear();
 					ReadWrite.writeContainer(container, os);
+					log.info(String
+							.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
+									container.buildHeaderTime / 1000000,
+									container.buildSlicesTime / 1000000,
+									container.writeTime / 1000000));
 
 					for (Slice s : container.slices) {
 						coreBytes += s.coreBlock.compressedContentSize;
 						for (Integer i : s.external.keySet())
 							externalBytes[i] += s.external.get(i).compressedContentSize;
-
-						s.coreBlock = null;
-						s.external.clear();
 					}
 				}
 
@@ -274,39 +297,24 @@ public class Bam2Cram {
 			samRecords.add(samRecord);
 			bases += samRecord.getReadLength();
 
-			if (samRecords.size() >= params.maxContainerSize) {
-				List<CramRecord> records = convert(samRecords,
-						samFileReader.getFileHeader(), ref, preservation);
-				samRecords.clear();
-				Container container = BLOCK_PROTO
-						.buildContainer(records, samFileReader.getFileHeader(),
-								params.preserveReadNames);
-				records.clear();
-				ReadWrite.writeContainer(container, os);
-				for (Slice s : container.slices) {
-					coreBytes += s.coreBlock.compressedContentSize;
-					for (Integer i : s.external.keySet())
-						externalBytes[i] += s.external.get(i).compressedContentSize;
-
-					s.coreBlock = null;
-					s.external.clear();
-				}
-			}
-
 			if (params.maxRecords-- < 1)
 				break;
 		} while (iterator.hasNext());
 		iterator.close();
 		samFileReader.close();
+		os.close();
+		fos.close();
 
-		System.out.printf("STATS: core %.2f b/b", 8f * coreBytes / bases);
+		StringBuilder sb = new StringBuilder();
+		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
 		for (int i = 0; i < externalBytes.length; i++)
 			if (externalBytes[i] > 0)
-				System.out.printf(", ex%d %.2f b/b, ", i, 8f * externalBytes[i]
-						/ bases);
-		System.out.println();
+				sb.append(String.format(", ex%d %.2f b/b, ", i, 8f
+						* externalBytes[i] / bases));
 
-		System.out.println(Writer.detachedCount);
+		log.info(sb.toString());
+		log.info(String.format("Compression: %.2f b/b.",
+				(8f * params.outputCramFile.length() / bases)));
 	}
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
@@ -355,5 +363,14 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--encrypt" }, description = "Encrypt the CRAM file.")
 		boolean encrypt = false;
+
+		@Parameter(names = { "--ignore-tags" }, description = "Ignore the tags listed, for example 'OQ:XA:XB'")
+		String ignoreTags = "";
+
+		@Parameter(names = { "--capture-tags" }, description = "Capture the tags listed, for example 'OQ:XA:XB'")
+		String captureTags = "";
+
+		@Parameter(names = { "--capture-all-tags" }, description = "Capture all tags.")
+		boolean captureAllTags = false;
 	}
 }

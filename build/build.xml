@@ -14,7 +14,7 @@
 
 	<path id="classpath">
 		<fileset dir="${lib.home}" includes="*.jar" />
-		<fileset dir="lib" includes="*.jar" />
+		<fileset dir="lib" includes="*.jar"/>
 	</path>
 
 	<path id="build.classpath">
@@ -45,7 +45,9 @@
 		<jar destfile="${basedir}/${jar.file.name}" filesetmanifest="skip" duplicate="preserve">
 			<fileset dir="${classes}" />
 			<zipgroupfileset dir="lib" includes="*.jar" >
-				<exclude name="**/SamFileValidator.class" />
+				<!-- exclude name="**/SamFileValidator.class" />
+				<exclude name="**/BAMFileReader.class" />
+				<exclude name="**/SAMFileReader.class" /-->
 			</zipgroupfileset>
 
 			<manifest>

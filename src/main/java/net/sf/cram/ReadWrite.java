@@ -83,8 +83,6 @@ public class ReadWrite {
 		os.write(h.id);
 
 		writeContainer(h.samFileHeader, os);
-
-		check(os);
 	}
 
 	public static CramHeader readCramHeader(InputStream is) throws IOException {
@@ -101,9 +99,6 @@ public class ReadWrite {
 		dis.readFully(h.id);
 
 		h.samFileHeader = readSAMFileHeader(new String(h.id), is);
-
-		check(is);
-
 		return h;
 	}
 
@@ -310,11 +305,9 @@ public class ReadWrite {
 		{ // tag encoding map:
 			ByteBuffer mapBuf = ByteBuffer.allocate(1024 * 100);
 			ByteBufferUtils.writeUnsignedITF8(c.h.tMap.size(), mapBuf);
-			for (String eKey : c.h.tMap.keySet()) {
-				mapBuf.put((byte) eKey.charAt(0));
-				mapBuf.put((byte) eKey.charAt(1));
-				mapBuf.put((byte) eKey.charAt(3));
-
+			for (Integer eKey : c.h.tMap.keySet()) {
+				ByteBufferUtils.writeUnsignedITF8(eKey, mapBuf);
+				
 				EncodingParams params = c.h.tMap.get(eKey);
 				mapBuf.put((byte) (0xFF & params.id.ordinal()));
 				ByteBufferUtils.writeUnsignedITF8(params.params.length, mapBuf);
@@ -407,10 +400,9 @@ public class ReadWrite {
 		{ // tag encoding map:
 			int byteSize = ByteBufferUtils.readUnsignedITF8(buf);
 			int mapSize = ByteBufferUtils.readUnsignedITF8(buf);
-			h.tMap = new TreeMap<String, EncodingParams>();
+			h.tMap = new TreeMap<Integer, EncodingParams>();
 			for (int i = 0; i < mapSize; i++) {
-				String key = new String(new byte[] { buf.get(), buf.get(),
-						buf.get() });
+				int key = ByteBufferUtils.readUnsignedITF8(buf) ;
 
 				EncodingID id = EncodingID.values()[buf.get()];
 				int paramLen = ByteBufferUtils.readUnsignedITF8(buf);
@@ -476,7 +468,7 @@ public class ReadWrite {
 
 		long time2 = System.nanoTime();
 
-		log.debug("WRITTEN CONTAINER: " + c.toString());
+		log.debug("CONTAINER WRITTEN: " + c.toString());
 		c.writeTime = time2 - time1;
 	}
 
@@ -522,7 +514,7 @@ public class ReadWrite {
 
 		log.debug("READ CONTAINER: " + c.toString());
 		c.readTime = time2 - time1;
-
+		
 		return c;
 	}
 

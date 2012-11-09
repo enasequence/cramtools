@@ -36,8 +36,8 @@ public class DataWriterFactory {
 				DataSeriesMap dsm = f.getAnnotation(DataSeriesMap.class);
 				String name = dsm.name();
 				if ("TAG".equals(name)) {
-					Map<String, DataWriter<byte[]>> map = new HashMap<String, DataWriter<byte[]>>();
-					for (String key : h.tMap.keySet()) {
+					Map<Integer, DataWriter<byte[]>> map = new HashMap<Integer, DataWriter<byte[]>>();
+					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
 						DataWriter<byte[]> tagWtiter = createWriter(
 								DataSeriesType.BYTE_ARRAY, params, bos,
