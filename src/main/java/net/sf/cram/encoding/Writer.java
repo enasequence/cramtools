@@ -174,6 +174,7 @@ public class Writer {
 				case SoftClipVariation.operator:
 					SoftClipVariation fv = (SoftClipVariation) f;
 					inc.writeData(fv.getSequence());
+					break;
 				case DeletionVariation.operator:
 					DeletionVariation dv = (DeletionVariation) f;
 					dlc.writeData(dv.getLength());

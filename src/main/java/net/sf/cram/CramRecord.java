@@ -418,7 +418,7 @@ public class CramRecord implements Serializable{
 				len -= ((InsertionVariation) f).getSequence().length;
 				break;
 			case SoftClipVariation.operator:
-				len -= ((InsertionVariation) f).getSequence().length;
+				len -= ((SoftClipVariation) f).getSequence().length;
 				break;
 			case DeletionVariation.operator:
 				len += ((DeletionVariation) f).getLength();

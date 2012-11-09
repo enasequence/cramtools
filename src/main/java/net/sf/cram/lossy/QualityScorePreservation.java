@@ -23,7 +23,8 @@ public class QualityScorePreservation {
 		this.specification = specification;
 		policyList = new ArrayList<PreservationPolicy>();
 		for (String s : specification.split("-")) {
-			if (s.length() == 0) continue ;
+			if (s.length() == 0)
+				continue;
 			PreservationPolicy policy = parseSinglePolicy(s);
 			System.err.println("Adding preservation policy: "
 					+ policy.toString());
@@ -51,14 +52,14 @@ public class QualityScorePreservation {
 			throw new RuntimeException("Expecting a digit but got: " + b1);
 
 		if (list.isEmpty())
-			return b1-48;
+			return b1 - 48;
 
 		char b2 = list.getFirst();
 		if (!Character.isDigit(b2))
-			return b1-48;
+			return b1 - 48;
 
 		b2 = list.removeFirst();
-		return (b1-48) * 10 + (b2-48);
+		return (b1 - 48) * 10 + (b2 - 48);
 	}
 
 	private static final QualityScoreTreatment readTreament(
@@ -218,8 +219,9 @@ public class QualityScorePreservation {
 					r.getReadFeatures().add(
 							new BaseQualityScore(i + 1, scores[i]));
 			}
-			Collections
-					.sort(r.getReadFeatures(), readFeaturePositionComparator);
+			if (r.getReadFeatures() != null)
+				Collections.sort(r.getReadFeatures(),
+						readFeaturePositionComparator);
 		} else
 			r.setQualityScores(scores);
 	}
@@ -306,7 +308,7 @@ public class QualityScorePreservation {
 					if (ce.getOperator() == CigarOperator.D) {
 						// if (pos > 0)
 						mask[pos] = true;
-						if (pos+1 < mask.length)
+						if (pos + 1 < mask.length)
 							mask[pos + 1] = true;
 					}
 

@@ -35,7 +35,7 @@ import net.sf.cram.structure.CompressionHeader;
 import net.sf.picard.util.Log;
 
 public class CompressionHeaderFactory {
-	private static Log log = Log.getInstance(CompressionHeaderFactory.class) ;
+	private static Log log = Log.getInstance(CompressionHeaderFactory.class);
 
 	public CompressionHeader build(List<CramRecord> records) {
 		CompressionHeader h = new CompressionHeader();
@@ -53,7 +53,7 @@ public class CompressionHeaderFactory {
 
 		int mateInfoID = exCounter++;
 		h.externalIds.add(mateInfoID);
-		
+
 		log.debug("Assigned external id to bases: " + baseID);
 		log.debug("Assigned external id to quality scores: " + qualityScoreID);
 		log.debug("Assigned external id to read names: " + readNameID);
@@ -151,9 +151,10 @@ public class CompressionHeaderFactory {
 		{ // number of read features
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				calculator.add(r.getReadFeatures().size());
+				calculator.add(r.getReadFeatures() == null ? 0 : r
+						.getReadFeatures().size());
 			calculator.calculate();
-			
+
 			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures,
 					HuffmanIntegerEncoding.toParam(calculator.values(),
 							calculator.bitLens()));
@@ -164,6 +165,8 @@ public class CompressionHeaderFactory {
 					"read feature position");
 			for (CramRecord r : records) {
 				int prevPos = 0;
+				if (r.getReadFeatures() == null)
+					continue;
 				for (ReadFeature rf : r.getReadFeatures()) {
 					calc.addValue(rf.getPosition() - prevPos);
 					prevPos = rf.getPosition();
@@ -178,8 +181,11 @@ public class CompressionHeaderFactory {
 		{ // feature code
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				for (ReadFeature rf : r.getReadFeatures())
-					calculator.add(rf.getOperator());
+				if (r.getReadFeatures() == null)
+					continue;
+				else
+					for (ReadFeature rf : r.getReadFeatures())
+						calculator.add(rf.getOperator());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.FC_FeatureCode, HuffmanByteEncoding.toParam(
@@ -199,10 +205,13 @@ public class CompressionHeaderFactory {
 		{ // base substitution code
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				for (ReadFeature rf : r.getReadFeatures())
-					if (rf.getOperator() == SubstitutionVariation.operator)
-						calculator.add(((SubstitutionVariation) rf)
-								.getBaseChange().getChange());
+				if (r.getReadFeatures() == null)
+					continue;
+				else
+					for (ReadFeature rf : r.getReadFeatures())
+						if (rf.getOperator() == SubstitutionVariation.operator)
+							calculator.add(((SubstitutionVariation) rf)
+									.getBaseChange().getChange());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.BS_BaseSubstitutionCode,
@@ -215,14 +224,17 @@ public class CompressionHeaderFactory {
 			for (CramRecord r : records)
 				calculator.add(r.getReadName().length());
 			for (CramRecord r : records)
-				for (ReadFeature rf : r.getReadFeatures()) {
-					if (rf.getOperator() == InsertionVariation.operator)
-						calculator
-								.add(((InsertionVariation) rf).getSequence().length);
-					if (rf.getOperator() == SoftClipVariation.operator)
-						calculator
-								.add(((SoftClipVariation) rf).getSequence().length);
-				}
+				if (r.getReadFeatures() == null)
+					continue;
+				else
+					for (ReadFeature rf : r.getReadFeatures()) {
+						if (rf.getOperator() == InsertionVariation.operator)
+							calculator.add(((InsertionVariation) rf)
+									.getSequence().length);
+						if (rf.getOperator() == SoftClipVariation.operator)
+							calculator.add(((SoftClipVariation) rf)
+									.getSequence().length);
+					}
 
 			calculator.calculate();
 
@@ -235,9 +247,13 @@ public class CompressionHeaderFactory {
 		{ // deletion length
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				for (ReadFeature rf : r.getReadFeatures())
-					if (rf.getOperator() == DeletionVariation.operator)
-						calculator.add(((DeletionVariation) rf).getLength());
+				if (r.getReadFeatures() == null)
+					continue;
+				else
+					for (ReadFeature rf : r.getReadFeatures())
+						if (rf.getOperator() == DeletionVariation.operator)
+							calculator
+									.add(((DeletionVariation) rf).getLength());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
@@ -278,10 +294,10 @@ public class CompressionHeaderFactory {
 			h.eMap.put(EncodingKey.TS_InsetSize,
 					ExternalIntegerEncoding.toParam(mateInfoID));
 		}
-		
+
 		{ // test mark
-//			h.eMap.put(EncodingKey.TM_TestMark,
-//					BetaIntegerEncoding.toParam(0, 32));
+			// h.eMap.put(EncodingKey.TM_TestMark,
+			// BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;
@@ -435,13 +451,13 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-//			for (int i = 2; i < 20; i++)
-//				calcs.add(new EncodingLengthCalculator(
-//						new GolombIntegerEncoding(i)));
-//
-//			for (int i = 2; i < 20; i++)
-//				calcs.add(new EncodingLengthCalculator(
-//						new GolombRiceIntegerEncoding(i)));
+			// for (int i = 2; i < 20; i++)
+			// calcs.add(new EncodingLengthCalculator(
+			// new GolombIntegerEncoding(i)));
+			//
+			// for (int i = 2; i < 20; i++)
+			// calcs.add(new EncodingLengthCalculator(
+			// new GolombRiceIntegerEncoding(i)));
 
 			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1)));
 

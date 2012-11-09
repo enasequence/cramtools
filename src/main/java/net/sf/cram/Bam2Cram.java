@@ -5,10 +5,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
+import uk.ac.ebi.embl.ega_cipher.CipherStream_256;
 
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.encoding.Writer;
@@ -32,6 +36,7 @@ import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
 
 public class Bam2Cram {
+	private static Log log = Log.getInstance(Bam2Cram.class);
 
 	private static List<CramRecord> convert(List<SAMRecord> samRecords,
 			SAMFileHeader samFileHeader, byte[] ref,
@@ -40,8 +45,24 @@ public class Bam2Cram {
 		int sequenceId = samRecords.get(0).getReferenceIndex();
 		String sequenceName = samRecords.get(0).getReferenceName();
 
-		int alStart = samRecords.get(0).getAlignmentStart();
-		int alEnd = samRecords.get(samRecords.size() - 1).getAlignmentEnd();
+		log.debug(String.format("Writing %d records for sequence %d, %s",
+				samRecords.size(), sequenceId, sequenceName));
+
+		int alStart = Integer.MAX_VALUE;
+		int alEnd = Integer.MIN_VALUE;
+		for (SAMRecord samRecord : samRecords) {
+			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
+				if (alStart > samRecord.getAlignmentStart())
+					alStart = samRecord.getAlignmentStart();
+			}
+			if (alEnd < samRecord.getAlignmentEnd())
+				alEnd = samRecord.getAlignmentEnd();
+
+		}
+
+		log.debug("Reads start at " + alStart + ", stop at " + alEnd);
+		if (alEnd < alStart)
+			alEnd = alStart + 1000;
 
 		ReferenceTracks tracks = new ReferenceTracks(sequenceId, sequenceName,
 				ref, alEnd - alStart + 100);
@@ -50,7 +71,7 @@ public class Bam2Cram {
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref);
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		List<CramRecord> cramRecords = new ArrayList<CramRecord>() ;
+		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		for (SAMRecord samRecord : samRecords) {
@@ -170,8 +191,13 @@ public class Bam2Cram {
 			System.out.println("A BAM file is required. ");
 			System.exit(1);
 		}
-		
-		Log.setGlobalLogLevel(LogLevel.INFO) ;
+
+		char[] pass = null;
+		if (params.encrypt) {
+			String readLine = System.console().readLine(
+					"Enter password for encryption: ");
+			pass = readLine.toCharArray();
+		}
 
 		File bamFile = params.bamFile;
 		SAMFileReader samFileReader = new SAMFileReader(bamFile);
@@ -188,16 +214,24 @@ public class Bam2Cram {
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(params.maxContainerSize);
+		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
+				params.maxContainerSize);
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
 		SAMRecordIterator iterator = samFileReader.iterator();
 
-		int prevSeqId = sequence.getContigIndex();
+		int prevSeqId = -1;
 		byte[] ref = sequence.getBases();
 		FileOutputStream fos = new FileOutputStream(params.outputCramFile);
 		OutputStream os = new BufferedOutputStream(fos);
+
+		if (params.encrypt) {
+			CipherOutputStream_256 cos = new CipherOutputStream_256(os, pass,
+					128);
+			os = cos.getCipherOutputStream();
+		}
+
 		CramHeader h = new CramHeader(1, 0, params.bamFile.getName(),
 				samFileReader.getFileHeader());
 		ReadWrite.writeCramHeader(h, os);
@@ -214,7 +248,8 @@ public class Bam2Cram {
 							samFileReader.getFileHeader(), ref, preservation);
 					samRecords.clear();
 					Container container = BLOCK_PROTO.buildContainer(records,
-							samFileReader.getFileHeader(), params.preserveReadNames);
+							samFileReader.getFileHeader(),
+							params.preserveReadNames);
 					records.clear();
 					ReadWrite.writeContainer(container, os);
 
@@ -231,7 +266,7 @@ public class Bam2Cram {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					sequence = referenceSequenceFile.getSequence(samRecord
 							.getReferenceName());
-					prevSeqId = sequence.getContigIndex();
+					prevSeqId = samRecord.getReferenceIndex();
 					ref = sequence.getBases();
 				}
 			}
@@ -243,8 +278,9 @@ public class Bam2Cram {
 				List<CramRecord> records = convert(samRecords,
 						samFileReader.getFileHeader(), ref, preservation);
 				samRecords.clear();
-				Container container = BLOCK_PROTO.buildContainer(records,
-						samFileReader.getFileHeader(), params.preserveReadNames);
+				Container container = BLOCK_PROTO
+						.buildContainer(records, samFileReader.getFileHeader(),
+								params.preserveReadNames);
 				records.clear();
 				ReadWrite.writeContainer(container, os);
 				for (Slice s : container.slices) {
@@ -262,13 +298,12 @@ public class Bam2Cram {
 		} while (iterator.hasNext());
 		iterator.close();
 		samFileReader.close();
-		
-		System.out.printf("STATS: core %.2f b/b", 8f
-				* coreBytes / bases);
+
+		System.out.printf("STATS: core %.2f b/b", 8f * coreBytes / bases);
 		for (int i = 0; i < externalBytes.length; i++)
 			if (externalBytes[i] > 0)
-				System.out.printf(", ex%d %.2f b/b, ", i, 8f
-						* externalBytes[i] / bases);
+				System.out.printf(", ex%d %.2f b/b, ", i, 8f * externalBytes[i]
+						/ bases);
 		System.out.println();
 
 		System.out.println(Writer.detachedCount);
@@ -317,5 +352,8 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--lossy-quality-score-spec", "-L" }, description = "A string specifying what quality scores should be preserved.")
 		String qsSpec = "";
+
+		@Parameter(names = { "--encrypt" }, description = "Encrypt the CRAM file.")
+		boolean encrypt = false;
 	}
 }
