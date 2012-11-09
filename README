@@ -1,0 +1,71 @@
+CRAMTools is a set of Java tools and APIs for efficient compression of sequence read data. Although this is intended as a stable version the code is released as early access. Parts of the CRAMTools are experimental and may not be supported in the future.
+http://www.ebi.ac.uk/ena/about/cram_toolkit
+
+Version 1.0
+
+Input files:
+Reference sequence in fasta format <fasta file>
+Reference sequence index file <fasta file>.fai created using samtools (samtools faidx <fasta file>)
+Input BAM file <BAM file> sorted by reference coordinates
+BAM index file <BAM file>.bai created using samtools (samtools index <BAM file>)
+Download and run the program:
+Download the prebuilt runnable jar file from: https://github.com/vadimzalunin/crammer/blob/master/cramtools.jar?raw=true
+Execute the command line program: java -jar cramtools.jar
+Usage is printed if no arguments were given 
+To convert a BAM file to CRAM:
+
+java -jar cramtools.jar cram --input-bam-file <bam file> --reference-fasta-file <reference fasta file> [--output-cram-file <output cram file>]
+To convert a CRAM file to BAM:
+java -jar cramtools.jar bam --input-cram-file <input cram file> --reference-fasta-file <reference fasta file> --output-bam-file <output bam file>
+
+
+To build the program from source:
+ 
+To check out the source code from github you will need git client: http://git-scm.com/
+Make sure you have java 1.6 or higher: http://openjdk.java.net/ or http://www.oracle.com/us/technologies/java/index.html
+Make sure you have ant version 1.7 or higher: http://ant.apache.org/
+git clone git://github.com/vadimzalunin/crammer.git
+ant -f build/build.xml runnable
+java -jar cramtools.jar
+To run unit tests:
+ ant -f build/build.xml test
+ 
+ 
+Picard integraion
+Some tools using Picard API should be able to read/write CRAM archives. For example: 
+java -cp cramtools.jar net.sf.picard.sam.ValidateSamFile INPUT=data.cram
+
+However the following will not work: 
+java -cp cramtools.jar -jar ValidateSamFile.jar INPUT=data.cram
+
+Reference sequence discovery
+For tools that use Picard API the following rules describe how the reference sequence file is discovered: 
+1. Given an input file '<some name>.cram' search for a '<some name>.fa' file in the same directory.
+2. Given an input file '<some name>.cram' search for a '<some name>.fa' file in the same directory, which should contain a full path to the reference file.
+3. Use java property 'reference=<path to ref file>', usage: java -Dreference=<path to ref file> -cp cramtools.jar ...
+
+The following tools have been included into this release: 
+Bam2Cram
+Cram2Bam
+ValidateCramFile (this works similar to ValidateSamFile tool from picard)
+
+Lossy model
+Bam2Cram allows to specify lossy model via a string which can be composed of one or more words separated by '-'. 
+Each word is an instruction about quality score treatment, which can be binning (Illumina 8 bins) or full scale (40 values). 
+Here are some examples: 
+N40-D8		preserve quality scores for non-matching bases with full precision, and bin quality scores for positions flanking deletions. 
+m5			preserve quality scores for reads with mapping quality score lower than 5
+R40X10-N40	preserve non-matching quality scores and those matching with coverage lower than 10
+
+Definitions:
+R	reference base
+N	non-reference (mis-matched) base
+U	unplaced read base
+P	pileup: capture all bases at a given position on the reference if there are at least 3 mismatches
+D	read positions flanking a deletion
+M	reads with mapping quality score higher than 40
+m	reads with mapping quality score lower than 40
+
+
+Check for more on our web site: 
+http://www.ebi.ac.uk/ena/about/cram_toolkit
