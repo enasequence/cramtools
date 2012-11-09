@@ -54,8 +54,10 @@ public class Cram2BamRecordFactory {
 
 		if (cramRecord.tags != null)
 			for (ReadTag tag : cramRecord.tags)
-//				samRecord.getAttributes().add(tag.createSAMTag());
-		samRecord.setAttribute(tag.getKey(), tag.getValue()) ;
+				samRecord.setAttribute(tag.getKey(), tag.getValue());
+
+		if (cramRecord.getReadGroupID() < header.getReadGroups().size())
+			samRecord.setAttribute("RG", cramRecord.getReadGroupID());
 
 		return samRecord;
 	}

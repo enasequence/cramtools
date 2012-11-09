@@ -274,7 +274,7 @@ public class ReadTag implements Comparable<ReadTag> {
 			buf.put((byte) 0);
 			break;
 		case 'A':
-			buf.put((Byte) value);
+			buf.put((byte) ((Character) value).charValue());
 			break;
 		case 'I':
 			// this is tricky:
