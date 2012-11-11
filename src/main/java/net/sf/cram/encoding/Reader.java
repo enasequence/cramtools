@@ -139,12 +139,12 @@ public class Reader {
 			}
 
 		}
-		int mark = testC.readData();
-		if (Writer.TEST_MARK != mark) {
-			System.err.println("Record counter=" + recordCount);
-			System.err.println(r.toString());
-			throw new RuntimeException("Test mark not found.");
-		}
+//		int mark = testC.readData();
+//		if (Writer.TEST_MARK != mark) {
+//			System.err.println("Record counter=" + recordCount);
+//			System.err.println(r.toString());
+//			throw new RuntimeException("Test mark not found.");
+//		}
 
 		if (!r.segmentUnmapped) {
 			// writing read features:

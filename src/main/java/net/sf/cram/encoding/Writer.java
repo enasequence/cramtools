@@ -136,7 +136,7 @@ public class Writer {
 				writer.writeData(tag.getValueAsByteArray());
 			}
 		}
-		testC.writeData(TEST_MARK) ;
+//		testC.writeData(TEST_MARK) ;
 
 		if (!r.segmentUnmapped) {
 			// writing read features:

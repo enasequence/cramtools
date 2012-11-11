@@ -27,6 +27,7 @@ import com.beust.jcommander.converters.FileConverter;
 public class Crambone {
 	private static Log log = Log.getInstance(Crambone.class);
 	private static File cramtoolsJar;
+	private static String javaOpts ;
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -61,7 +62,9 @@ public class Crambone {
 		}
 
 		cramtoolsJar = params.jarFile;
+		javaOpts = "-Xmx" + params.maxMem_MB +"m";
 
+		log.info("Starting thread pool, size ", params.poolSize) ;
 		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
 		ThreadPoolExecutor executor = new ThreadPoolExecutor(params.poolSize,
 				params.poolSize, 1, TimeUnit.SECONDS, workQueue);
@@ -230,7 +233,6 @@ public class Crambone {
 		private String java = "java";
 		private LogLevel logLevel = LogLevel.INFO;
 		private String cramtoolsCommand = "cram";
-		private String javaOpts = "";
 
 		private File cramFile;
 
@@ -248,8 +250,8 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format("%s -jar %s -l %s %s -I %s -R %s -O %s",
-					java, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s",
+					java, javaOpts, cramtoolsJar.getAbsolutePath(), logLevel.name(),
 					cramtoolsCommand, bamFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), cramFile.getAbsolutePath());
 			if (model != null && model.length() > 0 && !model.matches("^\\s+$"))
@@ -284,7 +286,6 @@ public class Crambone {
 		private String java = "java";
 		private LogLevel logLevel = LogLevel.INFO;
 		private String cramtoolsCommand = "bam";
-		private String javaOpts = "";
 
 		private File bamFile;
 
@@ -300,8 +301,8 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format("%s -jar %s -l %s %s -I %s -R %s -O %s",
-					java, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s",
+					java, javaOpts, cramtoolsJar.getAbsolutePath(), logLevel.name(),
 					cramtoolsCommand, cramFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), bamFile.getAbsolutePath());
 			log.info(cmd);

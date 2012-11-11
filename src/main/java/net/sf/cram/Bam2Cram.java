@@ -23,8 +23,11 @@ import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMTagUtil;
 import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
 
 import com.beust.jcommander.JCommander;
@@ -92,6 +95,7 @@ public class Bam2Cram {
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
+
 		for (SAMRecord samRecord : samRecords) {
 			if (samRecord.getAlignmentStart() > 0
 					&& alStart > samRecord.getAlignmentStart())
@@ -218,6 +222,8 @@ public class Bam2Cram {
 		}
 
 		File bamFile = params.bamFile;
+		SAMFileReader
+				.setDefaultValidationStringency(ValidationStringency.SILENT);
 		SAMFileReader samFileReader = new SAMFileReader(bamFile);
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.referenceFasta);
@@ -228,6 +234,18 @@ public class Bam2Cram {
 			SAMRecordIterator iterator = samFileReader.iterator();
 			SAMRecord samRecord = iterator.next();
 			seqName = samRecord.getReferenceName();
+
+			// ugly hack to compensate of missing read group record from the
+			// header.
+			// However this hack fixes the problem only for the first record.
+			String rgName = (String) samRecord.getAttribute(SAMTagUtil
+					.getSingleton().RG);
+			if (rgName != null
+					&& samFileReader.getFileHeader().getReadGroups().isEmpty()) {
+				log.info("Adding missing read group: ", rgName) ;
+				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(rgName);
+				samFileReader.getFileHeader().addReadGroup(readGroup);
+			}
 			iterator.close();
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
