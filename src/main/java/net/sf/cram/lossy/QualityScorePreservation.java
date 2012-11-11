@@ -120,6 +120,10 @@ public class QualityScorePreservation {
 				p.readCategory = ReadCategory.unplaced();
 				p.treatment = readTreament(list);
 				break;
+			case 'P':
+				p.baseCategories.add(BaseCategory.pileup(3));
+				p.treatment = readTreament(list);
+				break;
 
 			default:
 				throw new RuntimeException("Uknown read or base category: "

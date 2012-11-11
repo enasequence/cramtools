@@ -26,6 +26,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Crambone {
 	private static Log log = Log.getInstance(Crambone.class);
+	private static File cramtoolsJar;
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -59,8 +60,10 @@ public class Crambone {
 			System.exit(1);
 		}
 
+		cramtoolsJar = params.jarFile;
+
 		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
-		ThreadPoolExecutor executor = new ThreadPoolExecutor(1,
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(params.poolSize,
 				params.poolSize, 1, TimeUnit.SECONDS, workQueue);
 
 		Map<String, String> modelMap = new TreeMap<String, String>();
@@ -68,6 +71,7 @@ public class Crambone {
 		while (modelScanner.hasNextLine()) {
 			String[] chunks = modelScanner.nextLine().split("\\t");
 			modelMap.put(chunks[0], chunks[1]);
+			log.info("Adding model " + chunks[0] + ": '" + chunks[1] + "'");
 		}
 		modelScanner.close();
 
@@ -114,7 +118,7 @@ public class Crambone {
 		executor.shutdown();
 		while (!executor.isTerminated()) {
 			log.info("Pending tasks: ", workQueue.size());
-			executor.awaitTermination(10000, TimeUnit.MILLISECONDS);
+			executor.awaitTermination(60000, TimeUnit.SECONDS);
 		}
 
 		log.info("Done.");
@@ -122,6 +126,10 @@ public class Crambone {
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
 	static class Params {
+
+		@Parameter(names = { "--cramtools-jar", "-J" }, required = false, converter = FileConverter.class, description = "File listing input BAM files, 'input' by default.")
+		File jarFile = null;
+
 		@Parameter(names = { "--input-file", "-I" }, required = false, converter = FileConverter.class, description = "File listing input BAM files, 'input' by default.")
 		File inputFile = new File("input");
 
@@ -162,51 +170,55 @@ public class Crambone {
 
 		@Override
 		public void run() {
-			for (int i = 0; i < tasks.size(); i++) {
-				Task task = tasks.get(i);
+			try {
+				for (int i = 0; i < tasks.size(); i++) {
+					Task task = tasks.get(i);
 
-				Task.STATUS status = task.status();
-				switch (status) {
-				case SUCCESS:
-					continue;
-				case NONE:
-					break;
+					Task.STATUS status = task.status();
+					switch (status) {
+					case SUCCESS:
+						continue;
+					case NONE:
+						break;
 
-				default:
-					if (cleanUp) {
-						for (int j = i; j < tasks.size(); j++) {
-							Task t = tasks.get(i);
-							if (!t.cleanUp()) {
-								log.error("Cleanup failed: ",
-										t.destDir.getAbsolutePath(), "/",
-										t.fileNameBase);
-								return;
+					default:
+						if (cleanUp) {
+							for (int j = i; j < tasks.size(); j++) {
+								Task t = tasks.get(i);
+								if (!t.cleanUp()) {
+									log.error("Cleanup failed: ",
+											t.destDir.getAbsolutePath(), "/",
+											t.fileNameBase);
+									return;
+								}
 							}
+						} else {
+							log.debug("Found failed task, skipping: ", task);
+							return;
 						}
-					} else {
-						log.debug("Found failed task, skipping: ", task);
+						break;
+					}
+
+					task.run();
+					if (task.exception != null) {
+						log.error("Exception [", task.exception.getMessage(),
+								"] ", task);
 						return;
 					}
-					break;
+					if (task.exitCode != 0) {
+						log.error("Exit code [", task.exitCode, "] ", task);
+						return;
+					}
 				}
 
-				task.run();
-				if (task.exception != null) {
-					log.error("Exception [", task.exception.getMessage(), "] ",
-							task);
-					return;
-				}
-				if (task.exitCode != 0) {
-					log.error("Exit code [", task.exitCode, "] ", task);
-					return;
-				}
+				Task lastTask = tasks.get(tasks.size() - 1);
+				if (lastTask.status() == Task.STATUS.SUCCESS)
+					log.info("Success ", lastTask);
+				else
+					log.error("FAILED ", lastTask);
+			} catch (Throwable e) {
+				e.printStackTrace();
 			}
-
-			Task lastTask = tasks.get(tasks.size() - 1);
-			if (lastTask.status() == Task.STATUS.SUCCESS)
-				log.info("Success ", lastTask);
-			else
-				log.error("FAILED ", lastTask);
 		}
 	}
 
@@ -216,7 +228,6 @@ public class Crambone {
 		private String model;
 
 		private String java = "java";
-		private String jar = "cramtools-1.0.jar";
 		private LogLevel logLevel = LogLevel.INFO;
 		private String cramtoolsCommand = "cram";
 		private String javaOpts = "";
@@ -237,20 +248,19 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format(
-					"%s %s -cp %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
-					jar, logLevel.name(), cramtoolsCommand,
-					bamFile.getAbsolutePath(), refFile.getAbsolutePath(),
-					outputFile.getAbsolutePath());
+			String cmd = String.format("%s -jar %s -l %s %s -I %s -R %s -O %s",
+					java, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+					cramtoolsCommand, bamFile.getAbsolutePath(),
+					refFile.getAbsolutePath(), cramFile.getAbsolutePath());
+			if (model != null && model.length() > 0 && !model.matches("^\\s+$"))
+				cmd += " -L " + model;
+
+			log.info(cmd);
 
 			List<String> list = new ArrayList<String>();
-			for (String s : cmd.split(" "))
-				list.add(s);
-
-			if (model != null && model.length() > 0) {
-				list.add("-L");
-				list.add(model);
-			}
+			list.add("/bin/sh");
+			list.add("-c");
+			list.add(cmd);
 
 			return new ProcessBuilder(list);
 		}
@@ -272,7 +282,6 @@ public class Crambone {
 		private File refFile;
 
 		private String java = "java";
-		private String jar = "cramtools-1.0.jar";
 		private LogLevel logLevel = LogLevel.INFO;
 		private String cramtoolsCommand = "bam";
 		private String javaOpts = "";
@@ -291,15 +300,18 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format(
-					"%s %s -cp %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
-					jar, logLevel.name(), cramtoolsCommand,
-					cramFile.getAbsolutePath(), refFile.getAbsolutePath(),
-					bamFile.getAbsolutePath());
+			String cmd = String.format("%s -jar %s -l %s %s -I %s -R %s -O %s",
+					java, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+					cramtoolsCommand, cramFile.getAbsolutePath(),
+					refFile.getAbsolutePath(), bamFile.getAbsolutePath());
+			log.info(cmd);
 
 			List<String> list = new ArrayList<String>();
-			for (String s : cmd.split(" "))
-				list.add(s);
+			list.add("/bin/sh");
+			list.add("-c");
+			// for (String s : cmd.split(" "))
+			// list.add(s);
+			list.add(cmd);
 
 			return new ProcessBuilder(list);
 		}
@@ -408,7 +420,7 @@ public class Crambone {
 				if (exitCode == 0) {
 					inProgressMarkerFile.delete();
 					createAndWriteDefaultMessageToMarkerFile(successMarkerFile);
-					log.debug("Completed ", toString()) ;
+					log.debug("Completed ", toString());
 					return;
 				}
 
@@ -424,8 +436,8 @@ public class Crambone {
 
 			if (exception != null)
 				exception.printStackTrace();
-			
-			log.debug("Failed ", toString()) ;
+
+			log.debug("Failed ", toString());
 		}
 
 		public boolean cleanUp() {
