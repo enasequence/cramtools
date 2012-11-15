@@ -242,7 +242,7 @@ public class Bam2Cram {
 					.getSingleton().RG);
 			if (rgName != null
 					&& samFileReader.getFileHeader().getReadGroups().isEmpty()) {
-				log.info("Adding missing read group: ", rgName) ;
+				log.info("Adding missing read group: ", rgName);
 				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(rgName);
 				samFileReader.getFileHeader().addReadGroup(readGroup);
 			}
@@ -318,6 +318,33 @@ public class Bam2Cram {
 			if (params.maxRecords-- < 1)
 				break;
 		} while (iterator.hasNext());
+
+		{ // copied for now, should be a subroutine:
+			if (!samRecords.isEmpty()) {
+				List<CramRecord> records = convert(samRecords,
+						samFileReader.getFileHeader(), ref, preservation,
+						params.captureAllTags, params.captureTags,
+						params.ignoreTags);
+				samRecords.clear();
+				Container container = BLOCK_PROTO
+						.buildContainer(records, samFileReader.getFileHeader(),
+								params.preserveReadNames);
+				records.clear();
+				ReadWrite.writeContainer(container, os);
+				log.info(String
+						.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
+								container.buildHeaderTime / 1000000,
+								container.buildSlicesTime / 1000000,
+								container.writeTime / 1000000));
+
+				for (Slice s : container.slices) {
+					coreBytes += s.coreBlock.compressedContentSize;
+					for (Integer i : s.external.keySet())
+						externalBytes[i] += s.external.get(i).compressedContentSize;
+				}
+			}
+		}
+
 		iterator.close();
 		samFileReader.close();
 		os.close();

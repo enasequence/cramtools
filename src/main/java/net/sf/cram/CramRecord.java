@@ -74,7 +74,7 @@ public class CramRecord implements Serializable{
 	public int mateSequnceID = 0;
 	public int mateAlignmentStart = 0;
 
-	private byte mappingQuality;
+	private int mappingQuality;
 
 	private String sequenceName;
 	public int sequenceId;
@@ -364,11 +364,11 @@ public class CramRecord implements Serializable{
 		this.firstSegment = firstInPair;
 	}
 
-	public byte getMappingQuality() {
+	public int getMappingQuality() {
 		return mappingQuality;
 	}
 
-	public void setMappingQuality(byte mappingQuality) {
+	public void setMappingQuality(int mappingQuality) {
 		this.mappingQuality = mappingQuality;
 	}
 

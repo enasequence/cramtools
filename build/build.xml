@@ -94,6 +94,7 @@
 	<target name="compile" depends="setup">
 		<javac debug="true" fork="true" destdir="${classes}" srcdir="${src}/main/java:${src}/test/java">
 			<include name="**/*.java" />
+			<exclude name="**/Crambone.java" />
 			<classpath refid="classpath" />
 		</javac>
 		<copy todir="${classes}">

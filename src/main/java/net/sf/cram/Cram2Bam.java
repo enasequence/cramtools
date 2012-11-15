@@ -77,8 +77,6 @@ public class Cram2Bam {
 			pass = readLine.toCharArray();
 		}
 
-		Log.setGlobalLogLevel(LogLevel.INFO);
-
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.reference);
 

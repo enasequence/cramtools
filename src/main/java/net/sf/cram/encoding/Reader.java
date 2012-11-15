@@ -80,8 +80,8 @@ public class Reader {
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataReader<Integer> dlc;
 
-	@DataSeries(key = EncodingKey.MQ_MappingQualityScore, type = DataSeriesType.BYTE)
-	public DataReader<Byte> mqc;
+	@DataSeries(key = EncodingKey.MQ_MappingQualityScore, type = DataSeriesType.INT)
+	public DataReader<Integer> mqc;
 
 	@DataSeries(key = EncodingKey.MF_MateBitFlags, type = DataSeriesType.BYTE)
 	public DataReader<Byte> mbfc;

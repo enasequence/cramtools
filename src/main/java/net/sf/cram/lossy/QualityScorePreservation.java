@@ -47,19 +47,26 @@ public class QualityScorePreservation {
 	}
 
 	private static final int readParam(LinkedList<Character> list) {
-		char b1 = list.removeFirst();
-		if (!Character.isDigit(b1))
-			throw new RuntimeException("Expecting a digit but got: " + b1);
+		int value = 0;
 
-		if (list.isEmpty())
-			return b1 - 48;
+		while (!list.isEmpty() && Character.isDigit(list.getFirst())) {
+			value = value * 10 + (list.removeFirst() - 48);
+		}
 
-		char b2 = list.getFirst();
-		if (!Character.isDigit(b2))
-			return b1 - 48;
-
-		b2 = list.removeFirst();
-		return (b1 - 48) * 10 + (b2 - 48);
+		return value;
+		// char b1 = list.removeFirst();
+		// if (!Character.isDigit(b1))
+		// throw new RuntimeException("Expecting a digit but got: " + b1);
+		//
+		// if (list.isEmpty())
+		// return b1 - 48;
+		//
+		// char b2 = list.getFirst();
+		// if (!Character.isDigit(b2))
+		// return b1 - 48;
+		//
+		// b2 = list.removeFirst();
+		// return (b1 - 48) * 10 + (b2 - 48);
 	}
 
 	private static final QualityScoreTreatment readTreament(

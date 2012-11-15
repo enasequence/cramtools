@@ -79,8 +79,8 @@ public class Writer {
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> dlc;
 
-	@DataSeries(key = EncodingKey.MQ_MappingQualityScore, type = DataSeriesType.BYTE)
-	public DataWriter<Byte> mqc;
+	@DataSeries(key = EncodingKey.MQ_MappingQualityScore, type = DataSeriesType.INT)
+	public DataWriter<Integer> mqc;
 
 	@DataSeries(key = EncodingKey.MF_MateBitFlags, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> mbfc;

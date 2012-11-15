@@ -315,11 +315,12 @@ public class CompressionHeaderFactory {
 		{ // mapping quality score
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				calculator.add(r.getMappingQuality());
+				if (!r.segmentUnmapped)
+					calculator.add(r.getMappingQuality());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.MQ_MappingQualityScore, HuffmanByteEncoding
-					.toParam(calculator.valuesAsBytes(), calculator.bitLens));
+			h.eMap.put(EncodingKey.MQ_MappingQualityScore, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens));
 		}
 
 		{ // mate bit flags

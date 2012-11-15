@@ -16,6 +16,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 
 public class Cram2BamRecordFactory {
@@ -56,8 +57,10 @@ public class Cram2BamRecordFactory {
 			for (ReadTag tag : cramRecord.tags)
 				samRecord.setAttribute(tag.getKey(), tag.getValue());
 
-		if (cramRecord.getReadGroupID() < header.getReadGroups().size())
-			samRecord.setAttribute("RG", cramRecord.getReadGroupID());
+		if (cramRecord.getReadGroupID() < header.getReadGroups().size()) {
+			SAMReadGroupRecord readGroupRecord = header.getReadGroups().get(cramRecord.getReadGroupID()) ;
+			samRecord.setAttribute("RG", readGroupRecord.getId());
+		}
 
 		return samRecord;
 	}
