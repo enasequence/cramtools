@@ -27,7 +27,7 @@ import com.beust.jcommander.converters.FileConverter;
 public class Crambone {
 	private static Log log = Log.getInstance(Crambone.class);
 	private static File cramtoolsJar;
-	private static String javaOpts ;
+	private static String javaOpts;
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -62,9 +62,9 @@ public class Crambone {
 		}
 
 		cramtoolsJar = params.jarFile;
-		javaOpts = "-Xmx" + params.maxMem_MB +"m";
+		javaOpts = "-Xmx" + params.maxMem_MB + "m";
 
-		log.info("Starting thread pool, size ", params.poolSize) ;
+		log.info("Starting thread pool, size ", params.poolSize);
 		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
 		ThreadPoolExecutor executor = new ThreadPoolExecutor(params.poolSize,
 				params.poolSize, 1, TimeUnit.SECONDS, workQueue);
@@ -111,7 +111,7 @@ public class Crambone {
 						bam2CramTask.cramFile, params.refFile);
 				tasks.add(cram2BamTask);
 
-				Project p = new Project(params.cleanup, tasks);
+				Project p = new Project(params.cleanup, params.resetFailed, tasks);
 				executor.submit(p);
 			}
 
@@ -121,7 +121,7 @@ public class Crambone {
 		executor.shutdown();
 		while (!executor.isTerminated()) {
 			log.info("Pending tasks: ", workQueue.size());
-			executor.awaitTermination(60000, TimeUnit.SECONDS);
+			executor.awaitTermination(60, TimeUnit.SECONDS);
 		}
 
 		log.info("Done.");
@@ -151,6 +151,9 @@ public class Crambone {
 		@Parameter(names = { "--cleanup", "-C" }, required = false, description = "Clean up and try again failed/garbled tasks.")
 		boolean cleanup = false;
 
+		@Parameter(names = { "--reset-failed"}, required = false, description = "Restart failed tasks from scratch.")
+		boolean resetFailed = false;
+
 		@Parameter(names = { "--pool-size", "-P" }, required = false, description = "Thread pool size. Number of cores by default.")
 		int poolSize = Runtime.getRuntime().availableProcessors();
 
@@ -165,15 +168,38 @@ public class Crambone {
 	private static class Project implements Runnable {
 		private boolean cleanUp = false;
 		private List<Task> tasks = new ArrayList<Crambone.Task>();
+		private boolean resetIfFailed;
 
-		public Project(boolean cleanUp, List<Task> tasks) {
+		public Project(boolean cleanUp, boolean resetIfFailed, List<Task> tasks) {
 			this.cleanUp = cleanUp;
+			this.resetIfFailed = resetIfFailed;
 			this.tasks = tasks;
 		}
 
 		@Override
 		public void run() {
 			try {
+
+				for (Task task : tasks) {
+					switch (task.status()) {
+					case SUCCESS:
+					case NONE:
+
+						break;
+
+					default:
+						if (resetIfFailed) {
+							for (Task t : tasks)
+								t.cleanUp();
+						} else if (cleanUp) {
+							task.cleanUp();
+						} else {
+							log.debug("Found failed task, skipping: ", task);
+							return;
+						}
+					}
+				}
+
 				for (int i = 0; i < tasks.size(); i++) {
 					Task task = tasks.get(i);
 
@@ -195,6 +221,11 @@ public class Crambone {
 									return;
 								}
 							}
+						} else if (resetIfFailed) {
+							for (Task t : tasks) {
+								t.cleanUp();
+							}
+							return;
 						} else {
 							log.debug("Found failed task, skipping: ", task);
 							return;
@@ -250,8 +281,9 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s",
-					java, javaOpts, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+			String cmd = String.format(
+					"%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
+					cramtoolsJar.getAbsolutePath(), logLevel.name(),
 					cramtoolsCommand, bamFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), cramFile.getAbsolutePath());
 			if (model != null && model.length() > 0 && !model.matches("^\\s+$"))
@@ -301,8 +333,9 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s",
-					java, javaOpts, cramtoolsJar.getAbsolutePath(), logLevel.name(),
+			String cmd = String.format(
+					"%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
+					cramtoolsJar.getAbsolutePath(), logLevel.name(),
 					cramtoolsCommand, cramFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), bamFile.getAbsolutePath());
 			log.info(cmd);

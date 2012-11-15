@@ -99,10 +99,15 @@ public class ReferenceTracks {
 				Math.min(bases.length, reference.length - newPos + 1));
 
 		if (newPos > position && position + bases.length - newPos > 0) {
-			System.arraycopy(coverage, (newPos - position), coverage, 0,
-					(position - newPos + coverage.length));
-			System.arraycopy(mismatches, (newPos - position), mismatches, 0,
-					(position - newPos + coverage.length));
+			for (int i = 0; i < coverage.length; i++) {
+				if (i + newPos - position < coverage.length) {
+					coverage[i] = coverage[i + newPos - position];
+					mismatches[i] = mismatches[i + newPos - position];
+				} else {
+					coverage[i] = 0;
+					mismatches[i] = 0;
+				}
+			}
 		} else {
 			Arrays.fill(coverage, (short) 0);
 			Arrays.fill(mismatches, (short) 0);
@@ -134,11 +139,17 @@ public class ReferenceTracks {
 	}
 
 	public final short coverageAt(int pos) {
-		return coverage[pos - this.position];
+		if (pos - this.position >= coverage.length)
+			return 0;
+		else
+			return coverage[pos - this.position];
 	}
 
 	public final short mismatchesAt(int pos) {
-		return mismatches[pos - this.position];
+		if (pos - this.position >= coverage.length)
+			return 0;
+		else
+			return mismatches[pos - this.position];
 	}
 
 	public final void addCoverage(int pos, int amount) {

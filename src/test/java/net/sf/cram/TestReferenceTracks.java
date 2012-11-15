@@ -8,6 +8,41 @@ import org.junit.Test;
 public class TestReferenceTracks {
 
 	@Test
+	public void test6() {
+		byte[] ref = "12345".getBytes();
+
+		ReferenceTracks t = new ReferenceTracks(1, "seq1", ref, 2);
+
+		t.addCoverage(1, 1);
+		t.addCoverage(2, 2);
+
+		assertThat(t.coverageAt(1), is((short) 1));
+		assertThat(t.coverageAt(2), is((short) 2));
+
+		t.moveForwardTo(2);
+
+		assertThat(t.coverageAt(2), is((short) 2));
+		t.addCoverage(3, 3);
+		assertThat(t.coverageAt(3), is((short) 3));
+		
+		t.moveForwardTo(3);
+		
+		assertThat(t.coverageAt(3), is((short) 3));
+		t.addCoverage(4, 4);
+		assertThat(t.coverageAt(4), is((short) 4));
+		
+		t.moveForwardTo(4);
+
+		assertThat(t.coverageAt(4), is((short) 4));
+		t.addCoverage(5, 5);
+		assertThat(t.coverageAt(5), is((short) 5));
+
+		t.moveForwardTo(5);
+
+		assertThat(t.coverageAt(5), is((short) 5));
+	}
+
+	@Test
 	public void test1() {
 		byte[] ref = "12345".getBytes();
 

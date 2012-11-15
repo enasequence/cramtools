@@ -286,6 +286,7 @@ public class Bam2Cram {
 							params.captureAllTags, params.captureTags,
 							params.ignoreTags);
 					samRecords.clear();
+
 					Container container = BLOCK_PROTO.buildContainer(records,
 							samFileReader.getFileHeader(),
 							params.preserveReadNames);

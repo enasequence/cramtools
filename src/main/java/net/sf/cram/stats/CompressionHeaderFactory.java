@@ -25,6 +25,7 @@ import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
+import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
@@ -250,6 +251,29 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // quality scores:
+//			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+//			for (CramRecord r : records) {
+//				if (r.getQualityScores() == null) {
+//					if (r.getReadFeatures() != null) {
+//						for (ReadFeature f:r.getReadFeatures()) {
+//							switch (f.getOperator()) {
+//							case BaseQualityScore.operator:
+//								calculator.add(((BaseQualityScore)f).getQualityScore()) ;
+//								break;
+//							default:
+//								break;
+//							}
+//						}
+//					}
+//				} else {
+//					for (byte s:r.getQualityScores()) calculator.add(s) ;
+//				}
+//			}
+//			calculator.calculate();
+//
+//			h.eMap.put(EncodingKey.QS_QualityScore, HuffmanByteEncoding.toParam(
+//					calculator.valuesAsBytes(), calculator.bitLens));
+			
 			h.eMap.put(EncodingKey.QS_QualityScore,
 					ExternalByteEncoding.toParam(qualityScoreID));
 		}
