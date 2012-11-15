@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
@@ -69,6 +70,8 @@ public class Cram2Bam {
 			System.out.println("A CRAM input file is required. ");
 			System.exit(1);
 		}
+		
+		Log.setGlobalLogLevel(params.logLevel) ;
 
 		char[] pass = null;
 		if (params.decrypt) {
@@ -160,6 +163,9 @@ public class Cram2Bam {
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
 	static class Params {
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR." , converter = LevelConverter.class)
+		LogLevel logLevel = LogLevel.INFO;
+		
 		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
 		File cramFile;
 

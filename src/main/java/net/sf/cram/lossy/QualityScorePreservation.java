@@ -26,8 +26,8 @@ public class QualityScorePreservation {
 			if (s.length() == 0)
 				continue;
 			PreservationPolicy policy = parseSinglePolicy(s);
-			System.err.println("Adding preservation policy: "
-					+ policy.toString());
+//			System.err.println("Adding preservation policy: "
+//					+ policy.toString());
 			policyList.add(policy);
 		}
 

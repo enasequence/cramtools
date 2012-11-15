@@ -43,13 +43,6 @@ public class CramTools {
 
 		jc.parse(args);
 
-		if (params.logLevel != null) {
-			Log.setGlobalLogLevel(params.logLevel);
-			String[] newArgs = new String[args.length - 2];
-			System.arraycopy(args, 2, newArgs, 0, newArgs.length);
-			args = newArgs;
-		}
-
 		String command = jc.getParsedCommand();
 
 		if (command == null || params.help) {
@@ -77,16 +70,13 @@ public class CramTools {
 	private static class Params {
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
 		private boolean help = false;
-
-		@Parameter(names = { "-l", "--log-level" }, description = "Change log level", converter = LevelConverter.class)
-		private LogLevel logLevel = null;
 	}
 
 	public static class LevelConverter implements IStringConverter<LogLevel> {
 
 		@Override
 		public LogLevel convert(String s) {
-			return LogLevel.valueOf(LogLevel.class, s);
+			return LogLevel.valueOf(LogLevel.class, s.toUpperCase());
 		}
 
 	}

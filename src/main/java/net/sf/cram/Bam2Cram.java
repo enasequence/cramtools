@@ -6,12 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.structure.Container;
@@ -20,6 +22,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
@@ -213,6 +216,8 @@ public class Bam2Cram {
 			System.out.println("A BAM file is required. ");
 			System.exit(1);
 		}
+		
+		Log.setGlobalLogLevel(params.logLevel) ;
 
 		char[] pass = null;
 		if (params.encrypt) {
@@ -365,6 +370,9 @@ public class Bam2Cram {
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
 	static class Params {
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR." , converter = LevelConverter.class)
+		LogLevel logLevel = LogLevel.INFO;
+		
 		@Parameter(names = { "--input-bam-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM file to be converted to CRAM. Omit if standard input (pipe).")
 		File bamFile;
 
@@ -388,15 +396,6 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--max-container-size" }, hidden = true)
 		int maxContainerSize = 100000;
-
-		// not implemented yet:
-		// @Parameter(names = { "--capture-all-tags" }, description =
-		// "Capture all tags found in the source BAM file.")
-		// boolean captureAllTags = false;
-		//
-		// @Parameter(names = { "--ignore-tags" }, description =
-		// "Do not preserve the tags listed, for example: XA:XO:X0")
-		// String ignoreTags;
 
 		@Parameter(names = { "--illumina-quality-score-binning" }, description = "Use NCBI binning scheme for quality scores.")
 		boolean illuminaQualityScoreBinning = false;
