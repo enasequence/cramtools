@@ -61,15 +61,19 @@ public class SAMIterator implements SAMRecordIterator {
 
 		List<CramRecord> cramRecords = null;
 		try {
-			cramRecords = BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader);
+			cramRecords = BLOCK_PROTO.getRecords(c.h, c,
+					cramHeader.samFileHeader);
 		} catch (EOFException e) {
 			throw e;
 		}
-		SAMSequenceRecord sequence = cramHeader.samFileHeader
-				.getSequence(c.sequenceId);
-		ReferenceSequence referenceSequence = referenceSequenceFile
-				.getSequence(sequence.getSequenceName());
-		byte[] ref = referenceSequence.getBases();
+		byte[] ref = null;
+		if (c.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			SAMSequenceRecord sequence = cramHeader.samFileHeader
+					.getSequence(c.sequenceId);
+			ReferenceSequence referenceSequence = referenceSequenceFile
+					.getSequence(sequence.getSequenceName());
+			ref = referenceSequence.getBases();
+		}
 
 		long time1 = System.nanoTime();
 		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader, ref,
@@ -86,7 +90,8 @@ public class SAMIterator implements SAMRecordIterator {
 			long time = System.nanoTime();
 			SAMRecord s = c2sFactory.create(r);
 			c2sTime += System.nanoTime() - time;
-			Utils.calculateMdAndNmTags(s, ref, restoreMDTag, restoreNMTag) ;
+			if (!r.segmentUnmapped)
+				Utils.calculateMdAndNmTags(s, ref, restoreMDTag, restoreNMTag);
 			records.add(s);
 		}
 		log.info(String.format(
@@ -134,7 +139,8 @@ public class SAMIterator implements SAMRecordIterator {
 		private ReferenceSequenceFile referenceSequenceFile;
 		private File cramFile;
 
-		public CramFileIterable(File cramFile, ReferenceSequenceFile referenceSequenceFile) {
+		public CramFileIterable(File cramFile,
+				ReferenceSequenceFile referenceSequenceFile) {
 			this.referenceSequenceFile = referenceSequenceFile;
 			this.cramFile = cramFile;
 		}
@@ -156,7 +162,7 @@ public class SAMIterator implements SAMRecordIterator {
 
 	@Override
 	public SAMRecordIterator assertSorted(SortOrder sortOrder) {
-		throw new RuntimeException("Not implemented.") ;
+		throw new RuntimeException("Not implemented.");
 	}
 
 }

@@ -40,13 +40,16 @@ public class CramNormalizer {
 			r.index = ++readCounter;
 
 			alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
-			r.setAlignmentStart(alignmentStart);
 
-			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
-			else
+				r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+			}
+			else {
 				r.setSequenceName(header.getSequence(r.sequenceId)
 						.getSequenceName());
+				r.setAlignmentStart(alignmentStart);
+			}
 		}
 
 		{// restore pairing first:
@@ -76,11 +79,15 @@ public class CramNormalizer {
 						r.mateUmapped = prev.segmentUnmapped;
 						r.mateNegativeStrand = prev.negativeStrand;
 						r.mateSequnceID = prev.sequenceId;
+						if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+							r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 						prev.mateAlignmentStart = r.getAlignmentStart();
 						prev.mateUmapped = r.segmentUnmapped;
 						prev.mateNegativeStrand = r.negativeStrand;
 						prev.mateSequnceID = r.sequenceId;
+						if (prev.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+							prev.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 						if (r.firstSegment && prev.lastSegment) {
 							r.templateSize = Utils.computeInsertSize(r, prev);
