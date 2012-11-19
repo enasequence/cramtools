@@ -3,6 +3,7 @@ package net.sf.cram.encoding;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Map;
 
 import net.sf.cram.CramRecord;
@@ -18,7 +19,6 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
-import net.sf.samtools.util.RuntimeEOFException;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
@@ -97,132 +97,143 @@ public class Reader {
 
 	public static int detachedCount = 0;
 	private int recordCount = 0;
+	private CramRecord prevRecord;
 
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataReader<Integer> testC;
 
 	public void read(CramRecord r) throws IOException {
-		r.setFlags(bitFlagsC.readData());
-		r.setCompressionFlags(compBitFlagsC.readData());
+		try {
+//			int mark = testC.readData();
+//			if (Writer.TEST_MARK != mark) {
+//				System.err.println("Record counter=" + recordCount);
+//				System.err.println(r.toString());
+//				throw new RuntimeException("Test mark not found.");
+//			}
+			
+			r.setFlags(bitFlagsC.readData());
+			r.setCompressionFlags(compBitFlagsC.readData());
 
-		r.setReadLength(readLengthC.readData());
-		r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
-		r.setReadGroupID(readGroupC.readData());
+			r.setReadLength(readLengthC.readData());
+			r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
+			r.setReadGroupID(readGroupC.readData());
 
-		if (captureReadNames) {
-			r.setReadName(new String(readNameC.readData(), charset));
-		}
-
-		// mate record:
-		if (r.detached) {
-			r.setMateFlags(mbfc.readData());
-			if (!captureReadNames)
+			if (captureReadNames) {
 				r.setReadName(new String(readNameC.readData(), charset));
-
-			r.mateSequnceID = mrc.readData();
-			r.mateAlignmentStart = malsc.readData();
-			r.templateSize = tsc.readData();
-			detachedCount++;
-		} else if (r.hasMateDownStream)
-			r.setRecordsToNextFragment(distanceC.readData());
-
-		// tag records:
-		int tagCount = tagCountC.readData();
-		if (tagCount > 0) {
-			r.tags = new ArrayList<ReadTag>(tagCount);
-			for (int i = 0; i < tagCount; i++) {
-				int id = tagNameAndTypeC.readData();
-				DataReader<byte[]> dataReader = tagValueCodecs.get(id);
-				byte[] data = dataReader.readData();
-				ReadTag tag = new ReadTag(id, data) ; 
-				r.tags.add(tag);
 			}
 
-		}
+			// mate record:
+			if (r.detached) {
+				r.setMateFlags(mbfc.readData());
+				if (!captureReadNames)
+					r.setReadName(new String(readNameC.readData(), charset));
 
-		if (!r.segmentUnmapped) {
-			// writing read features:
-			java.util.List<ReadFeature> rf = new ArrayList<ReadFeature>();
-			r.setReadFeatures(rf);
-			int size = nfc.readData();
-			int prevPos = 0;
-			for (int i = 0; i < size; i++) {
-				Byte operator = fc.readData();
+				r.mateSequnceID = mrc.readData();
+				r.mateAlignmentStart = malsc.readData();
+				r.templateSize = tsc.readData();
+				detachedCount++;
+			} else if (r.hasMateDownStream)
+				r.setRecordsToNextFragment(distanceC.readData());
 
-				int pos = prevPos + fp.readData();
-				prevPos = pos;
+			// tag records:
+			int tagCount = tagCountC.readData();
+			if (tagCount > 0) {
+				r.tags = new LinkedList<ReadTag>();
+				for (int i = 0; i < tagCount; i++) {
+					int id = tagNameAndTypeC.readData();
+					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
+					byte[] data = dataReader.readData();
+					ReadTag tag = new ReadTag(id, data);
+					r.tags.add(tag);
+				}
 
-				switch (operator) {
-				case ReadBase.operator:
-					ReadBase rb = new ReadBase(pos, bc.readData(),
-							qc.readData());
-					rf.add(rb);
-					break;
-				case SubstitutionVariation.operator:
-					SubstitutionVariation sv = new SubstitutionVariation();
-					sv.setPosition(pos);
-					sv.setBaseChange(new BaseChange(bsc.readData()));
-					rf.add(sv);
-					break;
-				case InsertionVariation.operator:
-					InsertionVariation iv = new InsertionVariation(pos,
-							inc.readData());
-					rf.add(iv);
-					break;
-				case SoftClipVariation.operator:
-					SoftClipVariation fv = new SoftClipVariation(pos,
-							inc.readData());
-					rf.add(fv);
-					break;
-				case DeletionVariation.operator:
-					DeletionVariation dv = new DeletionVariation(pos,
-							dlc.readData());
-					rf.add(dv);
-					break;
-				case InsertBase.operator:
-					InsertBase ib = new InsertBase(pos, bc.readData());
-					rf.add(ib);
-					break;
-				case BaseQualityScore.operator:
-					BaseQualityScore bqs = new BaseQualityScore(pos,
-							qc.readData());
-					rf.add(bqs);
-					break;
-				default:
-					throw new RuntimeException(
-							"Unknown read feature operator: " + operator);
+			}
+
+			if (!r.segmentUnmapped) {
+				// writing read features:
+				int size = nfc.readData();
+				int prevPos = 0;
+				java.util.List<ReadFeature> rf = new LinkedList<ReadFeature>();
+				r.setReadFeatures(rf);
+				for (int i = 0; i < size; i++) {
+					Byte operator = fc.readData();
+
+					int pos = prevPos + fp.readData();
+					prevPos = pos;
+
+					switch (operator) {
+					case ReadBase.operator:
+						ReadBase rb = new ReadBase(pos, bc.readData(),
+								qc.readData());
+						rf.add(rb);
+						break;
+					case SubstitutionVariation.operator:
+						SubstitutionVariation sv = new SubstitutionVariation();
+						sv.setPosition(pos);
+						sv.setBaseChange(new BaseChange(bsc.readData()));
+						rf.add(sv);
+						break;
+					case InsertionVariation.operator:
+						InsertionVariation iv = new InsertionVariation(pos,
+								inc.readData());
+						rf.add(iv);
+						break;
+					case SoftClipVariation.operator:
+						SoftClipVariation fv = new SoftClipVariation(pos,
+								inc.readData());
+						rf.add(fv);
+						break;
+					case DeletionVariation.operator:
+						DeletionVariation dv = new DeletionVariation(pos,
+								dlc.readData());
+						rf.add(dv);
+						break;
+					case InsertBase.operator:
+						InsertBase ib = new InsertBase(pos, bc.readData());
+						rf.add(ib);
+						break;
+					case BaseQualityScore.operator:
+						BaseQualityScore bqs = new BaseQualityScore(pos,
+								qc.readData());
+						rf.add(bqs);
+						break;
+					default:
+						throw new RuntimeException(
+								"Unknown read feature operator: " + operator);
+					}
+				}
+
+				// mapping quality:
+				r.setMappingQuality(mqc.readData());
+				if (r.forcePreserveQualityScores) {
+					byte[] qs = new byte[r.getReadLength()];
+					for (int i = 0; i < qs.length; i++)
+						qs[i] = qc.readData();
+					r.setQualityScores(qs);
+				}
+			} else {
+				byte[] bases = new byte[r.getReadLength()];
+				for (int i = 0; i < bases.length; i++)
+					bases[i] = bc.readData();
+				r.setReadBases(bases);
+
+				if (r.forcePreserveQualityScores) {
+					byte[] qs = new byte[r.getReadLength()];
+					for (int i = 0; i < qs.length; i++)
+						qs[i] = qc.readData();
+					r.setQualityScores(qs);
 				}
 			}
 
-			// mapping quality:
-			r.setMappingQuality(mqc.readData());
-			if (r.forcePreserveQualityScores) {
-				byte[] qs = new byte[r.getReadLength()];
-				for (int i = 0; i < qs.length; i++)
-					qs[i] = qc.readData();
-				r.setQualityScores(qs);
-			}
-		} else {
-			byte[] bases = new byte[r.getReadLength()];
-			for (int i = 0; i < bases.length; i++)
-				bases[i] = bc.readData();
-			r.setReadBases(bases);
+			recordCount++;
 
-			if (r.forcePreserveQualityScores) {
-				byte[] qs = new byte[r.getReadLength()];
-				for (int i = 0; i < qs.length; i++)
-					qs[i] = qc.readData();
-				r.setQualityScores(qs);
-			}
+			prevRecord = r;
+		} catch (Exception e) {
+			if (prevRecord != null)
+				System.err
+						.printf("Failed at record %d. Here is the previously read record: %s\n",
+								recordCount, prevRecord.toString());
+			throw new RuntimeException(e);
 		}
-
-		recordCount++;
-		
-//		int mark = testC.readData();
-//		if (Writer.TEST_MARK != mark) {
-//			System.err.println("Record counter=" + recordCount);
-//			System.err.println(r.toString());
-//			throw new RuntimeException("Test mark not found.");
-//		}
 	}
 }

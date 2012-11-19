@@ -19,7 +19,7 @@ import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
 public class Writer {
 
-	public static final int TEST_MARK = 0xF0F0F0;
+	public static final int TEST_MARK = 0xA0B0C0D0;
 	public Charset charset = Charset.forName("UTF8");
 	public boolean captureMappedQS = false;
 	public boolean captureUnmappedQS = false;
@@ -101,6 +101,8 @@ public class Writer {
 	public static int detachedCount = 0 ;
 
 	public void write(CramRecord r) throws IOException {
+//		testC.writeData(TEST_MARK) ;
+		
 		bitFlagsC.writeData(r.getFlags());
 		compBitFlagsC.writeData(r.getCompressionFlags()) ;
 		
@@ -205,7 +207,5 @@ public class Writer {
 					qc.writeData(q);
 			}
 		}
-
-//		testC.writeData(TEST_MARK) ;
 	}
 }

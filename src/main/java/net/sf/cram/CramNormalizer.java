@@ -109,6 +109,8 @@ public class CramNormalizer {
 
 		// resolve bases:
 		for (CramRecord r : records) {
+			if (r.segmentUnmapped)
+				continue;
 			byte[] bases = restoreReadBases(r, ref);
 			r.setReadBases(bases);
 		}
@@ -130,7 +132,7 @@ public class CramNormalizer {
 							byte q = ((BaseQualityScore) f).getQualityScore();
 
 							try {
-								scores[pos-1] = q;
+								scores[pos - 1] = q;
 							} catch (ArrayIndexOutOfBoundsException e) {
 								System.err.println("PROBLEM CAUSED BY:");
 								System.err.println(r.toString());
@@ -187,7 +189,12 @@ public class CramNormalizer {
 		int posInSeq = 0;
 		if (record.getReadFeatures() == null
 				|| record.getReadFeatures().isEmpty()) {
-			System.arraycopy(ref, alignmentStart, bases, 0, bases.length);
+			if (ref.length < alignmentStart + bases.length) {
+				Arrays.fill(bases, (byte) 'N');
+				System.arraycopy(ref, alignmentStart, bases, 0,
+						Math.min(bases.length, ref.length - alignmentStart));
+			} else
+				System.arraycopy(ref, alignmentStart, bases, 0, bases.length);
 			return bases;
 		}
 		List<ReadFeature> variations = record.getReadFeatures();

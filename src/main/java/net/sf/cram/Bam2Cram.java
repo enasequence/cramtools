@@ -71,22 +71,33 @@ public class Bam2Cram {
 		int alStart = Integer.MAX_VALUE;
 		int alEnd = Integer.MIN_VALUE;
 		for (SAMRecord samRecord : samRecords) {
-			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
-				if (alStart > samRecord.getAlignmentStart())
-					alStart = samRecord.getAlignmentStart();
-			}
-			if (alEnd < samRecord.getAlignmentEnd())
-				alEnd = samRecord.getAlignmentEnd();
+			int start = samRecord.getAlignmentStart();
+			if (start != SAMRecord.NO_ALIGNMENT_START)
+				alStart = alStart > start ? start : alStart;
 
+			int end = samRecord.getAlignmentEnd();
+			if (end != SAMRecord.NO_ALIGNMENT_START)
+				alEnd = alEnd < end ? end :alEnd;
+
+			// if (samRecord.getAlignmentStart() !=
+			// SAMRecord.NO_ALIGNMENT_START) {
+			// if (alStart > samRecord.getAlignmentStart())
+			// alStart = samRecord.getAlignmentStart();
+			// }
+			// if (alEnd < samRecord.getAlignmentEnd())
+			// alEnd = samRecord.getAlignmentEnd();
 		}
 
 		log.debug("Reads start at " + alStart + ", stop at " + alEnd);
 		if (alEnd < alStart)
 			alEnd = alStart + 1000;
 
-		ReferenceTracks tracks = new ReferenceTracks(sequenceId, sequenceName,
-				ref, alEnd - alStart + 100);
-		tracks.moveForwardTo(alStart);
+		ReferenceTracks tracks = null;
+		if (alStart < Integer.MAX_VALUE
+				&& alStart != SAMRecord.NO_ALIGNMENT_START) {
+			tracks = new ReferenceTracks(sequenceId, sequenceName, ref, 1000);
+			tracks.moveForwardTo(alStart);
+		}
 
 		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref);
 		f.captureUnmappedBases = true;
@@ -115,33 +126,36 @@ public class Bam2Cram {
 			cramRecords.add(cramRecord);
 			int refPos = samRecord.getAlignmentStart();
 			int readPos = 0;
-			for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
-				if (ce.getOperator().consumesReferenceBases()) {
-					for (int i = 0; i < ce.getLength(); i++)
-						tracks.addCoverage(refPos + i, 1);
-				}
-				switch (ce.getOperator()) {
-				case M:
-				case X:
-				case EQ:
-					for (int i = readPos; i < ce.getLength(); i++) {
-						byte readBase = samRecord.getReadBases()[readPos + i];
-						byte refBase = tracks.baseAt(refPos + i);
-						if (readBase != refBase)
-							tracks.addMismatches(refPos + i, 1);
+			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
+				tracks.ensure(samRecord.getAlignmentStart(), samRecord.getAlignmentStart()) ;
+				for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
+					if (ce.getOperator().consumesReferenceBases()) {
+						for (int i = 0; i < ce.getLength(); i++)
+							tracks.addCoverage(refPos + i, 1);
 					}
-					break;
+					switch (ce.getOperator()) {
+					case M:
+					case X:
+					case EQ:
+						for (int i = readPos; i < ce.getLength(); i++) {
+							byte readBase = samRecord.getReadBases()[readPos
+									+ i];
+							byte refBase = tracks.baseAt(refPos + i);
+							if (readBase != refBase)
+								tracks.addMismatches(refPos + i, 1);
+						}
+						break;
 
-				default:
-					break;
+					default:
+						break;
+					}
+
+					readPos += ce.getOperator().consumesReadBases() ? ce
+							.getLength() : 0;
+					refPos += ce.getOperator().consumesReferenceBases() ? ce
+							.getLength() : 0;
 				}
-
-				readPos += ce.getOperator().consumesReadBases() ? ce
-						.getLength() : 0;
-				refPos += ce.getOperator().consumesReferenceBases() ? ce
-						.getLength() : 0;
 			}
-
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
 
@@ -216,8 +230,8 @@ public class Bam2Cram {
 			System.out.println("A BAM file is required. ");
 			System.exit(1);
 		}
-		
-		Log.setGlobalLogLevel(params.logLevel) ;
+
+		Log.setGlobalLogLevel(params.logLevel);
 
 		char[] pass = null;
 		if (params.encrypt) {
@@ -280,6 +294,7 @@ public class Bam2Cram {
 		long bases = 0;
 		long coreBytes = 0;
 		long[] externalBytes = new long[10];
+		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
 
 		do {
 			SAMRecord samRecord = iterator.next();
@@ -313,9 +328,9 @@ public class Bam2Cram {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					sequence = referenceSequenceFile.getSequence(samRecord
 							.getReferenceName());
-					prevSeqId = samRecord.getReferenceIndex();
 					ref = sequence.getBases();
 				}
+				prevSeqId = samRecord.getReferenceIndex();
 			}
 
 			samRecords.add(samRecord);
@@ -370,9 +385,9 @@ public class Bam2Cram {
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
 	static class Params {
-		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR." , converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.INFO;
-		
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
+		LogLevel logLevel = LogLevel.ERROR;
+
 		@Parameter(names = { "--input-bam-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM file to be converted to CRAM. Omit if standard input (pipe).")
 		File bamFile;
 

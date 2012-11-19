@@ -37,8 +37,8 @@ public class BetaIntegerCodec implements BitCodec<Integer> {
 
 	@Override
 	public final long write(BitOutputStream bos, Integer value) throws IOException {
-		if (value + offset < 0)
-			throw new IllegalArgumentException("Value is less then offset: " + value);
+//		if (value + offset < 0)
+//			throw new IllegalArgumentException("Value is less then offset: " + value);
 
 		int nofBits = (int) numberOfBits(value);
 		long newValue = value + offset;

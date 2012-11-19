@@ -248,7 +248,6 @@ public class QualityScorePreservation {
 	private static final void addQS(SAMRecord s, CramRecord r, byte[] scores,
 			ReferenceTracks t, PreservationPolicy p) {
 		int alSpan = s.getAlignmentEnd() - s.getAlignmentStart();
-		t.ensureRange(s.getAlignmentStart(), alSpan);
 		byte[] qs = s.getBaseQualities();
 
 		// check if read is falling into the read category:
@@ -308,6 +307,9 @@ public class QualityScorePreservation {
 		// here we go, scan all bases to check if the policy applies:
 		boolean[] mask = new boolean[qs.length];
 		int alStart = s.getAlignmentStart();
+		// must be a mapped read at this point:
+		if (alStart == SAMRecord.NO_ALIGNMENT_START) return ;
+		t.ensureRange(alStart, alSpan);
 
 		for (BaseCategory c : p.baseCategories) {
 			int pos;

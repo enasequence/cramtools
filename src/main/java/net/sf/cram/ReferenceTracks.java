@@ -1,5 +1,6 @@
 package net.sf.cram;
 
+import java.awt.Window;
 import java.util.Arrays;
 
 public class ReferenceTracks {
@@ -74,6 +75,14 @@ public class ReferenceTracks {
 		return reference.length;
 	}
 
+	public void ensure(int start, int end) {
+		if (end - start > bases.length)
+			throw new RuntimeException("Window is too small for start " + start
+					+ " end " + end);
+		if (position < start)
+			moveForwardTo(start);
+	}
+
 	/**
 	 * Shift the window forward to a new position on the reference.
 	 * 
@@ -83,7 +92,8 @@ public class ReferenceTracks {
 	 */
 	public void moveForwardTo(int newPos) {
 		if (newPos - 1 >= reference.length)
-			throw new RuntimeException("New position is beyond the reference.");
+			throw new RuntimeException("New position is beyond the reference: "
+					+ newPos);
 
 		if (newPos < position)
 			throw new RuntimeException(
@@ -135,7 +145,10 @@ public class ReferenceTracks {
 	}
 
 	public final byte baseAt(int pos) {
-		return bases[pos - this.position];
+		if (pos - this.position < coverage.length)
+			return bases[pos - this.position];
+		else
+			return 'N';
 	}
 
 	public final short coverageAt(int pos) {
@@ -153,10 +166,12 @@ public class ReferenceTracks {
 	}
 
 	public final void addCoverage(int pos, int amount) {
-		coverage[pos - this.position] += amount;
+		if (pos - this.position < coverage.length)
+			coverage[pos - this.position] += amount;
 	}
 
 	public final void addMismatches(int pos, int amount) {
-		mismatches[pos - this.position] += amount;
+		if (pos - this.position < coverage.length)
+			mismatches[pos - this.position] += amount;
 	}
 }

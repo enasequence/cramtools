@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.bouncycastle.jce.provider.symmetric.TEA;
+
 import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
@@ -25,6 +27,7 @@ import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
+import net.sf.cram.encoding.Writer;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertionVariation;
@@ -373,8 +376,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // test mark
-			h.eMap.put(EncodingKey.TM_TestMark,
-					BetaIntegerEncoding.toParam(0, 32));
+//			h.eMap.put(EncodingKey.TM_TestMark,
+//					BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;

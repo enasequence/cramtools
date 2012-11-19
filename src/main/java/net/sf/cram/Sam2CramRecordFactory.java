@@ -170,7 +170,8 @@ public class Sam2CramRecordFactory {
 		if (captureAllTags) {
 			List<SAMTagAndValue> attributes = record.getAttributes();
 			if (attributes != null && !attributes.isEmpty()) {
-				List<ReadTag> tags = new ArrayList<ReadTag>(attributes.size());
+				// attributes.size()
+				List<ReadTag> tags = new LinkedList<ReadTag>();
 				for (SAMTagAndValue tv : attributes) {
 					if (ignoreTags.contains(tv.tag))
 						continue;
@@ -184,8 +185,7 @@ public class Sam2CramRecordFactory {
 			if (!captureTags.isEmpty()) {
 				List<SAMTagAndValue> attributes = record.getAttributes();
 				if (attributes != null && !attributes.isEmpty()) {
-					List<ReadTag> tags = new ArrayList<ReadTag>(
-							attributes.size());
+					List<ReadTag> tags = new LinkedList<ReadTag>();
 					for (SAMTagAndValue tv : attributes) {
 						if (captureTags.contains(tv.tag)) {
 							ReadTag ra = ReadTag.deriveTypeFromValue(tv.tag,

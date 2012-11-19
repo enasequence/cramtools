@@ -1,11 +1,13 @@
 package net.sf.cram;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import net.sf.cram.CramTools.LevelConverter;
@@ -16,10 +18,13 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
+import net.sf.samtools.BAMFileWriter;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.SeekableFileStream;
 import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
@@ -70,8 +75,8 @@ public class Cram2Bam {
 			System.out.println("A CRAM input file is required. ");
 			System.exit(1);
 		}
-		
-		Log.setGlobalLogLevel(params.logLevel) ;
+
+		Log.setGlobalLogLevel(params.logLevel);
 
 		char[] pass = null;
 		if (params.decrypt) {
@@ -96,20 +101,50 @@ public class Cram2Bam {
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(is);
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
-		samFileWriterFactory.setAsyncOutputBufferSize(1024 * 1024);
+		samFileWriterFactory.setAsyncOutputBufferSize(10 * 1024 * 1024);
 		samFileWriterFactory.setCreateIndex(false);
 		samFileWriterFactory.setCreateMd5File(false);
 		samFileWriterFactory.setUseAsyncIo(true);
 
-		SAMFileWriter writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(
-				cramHeader.samFileHeader, true, params.outputFile);
+		SAMFileWriter writer = null;
+		{ // building sam writer, sometimes we have to go deeper to get to the
+			// required functionality:
+			if (params.outputFile == null) {
+				if (params.outputBAM) {
+					BAMFileWriter ret = new BAMFileWriter(System.out, null);
+					ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(),
+							true);
+					ret.setHeader(cramHeader.samFileHeader);
+					writer = ret;
+				} else {
+					if (params.printSAMHeader) {
+						writer = samFileWriterFactory.makeSAMWriter(
+								cramHeader.samFileHeader, true, System.out);
+					} else {
+						SwapOutputStream sos = new SwapOutputStream();
+
+						final SAMTextWriter ret = new SAMTextWriter(sos);
+						ret.setSortOrder(
+								cramHeader.samFileHeader.getSortOrder(), true);
+						ret.setHeader(cramHeader.samFileHeader);
+						ret.getWriter().flush();
+
+						writer = ret;
+
+						sos.delegate = System.out;
+					}
+				}
+			} else {
+				writer = samFileWriterFactory.makeSAMOrBAMWriter(
+						cramHeader.samFileHeader, true, params.outputFile);
+			}
+		}
 
 		while (true) {
 			Container c = null;
 			try {
 				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
 			} catch (EOFException e) {
-				writer.close();
 				break;
 			}
 
@@ -120,11 +155,15 @@ public class Cram2Bam {
 			} catch (EOFException e) {
 				throw e;
 			}
-			SAMSequenceRecord sequence = cramHeader.samFileHeader
-					.getSequence(c.sequenceId);
-			ReferenceSequence referenceSequence = referenceSequenceFile
-					.getSequence(sequence.getSequenceName());
-			byte[] ref = referenceSequence.getBases();
+
+			byte[] ref = null;
+			if (c.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				SAMSequenceRecord sequence = cramHeader.samFileHeader
+						.getSequence(c.sequenceId);
+				ReferenceSequence referenceSequence = referenceSequenceFile
+						.getSequence(sequence.getSequenceName());
+				ref = referenceSequence.getBases();
+			}
 
 			long time1 = System.nanoTime();
 			CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
@@ -141,11 +180,17 @@ public class Cram2Bam {
 			for (CramRecord r : cramRecords) {
 				long time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
+				if (ref != null)
+					Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag,
+							params.calculateNmTag);
 				c2sTime += System.nanoTime() - time;
 				try {
+
 					time = System.nanoTime();
 					writer.addAlignment(s);
 					sWriteTime += System.nanoTime() - time;
+					if (params.outputFile == null && System.out.checkError())
+						break;
 				} catch (NullPointerException e) {
 					System.out.println(r.toString());
 					throw e;
@@ -158,14 +203,41 @@ public class Cram2Bam {
 							c2sTime / 1000000, (time2 - time1) / 1000000,
 							sWriteTime / 1000000));
 
+			if (params.outputFile == null && System.out.checkError())
+				break;
+
+		}
+
+		writer.close();
+	}
+
+	private static class SwapOutputStream extends OutputStream {
+		OutputStream delegate;
+
+		@Override
+		public void write(byte[] b) throws IOException {
+			if (delegate != null)
+				delegate.write(b);
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			if (delegate != null)
+				delegate.write(b);
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			if (delegate != null)
+				delegate.write(b, off, len);
 		}
 	}
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
 	static class Params {
-		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR." , converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.INFO;
-		
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
+		LogLevel logLevel = LogLevel.ERROR;
+
 		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
 		File cramFile;
 
@@ -174,6 +246,12 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--output-bam-file", "-O" }, converter = FileConverter.class, description = "The path to the output BAM file.")
 		File outputFile;
+
+		@Parameter(names = { "-b", "--output-bam-format" }, description = "Output in BAM format.")
+		boolean outputBAM = false;
+
+		@Parameter(names = { "--print-sam-header" }, description = "Print SAM header when writing SAM format.")
+		boolean printSAMHeader = false;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
 		boolean help = false;
@@ -188,7 +266,7 @@ public class Cram2Bam {
 		boolean calculateNmTag = false;
 
 		@Parameter()
-		List<String> sequences;
+		List<String> locations;
 
 		@Parameter(names = { "--decrypt" }, description = "Decrypt the file.")
 		boolean decrypt = false;
