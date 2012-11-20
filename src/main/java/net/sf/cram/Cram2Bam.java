@@ -1,7 +1,6 @@
 package net.sf.cram;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,13 +18,13 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.SeekableFileStream;
+import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
 import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 import com.beust.jcommander.JCommander;
@@ -80,9 +79,9 @@ public class Cram2Bam {
 
 		char[] pass = null;
 		if (params.decrypt) {
-			String readLine = System.console().readLine(
-					"Enter password for decryption: ");
-			pass = readLine.toCharArray();
+			if (System.console() == null) 
+				throw new RuntimeException("Cannot access console.") ;
+			pass = System.console().readPassword() ;
 		}
 
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
@@ -91,12 +90,11 @@ public class Cram2Bam {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		InputStream is = new BufferedInputStream(fis);
 		if (params.decrypt) {
-			// CipherInputStream_256 cipherInputStream_256 = new
-			// CipherInputStream_256(bis, pass, 128) ;
-			// InputStream is = cipherInputStream_256.getCipherInputStream()
-			;
-			is = new SeekableCipherStream_256(new SeekableFileStream(
-					params.cramFile), pass, 1, 128);
+			CipherInputStream_256 cipherInputStream_256 = new CipherInputStream_256(
+					is, pass, 128);
+			is = cipherInputStream_256.getCipherInputStream();
+//			is = new SeekableCipherStream_256(new SeekableFileStream(
+//					params.cramFile), pass, 1, 128);
 		}
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(is);

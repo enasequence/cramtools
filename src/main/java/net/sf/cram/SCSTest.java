@@ -16,7 +16,6 @@ import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.CigarElement;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
@@ -80,7 +79,8 @@ public class SCSTest {
 				sequence.getName(), ref, alEnd - alStart + 100);
 		tracks.moveForwardTo(alStart);
 
-		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
+		Sam2CramRecordFactory f = new Sam2CramRecordFactory(
+				sequence.getBases(), samFileReader.getFileHeader());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
@@ -163,30 +163,36 @@ public class SCSTest {
 			r.next = null;
 			r.previous = null;
 		}
-		
-		List<CramRecord> old = cramRecords ;
-		Container c = BLOCK_PROTO.buildContainer(cramRecords, samFileReader.getFileHeader(), true) ;
-		System.err.println("Written " + Writer.detachedCount + " detached records.");
-		
+
+		List<CramRecord> old = cramRecords;
+		Container c = BLOCK_PROTO.buildContainer(cramRecords,
+				samFileReader.getFileHeader(), true);
+		System.err.println("Written " + Writer.detachedCount
+				+ " detached records.");
+
 		try {
-			cramRecords = BLOCK_PROTO.getRecords(c.h, c, samFileReader.getFileHeader()) ;
+			cramRecords = BLOCK_PROTO.getRecords(c.h, c,
+					samFileReader.getFileHeader());
 		} catch (Exception e1) {
-			System.err.println("Read " + Reader.detachedCount + " detached records.");
-			throw new RuntimeException(e1) ;
+			System.err.println("Read " + Reader.detachedCount
+					+ " detached records.");
+			throw new RuntimeException(e1);
 		}
-		
-		for (int i=0; i<cramRecords.size(); i++) {
-			if (!old.get(i).getReadName().equals(cramRecords.get(i).getReadName())) {
+
+		for (int i = 0; i < cramRecords.size(); i++) {
+			if (!old.get(i).getReadName()
+					.equals(cramRecords.get(i).getReadName())) {
 				System.err.println("Read name mismatch");
 				System.err.println(old.get(i).toString());
 				System.err.println(cramRecords.get(i).toString());
-			break ;
+				break;
 			}
-//			if (old.get(i).detached != cramRecords.get(i).detached)
-//				System.err.println(cramRecords.get(i).toString());
+			// if (old.get(i).detached != cramRecords.get(i).detached)
+			// System.err.println(cramRecords.get(i).toString());
 		}
-		
-		if (true) return ;
+
+		if (true)
+			return;
 
 		long time1 = System.nanoTime();
 		CramNormalizer n = new CramNormalizer(samFileReader.getFileHeader(),

@@ -134,13 +134,11 @@ public class ReferenceTracks {
 	}
 
 	public void ensureRange(int start, int length) {
-		if (length > bases.length)
-			throw new RuntimeException("Requested window is too big: " + length);
 		if (start < position)
 			throw new RuntimeException("Cannot move the window backwords: "
 					+ start);
 
-		if (start + length > position + bases.length)
+		if (start > position || start + length > position + bases.length)
 			moveForwardTo(start);
 	}
 

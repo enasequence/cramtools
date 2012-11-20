@@ -391,7 +391,8 @@ public class BLOCK_PROTO {
 				sequence.getName(), sequence.getBases(), alEnd - alStart + 100);
 		tracks.moveForwardTo(alStart);
 
-		Sam2CramRecordFactory f = new Sam2CramRecordFactory(sequence.getBases());
+		Sam2CramRecordFactory f = new Sam2CramRecordFactory(
+				sequence.getBases(), samFileReader.getFileHeader());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);

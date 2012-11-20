@@ -16,8 +16,8 @@
 package net.sf.cram;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,12 +35,16 @@ import net.sf.cram.mask.RefMaskUtils;
 import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMTag;
 
 public class Sam2CramRecordFactory {
+
+	public static final String UNKNOWN_READ_GROUP_ID = "UNKNOWN";
+
 	private enum TREAT_TYPE {
 		IGNORE, ALIGNMENT, INSERTION, SOFT_CLIP
 	};
@@ -65,7 +69,7 @@ public class Sam2CramRecordFactory {
 
 	private static Log log = Log.getInstance(Sam2CramRecordFactory.class);
 
-	private Map<String, Integer> readGroupMap;
+	private Map<String, Integer> readGroupMap = new HashMap<String, Integer>() ;
 
 	private long landedRefMaskScores = 0;
 	private long landedPiledScores = 0;
@@ -73,7 +77,6 @@ public class Sam2CramRecordFactory {
 
 	private boolean captureInsertScores = false;
 	private boolean captureSubtitutionScores = false;
-	private boolean captureFlankingDeletionScores = false;
 	private int uncategorisedQualityScoreCutoff = 0;
 	public boolean captureAllTags = false;
 	public boolean preserveReadNames = false;
@@ -87,21 +90,14 @@ public class Sam2CramRecordFactory {
 
 	public boolean losslessQS = false;
 
-	public Sam2CramRecordFactory(byte[] refBases) {
-		this(refBases, null, null, null);
-	}
-
-	public Sam2CramRecordFactory(byte[] refBases, byte[] refSNPs,
-			RefMaskUtils.RefMask refPile, Map<String, Integer> readGroupMap) {
-		this.refPile = refPile;
-		// if (refBases == null)
-		// throw new NullPointerException("Reference bases array is null.");
+	public Sam2CramRecordFactory(byte[] refBases, SAMFileHeader samFileHeader) {
 		this.refBases = refBases;
-		this.refSNPs = refSNPs;
-		this.readGroupMap = readGroupMap;
-	}
 
-	public Sam2CramRecordFactory() {
+		List<SAMReadGroupRecord> readGroups = samFileHeader.getReadGroups();
+		for (int i = 0; i < readGroups.size(); i++) {
+			SAMReadGroupRecord readGroupRecord = readGroups.get(i);
+			readGroupMap.put(readGroupRecord.getId(), i);
+		}
 	}
 
 	public CramRecord createCramRecord(SAMRecord record) {
@@ -134,16 +130,20 @@ public class Sam2CramRecordFactory {
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 
 		cramRecord.templateSize = record.getInferredInsertSize();
-		if (readGroupMap != null) {
-			SAMReadGroupRecord readGroup = record.getReadGroup();
-			if (readGroup != null) {
-				Integer rgIndex = readGroupMap.get(readGroup.getId());
-				if (rgIndex == null)
-					throw new RuntimeException("Read group index not found: "
-							+ readGroup.getId());
-				cramRecord.setReadGroupID(rgIndex);
-			}
-		}
+
+		SAMReadGroupRecord readGroup = record.getReadGroup();
+		Integer rgIndex = 0;
+		if (readGroup != null)
+			rgIndex = readGroupMap.get(readGroup.getId());
+		else
+			rgIndex = readGroupMap.get(UNKNOWN_READ_GROUP_ID);
+
+		if (rgIndex == null)
+			throw new RuntimeException("Read group index not found: "
+					+ readGroup.getId());
+
+		cramRecord.setReadGroupID(rgIndex);
+
 		if (!record.getReadPairedFlag())
 			cramRecord.setLastFragment(false);
 		else {

@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +29,6 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMTagUtil;
 import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
 
 import com.beust.jcommander.JCommander;
@@ -77,15 +75,7 @@ public class Bam2Cram {
 
 			int end = samRecord.getAlignmentEnd();
 			if (end != SAMRecord.NO_ALIGNMENT_START)
-				alEnd = alEnd < end ? end :alEnd;
-
-			// if (samRecord.getAlignmentStart() !=
-			// SAMRecord.NO_ALIGNMENT_START) {
-			// if (alStart > samRecord.getAlignmentStart())
-			// alStart = samRecord.getAlignmentStart();
-			// }
-			// if (alEnd < samRecord.getAlignmentEnd())
-			// alEnd = samRecord.getAlignmentEnd();
+				alEnd = alEnd < end ? end : alEnd;
 		}
 
 		log.debug("Reads start at " + alStart + ", stop at " + alEnd);
@@ -99,7 +89,7 @@ public class Bam2Cram {
 			tracks.moveForwardTo(alStart);
 		}
 
-		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref);
+		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref, samFileHeader);
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
 		f.captureAllTags = captureAllTags;
@@ -127,7 +117,8 @@ public class Bam2Cram {
 			int refPos = samRecord.getAlignmentStart();
 			int readPos = 0;
 			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
-				tracks.ensure(samRecord.getAlignmentStart(), samRecord.getAlignmentStart()) ;
+				tracks.ensure(samRecord.getAlignmentStart(),
+						samRecord.getAlignmentStart());
 				for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
 					if (ce.getOperator().consumesReferenceBases()) {
 						for (int i = 0; i < ce.getLength(); i++)
@@ -235,9 +226,9 @@ public class Bam2Cram {
 
 		char[] pass = null;
 		if (params.encrypt) {
-			String readLine = System.console().readLine(
-					"Enter password for encryption: ");
-			pass = readLine.toCharArray();
+			if (System.console() == null) 
+				throw new RuntimeException("Cannot access console.") ;
+			pass = System.console().readPassword() ;
 		}
 
 		File bamFile = params.bamFile;
@@ -254,17 +245,15 @@ public class Bam2Cram {
 			SAMRecord samRecord = iterator.next();
 			seqName = samRecord.getReferenceName();
 
-			// ugly hack to compensate of missing read group record from the
-			// header.
-			// However this hack fixes the problem only for the first record.
-			String rgName = (String) samRecord.getAttribute(SAMTagUtil
-					.getSingleton().RG);
-			if (rgName != null
-					&& samFileReader.getFileHeader().getReadGroups().isEmpty()) {
-				log.info("Adding missing read group: ", rgName);
-				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(rgName);
+			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
+					|| samFileReader.getFileHeader().getReadGroup(
+							Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
+				log.info("Adding default read group.");
+				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
+						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
 				samFileReader.getFileHeader().addReadGroup(readGroup);
 			}
+
 			iterator.close();
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
