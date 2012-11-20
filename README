@@ -9,7 +9,7 @@ Reference sequence index file <fasta file>.fai created using samtools (samtools 
 Input BAM file <BAM file> sorted by reference coordinates
 BAM index file <BAM file>.bai created using samtools (samtools index <BAM file>)
 Download and run the program:
-Download the prebuilt runnable jar file from: https://github.com/vadimzalunin/crammer/blob/master/cramtools.jar?raw=true
+Download the prebuilt runnable jar file from: https://github.com/vadimzalunin/crammer/blob/master/cramtools-1.0.jar?raw=true
 Execute the command line program: java -jar cramtools.jar
 Usage is printed if no arguments were given 
 To convert a BAM file to CRAM:
