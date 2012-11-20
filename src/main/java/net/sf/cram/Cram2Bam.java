@@ -70,31 +70,31 @@ public class Cram2Bam {
 			System.exit(1);
 		}
 
-		if (params.cramFile == null) {
-			System.out.println("A CRAM input file is required. ");
-			System.exit(1);
-		}
-
 		Log.setGlobalLogLevel(params.logLevel);
 
 		char[] pass = null;
 		if (params.decrypt) {
-			if (System.console() == null) 
-				throw new RuntimeException("Cannot access console.") ;
-			pass = System.console().readPassword() ;
+			if (System.console() == null)
+				throw new RuntimeException("Cannot access console.");
+			pass = System.console().readPassword();
 		}
 
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.reference);
 
-		FileInputStream fis = new FileInputStream(params.cramFile);
-		InputStream is = new BufferedInputStream(fis);
+		InputStream is;
+		if (params.cramFile != null) {
+			FileInputStream fis = new FileInputStream(params.cramFile);
+			is = new BufferedInputStream(fis);
+		} else
+			is = System.in;
+
 		if (params.decrypt) {
 			CipherInputStream_256 cipherInputStream_256 = new CipherInputStream_256(
 					is, pass, 128);
 			is = cipherInputStream_256.getCipherInputStream();
-//			is = new SeekableCipherStream_256(new SeekableFileStream(
-//					params.cramFile), pass, 1, 128);
+			// is = new SeekableCipherStream_256(new SeekableFileStream(
+			// params.cramFile), pass, 1, 128);
 		}
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(is);

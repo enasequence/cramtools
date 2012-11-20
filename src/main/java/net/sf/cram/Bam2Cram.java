@@ -217,32 +217,37 @@ public class Bam2Cram {
 			System.exit(1);
 		}
 
-		if (params.bamFile == null) {
-			System.out.println("A BAM file is required. ");
-			System.exit(1);
-		}
-
 		Log.setGlobalLogLevel(params.logLevel);
 
 		char[] pass = null;
 		if (params.encrypt) {
-			if (System.console() == null) 
-				throw new RuntimeException("Cannot access console.") ;
-			pass = System.console().readPassword() ;
+			if (System.console() == null)
+				throw new RuntimeException("Cannot access console.");
+			pass = System.console().readPassword();
 		}
 
 		File bamFile = params.bamFile;
 		SAMFileReader
 				.setDefaultValidationStringency(ValidationStringency.SILENT);
-		SAMFileReader samFileReader = new SAMFileReader(bamFile);
+
+		SAMFileReader samFileReader = null;
+		if (params.bamFile == null) {
+			log.warn("No input file, reading from input...");
+			samFileReader = new SAMFileReader(System.in);
+		} else
+			samFileReader = new SAMFileReader(bamFile);
+
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.referenceFasta);
 
 		ReferenceSequence sequence = null;
+		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
+				params.maxContainerSize);
+		SAMRecordIterator iterator = samFileReader.iterator();
 		{
 			String seqName = null;
-			SAMRecordIterator iterator = samFileReader.iterator();
 			SAMRecord samRecord = iterator.next();
+			samRecords.add(samRecord);
 			seqName = samRecord.getReferenceName();
 
 			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
@@ -254,21 +259,23 @@ public class Bam2Cram {
 				samFileReader.getFileHeader().addReadGroup(readGroup);
 			}
 
-			iterator.close();
 			sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
-				params.maxContainerSize);
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
-		SAMRecordIterator iterator = samFileReader.iterator();
-
 		int prevSeqId = -1;
 		byte[] ref = sequence.getBases();
-		FileOutputStream fos = new FileOutputStream(params.outputCramFile);
-		OutputStream os = new BufferedOutputStream(fos);
+
+		OutputStream os;
+		if (params.outputCramFile != null) {
+			FileOutputStream fos = new FileOutputStream(params.outputCramFile);
+			os = new BufferedOutputStream(fos);
+		} else {
+			log.warn("No output file, writint to STDOUT.");
+			os = System.out;
+		}
 
 		if (params.encrypt) {
 			CipherOutputStream_256 cos = new CipherOutputStream_256(os, pass,
@@ -276,8 +283,8 @@ public class Bam2Cram {
 			os = cos.getCipherOutputStream();
 		}
 
-		CramHeader h = new CramHeader(1, 0, params.bamFile.getName(),
-				samFileReader.getFileHeader());
+		CramHeader h = new CramHeader(1, 0, params.bamFile == null ? "STDIN"
+				: params.bamFile.getName(), samFileReader.getFileHeader());
 		ReadWrite.writeCramHeader(h, os);
 
 		long bases = 0;
@@ -286,6 +293,9 @@ public class Bam2Cram {
 		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
 
 		do {
+			if (params.outputCramFile == null && System.out.checkError())
+				return;
+
 			SAMRecord samRecord = iterator.next();
 			if (samRecord.getReferenceIndex() != prevSeqId
 					|| samRecords.size() >= params.maxContainerSize) {
@@ -358,7 +368,6 @@ public class Bam2Cram {
 		iterator.close();
 		samFileReader.close();
 		os.close();
-		fos.close();
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
@@ -368,8 +377,9 @@ public class Bam2Cram {
 						* externalBytes[i] / bases));
 
 		log.info(sb.toString());
-		log.info(String.format("Compression: %.2f b/b.",
-				(8f * params.outputCramFile.length() / bases)));
+		if (params.outputCramFile != null)
+			log.info(String.format("Compression: %.2f b/b.",
+					(8f * params.outputCramFile.length() / bases)));
 	}
 
 	@Parameters(commandDescription = "BAM to CRAM converter. ")
@@ -421,5 +431,8 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--capture-all-tags" }, description = "Capture all tags.")
 		boolean captureAllTags = false;
+
+		@Parameter(names = { "--input-is-sam" }, description = "Input is in SAM format.")
+		boolean inputIsSam = false;
 	}
 }

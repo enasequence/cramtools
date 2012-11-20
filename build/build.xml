@@ -97,10 +97,10 @@
 			<exclude name="**/Crambone.java" />
 			<classpath refid="classpath" />
 		</javac>
-		<copy todir="${classes}">
+		<!-- copy todir="${classes}">
 			<fileset dir="${basedir}/src/main/resources" includes="**/*">
 			</fileset>
-		</copy>
+		</copy -->
 	</target>
 
 	<target name="help">
