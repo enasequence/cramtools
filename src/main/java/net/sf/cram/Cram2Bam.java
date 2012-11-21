@@ -99,7 +99,7 @@ public class Cram2Bam {
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(is);
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
-		samFileWriterFactory.setAsyncOutputBufferSize(10 * 1024 * 1024);
+		samFileWriterFactory.setAsyncOutputBufferSize(100000);
 		samFileWriterFactory.setCreateIndex(false);
 		samFileWriterFactory.setCreateMd5File(false);
 		samFileWriterFactory.setUseAsyncIo(true);

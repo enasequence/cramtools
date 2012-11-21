@@ -381,6 +381,8 @@ public class Utils {
 	 */
 	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref,
 			boolean calcMD, boolean calcNM) {
+		if (!calcMD && !calcMD) return ;
+		
 		Cigar cigar = record.getCigar();
 		List<CigarElement> cigarElements = cigar.getCigarElements();
 		byte[] seq = record.getReadBases();
