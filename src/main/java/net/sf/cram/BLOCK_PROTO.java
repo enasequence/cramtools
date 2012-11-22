@@ -197,7 +197,9 @@ public class BLOCK_PROTO {
 			Block externalBlock = new Block();
 			externalBlock.contentType = BlockContentType.EXTERNAL;
 			externalBlock.contentId = i;
-			externalBlock.content = os.getBuffer();
+			
+//			externalBlock.content = os.getBuffer();
+			externalBlock.content = os.toByteArray() ;
 			slice.external.put(i, externalBlock);
 		}
 

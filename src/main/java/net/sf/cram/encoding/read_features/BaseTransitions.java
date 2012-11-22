@@ -4,6 +4,7 @@ class BaseTransitions {
 	public static byte getBaseForTransition(byte reference, int transition) {
 		switch (reference) {
 		case 'A':
+		case 'a':
 			switch (transition) {
 			case 0:
 				return 'C';
@@ -22,6 +23,7 @@ class BaseTransitions {
 			}
 
 		case 'C':
+		case 'c':
 			switch (transition) {
 			case 0:
 				return 'A';
@@ -39,6 +41,7 @@ class BaseTransitions {
 								(char) reference, transition));
 			}
 		case 'G':
+		case 'g':
 			switch (transition) {
 			case 0:
 				return 'A';
@@ -56,6 +59,7 @@ class BaseTransitions {
 								(char) reference, transition));
 			}
 		case 'T':
+		case 't':
 			switch (transition) {
 			case 0:
 				return 'A';
@@ -72,7 +76,8 @@ class BaseTransitions {
 								"Unknown transition when restoring base from transition: %c, %d",
 								(char) reference, transition));
 			}
-		case 'N':
+			// case 'N':
+		default:
 			switch (transition) {
 			case 0:
 				return 'A';
@@ -90,17 +95,18 @@ class BaseTransitions {
 								(char) reference, transition));
 			}
 
-		default:
-			throw new IllegalArgumentException(
-					String.format(
-							"Unknown reference base when restoring base from transition: %c, %d",
-							(char) reference, transition));
+			// default:
+			// throw new IllegalArgumentException(
+			// String.format(
+			// "Unknown reference base when restoring base from transition: %c, %d",
+			// (char) reference, transition));
 		}
 	}
 
 	public static int getBaseTransition(byte from, byte to) {
 		switch (from) {
 		case 'A':
+		case 'a':
 			switch (to) {
 			case 'C':
 				return 0;
@@ -118,6 +124,7 @@ class BaseTransitions {
 			}
 
 		case 'C':
+		case 'c':
 			switch (to) {
 			case 'A':
 				return 0;
@@ -134,6 +141,7 @@ class BaseTransitions {
 								+ (char) from);
 			}
 		case 'G':
+		case 'g':
 			switch (to) {
 			case 'A':
 				return 0;
@@ -150,6 +158,7 @@ class BaseTransitions {
 								+ (char) from);
 			}
 		case 'T':
+		case 't':
 			switch (to) {
 			case 'A':
 				return 0;
@@ -165,7 +174,8 @@ class BaseTransitions {
 						"Unknown base when calcualting base transition: "
 								+ (char) from);
 			}
-		case 'N':
+			// case 'N':
+		default:
 			switch (to) {
 			case 'A':
 				return 0;
@@ -182,10 +192,10 @@ class BaseTransitions {
 								+ (char) from);
 			}
 
-		default:
-			throw new IllegalArgumentException(
-					"Unknown base when calcualting base transition: "
-							+ (char) from);
+			// default:
+			// throw new IllegalArgumentException(
+			// "Unknown base when calcualting base transition: "
+			// + (char) from);
 		}
 	}
 }

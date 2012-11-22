@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.bouncycastle.jce.provider.symmetric.TEA;
-
 import net.sf.cram.CramRecord;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
@@ -23,12 +21,11 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GammaIntegerEncoding;
+import net.sf.cram.encoding.GolombIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
-import net.sf.cram.encoding.Writer;
-import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
@@ -254,29 +251,29 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // quality scores:
-//			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-//			for (CramRecord r : records) {
-//				if (r.getQualityScores() == null) {
-//					if (r.getReadFeatures() != null) {
-//						for (ReadFeature f:r.getReadFeatures()) {
-//							switch (f.getOperator()) {
-//							case BaseQualityScore.operator:
-//								calculator.add(((BaseQualityScore)f).getQualityScore()) ;
-//								break;
-//							default:
-//								break;
-//							}
-//						}
-//					}
-//				} else {
-//					for (byte s:r.getQualityScores()) calculator.add(s) ;
-//				}
-//			}
-//			calculator.calculate();
-//
-//			h.eMap.put(EncodingKey.QS_QualityScore, HuffmanByteEncoding.toParam(
-//					calculator.valuesAsBytes(), calculator.bitLens));
-			
+		// HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+		// for (CramRecord r : records) {
+		// if (r.getQualityScores() == null) {
+		// if (r.getReadFeatures() != null) {
+		// for (ReadFeature f:r.getReadFeatures()) {
+		// switch (f.getOperator()) {
+		// case BaseQualityScore.operator:
+		// calculator.add(((BaseQualityScore)f).getQualityScore()) ;
+		// break;
+		// default:
+		// break;
+		// }
+		// }
+		// }
+		// } else {
+		// for (byte s:r.getQualityScores()) calculator.add(s) ;
+		// }
+		// }
+		// calculator.calculate();
+		//
+		// h.eMap.put(EncodingKey.QS_QualityScore, HuffmanByteEncoding.toParam(
+		// calculator.valuesAsBytes(), calculator.bitLens));
+
 			h.eMap.put(EncodingKey.QS_QualityScore,
 					ExternalByteEncoding.toParam(qualityScoreID));
 		}
@@ -346,8 +343,9 @@ public class CompressionHeaderFactory {
 					calculator.add(r.getMappingQuality());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.MQ_MappingQualityScore, HuffmanIntegerEncoding
-					.toParam(calculator.values(), calculator.bitLens));
+			h.eMap.put(EncodingKey.MQ_MappingQualityScore,
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens));
 		}
 
 		{ // mate bit flags
@@ -376,8 +374,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // test mark
-//			h.eMap.put(EncodingKey.TM_TestMark,
-//					BetaIntegerEncoding.toParam(0, 32));
+		// h.eMap.put(EncodingKey.TM_TestMark,
+		// BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;
@@ -531,10 +529,10 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-			// for (int i = 2; i < 20; i++)
-			// calcs.add(new EncodingLengthCalculator(
-			// new GolombIntegerEncoding(i)));
-			//
+//			for (int i = 2; i < 10; i++)
+//				calcs.add(new EncodingLengthCalculator(
+//						new GolombIntegerEncoding(i)));
+
 			// for (int i = 2; i < 20; i++)
 			// calcs.add(new EncodingLengthCalculator(
 			// new GolombRiceIntegerEncoding(i)));
