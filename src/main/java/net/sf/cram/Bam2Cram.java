@@ -251,7 +251,7 @@ public class Bam2Cram {
 			SAMRecord samRecord = iterator.next();
 			samRecords.add(samRecord);
 			seqName = samRecord.getReferenceName();
-			prevSeqId = samRecord.getReferenceIndex() ;
+			prevSeqId = samRecord.getReferenceIndex();
 
 			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
 					|| samFileReader.getFileHeader().getReadGroup(
@@ -270,7 +270,6 @@ public class Bam2Cram {
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
-
 		byte[] ref = sequence.getBases();
 
 		OutputStream os;
@@ -278,8 +277,10 @@ public class Bam2Cram {
 		if (params.outputCramFile != null) {
 			FileOutputStream fos = new FileOutputStream(params.outputCramFile);
 			os = new BufferedOutputStream(fos);
-			index = new Index(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(
-					new File(params.outputCramFile + ".crai")))));
+			if (params.createIndex)
+				index = new Index(new GZIPOutputStream(
+						new BufferedOutputStream(new FileOutputStream(new File(
+								params.outputCramFile + ".crai")))));
 		} else {
 			log.warn("No output file, writint to STDOUT.");
 			os = System.out;
@@ -380,7 +381,8 @@ public class Bam2Cram {
 		iterator.close();
 		samFileReader.close();
 		os.close();
-		index.close() ;
+		if (index != null)
+			index.close();
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
@@ -447,5 +449,8 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--input-is-sam" }, description = "Input is in SAM format.")
 		boolean inputIsSam = false;
+
+		@Parameter(names = { "--create-index" }, hidden = true, description = "Create index file.")
+		boolean createIndex = false;
 	}
 }

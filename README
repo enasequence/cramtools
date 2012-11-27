@@ -66,6 +66,8 @@ D	read positions flanking a deletion
 M	reads with mapping quality score higher than 40
 m	reads with mapping quality score lower than 40
 
+By default no qualkity scores will be preserved. 
+
 
 Check for more on our web site: 
 http://www.ebi.ac.uk/ena/about/cram_toolkit
