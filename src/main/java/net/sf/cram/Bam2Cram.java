@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ReadWrite.CramHeader;
@@ -243,12 +244,14 @@ public class Bam2Cram {
 		ReferenceSequence sequence = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
 				params.maxContainerSize);
+		int prevSeqId = -1;
 		SAMRecordIterator iterator = samFileReader.iterator();
 		{
 			String seqName = null;
 			SAMRecord samRecord = iterator.next();
 			samRecords.add(samRecord);
 			seqName = samRecord.getReferenceName();
+			prevSeqId = samRecord.getReferenceIndex() ;
 
 			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
 					|| samFileReader.getFileHeader().getReadGroup(
@@ -256,6 +259,8 @@ public class Bam2Cram {
 				log.info("Adding default read group.");
 				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
 						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
+				readGroup
+						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
 				samFileReader.getFileHeader().addReadGroup(readGroup);
 			}
 
@@ -265,13 +270,16 @@ public class Bam2Cram {
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
-		int prevSeqId = -1;
+
 		byte[] ref = sequence.getBases();
 
 		OutputStream os;
+		Index index = null;
 		if (params.outputCramFile != null) {
 			FileOutputStream fos = new FileOutputStream(params.outputCramFile);
 			os = new BufferedOutputStream(fos);
+			index = new Index(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(
+					new File(params.outputCramFile + ".crai")))));
 		} else {
 			log.warn("No output file, writint to STDOUT.");
 			os = System.out;
@@ -285,7 +293,7 @@ public class Bam2Cram {
 
 		CramHeader h = new CramHeader(1, 0, params.bamFile == null ? "STDIN"
 				: params.bamFile.getName(), samFileReader.getFileHeader());
-		ReadWrite.writeCramHeader(h, os);
+		long offset = ReadWrite.writeCramHeader(h, os);
 
 		long bases = 0;
 		long coreBytes = 0;
@@ -310,7 +318,11 @@ public class Bam2Cram {
 							samFileReader.getFileHeader(),
 							params.preserveReadNames);
 					records.clear();
-					ReadWrite.writeContainer(container, os);
+					long len = ReadWrite.writeContainer(container, os);
+					if (index != null)
+						index.addContainer(container, offset);
+					offset += len;
+
 					log.info(String
 							.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
 									container.buildHeaderTime / 1000000,
@@ -368,6 +380,7 @@ public class Bam2Cram {
 		iterator.close();
 		samFileReader.close();
 		os.close();
+		index.close() ;
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));

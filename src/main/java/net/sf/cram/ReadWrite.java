@@ -75,14 +75,16 @@ public class ReadWrite {
 
 	}
 
-	public static void writeCramHeader(CramHeader h, OutputStream os)
+	public static long writeCramHeader(CramHeader h, OutputStream os)
 			throws IOException {
 		os.write("CRAM".getBytes("US-ASCII"));
 		os.write(h.majorVersion);
 		os.write(h.minorVersion);
 		os.write(h.id);
 
-		writeContainer(h.samFileHeader, os);
+		long len = writeContainer(h.samFileHeader, os);
+		
+		return 4+1+1+20+len ;
 	}
 
 	public static CramHeader readCramHeader(InputStream is) throws IOException {
@@ -416,7 +418,7 @@ public class ReadWrite {
 		return h;
 	}
 
-	public static void writeContainer(Container c, OutputStream os)
+	public static int writeContainer(Container c, OutputStream os)
 			throws IOException {
 
 		long time1 = System.nanoTime();
@@ -470,6 +472,8 @@ public class ReadWrite {
 
 		log.debug("CONTAINER WRITTEN: " + c.toString());
 		c.writeTime = time2 - time1;
+		
+		return header.length + baos.size() ;
 	}
 
 	public static Container readContainer(SAMFileHeader samFileHeader,
@@ -518,7 +522,7 @@ public class ReadWrite {
 		return c;
 	}
 
-	private static void writeContainer(SAMFileHeader samFileHeader,
+	private static long writeContainer(SAMFileHeader samFileHeader,
 			OutputStream os) throws IOException {
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
 		OutputStreamWriter w = new OutputStreamWriter(baos);
@@ -534,6 +538,8 @@ public class ReadWrite {
 
 		os.write(bytes);
 		os.write(baos.getBuffer(), 0, baos.size());
+		
+		return baos.size() ;
 	}
 
 	private static SAMFileHeader readSAMFileHeader(String id, InputStream is)

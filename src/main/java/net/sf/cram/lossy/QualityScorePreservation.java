@@ -26,8 +26,8 @@ public class QualityScorePreservation {
 			if (s.length() == 0)
 				continue;
 			PreservationPolicy policy = parseSinglePolicy(s);
-//			System.err.println("Adding preservation policy: "
-//					+ policy.toString());
+			// System.err.println("Adding preservation policy: "
+			// + policy.toString());
 			policyList.add(policy);
 		}
 
@@ -226,9 +226,11 @@ public class QualityScorePreservation {
 
 		if (!r.forcePreserveQualityScores) {
 			for (int i = 0; i < scores.length; i++) {
-				if (scores[i] > -1)
+				if (scores[i] > -1) {
+					if (r.getReadFeatures() == null) r.setReadFeatures(new LinkedList<ReadFeature>()) ;
 					r.getReadFeatures().add(
 							new BaseQualityScore(i + 1, scores[i]));
+				}
 			}
 			if (r.getReadFeatures() != null)
 				Collections.sort(r.getReadFeatures(),
@@ -308,7 +310,8 @@ public class QualityScorePreservation {
 		boolean[] mask = new boolean[qs.length];
 		int alStart = s.getAlignmentStart();
 		// must be a mapped read at this point:
-		if (alStart == SAMRecord.NO_ALIGNMENT_START) return ;
+		if (alStart == SAMRecord.NO_ALIGNMENT_START)
+			return;
 		t.ensureRange(alStart, alSpan);
 
 		for (BaseCategory c : p.baseCategories) {
@@ -347,11 +350,29 @@ public class QualityScorePreservation {
 							}
 						}
 						break;
+					default:
+						break;
 					}
 
 					pos += ce.getOperator().consumesReadBases() ? ce
 							.getLength() : 0;
 					refPos += ce.getOperator().consumesReferenceBases() ? ce
+							.getLength() : 0;
+				}
+				break;
+			case INSERTION:
+				pos = 0;
+				for (CigarElement ce : s.getCigar().getCigarElements()) {
+					switch (ce.getOperator()) {
+					case I:
+						for (int i = 0; i < ce.getLength(); i++)
+							mask[pos + i] = true;
+						break;
+					default:
+						break;
+					}
+
+					pos += ce.getOperator().consumesReadBases() ? ce
 							.getLength() : 0;
 				}
 				break;

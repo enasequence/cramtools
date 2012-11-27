@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ByteBufferUtils {
 
@@ -155,10 +156,14 @@ public class ByteBufferUtils {
 		System.out.println(v);
 
 		long time = System.nanoTime();
-		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+		for (int i = Integer.MIN_VALUE; i < Integer.MIN_VALUE+10; i++) {
 			buf.clear();
 			writeUnsignedITF8(i, buf);
 			buf.flip();
+			byte[] bytes = new byte[buf.limit()] ;
+			buf.get(bytes) ;
+			buf.position(0) ;
+			System.out.printf("%d=%s\n", i, toHex(bytes));
 			int value = readUnsignedITF8(buf);
 			if (i != value)
 				throw new RuntimeException("Read " + value + " but expecting "
@@ -171,5 +176,38 @@ public class ByteBufferUtils {
 		}
 
 		System.out.println("Done.");
+
+		String s = "e07d027300948bfffffed66bc0c34d2405826dd9c2d7" ;
+		
+		byte[] b = new byte[s.length()/2] ;
+		for (int i=0; i<s.length(); i+=2) {
+			b[i/2] = (byte) Integer.valueOf(s.substring(i, i+2), 16).intValue() ;
+		}
+		System.out.println(Arrays.toString(b));
+		
+		buf = ByteBuffer.wrap(b) ;
+		int i1 = readUnsignedITF8(buf) ;
+		System.out.println(buf.get()) ;
+		System.out.println(buf.get()) ;
+		System.out.println(buf.get()) ;
+		
+		int i2 = readUnsignedITF8(buf) ;
+		System.out.printf("i1=%d, i2=%d\n", i1, i2);
+		
+		b = writeUnsignedITF8(-4757) ;
+		StringBuffer sb = new StringBuffer() ;
+		for (byte t:b) {
+			System.out.printf("byte %d, hex %s\n", t, Integer.toHexString(0xFF & t));
+			sb.append(Integer.toHexString(0xFF & t)) ;
+		}
+		System.out.println(sb.toString());
+	}
+	
+	private static String toHex (byte[] bytes) {
+		StringBuffer sb = new StringBuffer() ;
+		for (byte t:bytes) {
+			sb.append(Integer.toHexString(0xFF & t)) ;
+		}
+		return sb.toString() ;
 	}
 }

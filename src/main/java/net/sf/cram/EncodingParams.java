@@ -1,5 +1,7 @@
 package net.sf.cram;
 
+import java.util.Arrays;
+
 public class EncodingParams {
 
 	public EncodingID id;
@@ -9,6 +11,11 @@ public class EncodingParams {
 		super();
 		this.id = id;
 		this.params = params;
+	}
+	
+	@Override
+	public String toString() {
+		return id.name() + ":" + Arrays.toString(params) ;
 	}
 
 }

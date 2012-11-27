@@ -44,6 +44,7 @@ import net.sf.samtools.SAMTag;
 public class Sam2CramRecordFactory {
 
 	public static final String UNKNOWN_READ_GROUP_ID = "UNKNOWN";
+	public static final String UNKNOWN_READ_GROUP_SAMPLE = "UNKNOWN";
 
 	private enum TREAT_TYPE {
 		IGNORE, ALIGNMENT, INSERTION, SOFT_CLIP
@@ -57,6 +58,7 @@ public class Sam2CramRecordFactory {
 	public final static byte QS_asciiOffset = 33;
 	public final static byte unsetQualityScore = 32;
 	public final static byte ignorePositionsWithQualityScore = -1;
+
 
 	private byte[] refBases;
 	private byte[] refSNPs;

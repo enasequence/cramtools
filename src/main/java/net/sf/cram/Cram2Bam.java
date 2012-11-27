@@ -23,9 +23,7 @@ import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextWriter;
-import net.sf.samtools.util.SeekableFileStream;
 import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
-import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -138,12 +136,18 @@ public class Cram2Bam {
 			}
 		}
 
+		long recordCount = 0;
 		while (true) {
 			Container c = null;
 			try {
 				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
 			} catch (EOFException e) {
 				break;
+			}
+			if (params.countOnly && params.requiredFlags == 0
+					&& params.filteringFlags == 0) {
+				recordCount += c.nofRecords;
+				continue;
 			}
 
 			List<CramRecord> cramRecords = null;
@@ -184,6 +188,17 @@ public class Cram2Bam {
 				c2sTime += System.nanoTime() - time;
 				try {
 
+					if (params.requiredFlags != 0
+							&& ((params.requiredFlags & s.getFlags()) == 0))
+						continue;
+					if (params.filteringFlags != 0
+							&& ((params.filteringFlags & s.getFlags()) != 0))
+						continue;
+					if (params.countOnly) {
+						recordCount++;
+						continue;
+					}
+
 					time = System.nanoTime();
 					writer.addAlignment(s);
 					sWriteTime += System.nanoTime() - time;
@@ -205,6 +220,9 @@ public class Cram2Bam {
 				break;
 
 		}
+
+		if (params.countOnly)
+			System.out.println(recordCount);
 
 		writer.close();
 	}
@@ -268,6 +286,15 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--decrypt" }, description = "Decrypt the file.")
 		boolean decrypt = false;
+
+		@Parameter(names = { "--count-only", "-c" }, description = "Count number of records.")
+		boolean countOnly = false;
+
+		@Parameter(names = { "--required-flags", "-f" }, description = "Required flags. ")
+		int requiredFlags = 0;
+
+		@Parameter(names = { "--filter-flags", "-F" }, description = "Filtering flags. ")
+		int filteringFlags = 0;
 
 	}
 

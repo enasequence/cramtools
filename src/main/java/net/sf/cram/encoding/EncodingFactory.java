@@ -67,6 +67,8 @@ public class EncodingFactory {
 				return new NullEncoding<T>();
 			case BYTE_ARRAY_LEN:
 				return (Encoding<T>) new ByteArrayLenEncoding();
+			case BYTE_ARRAY_STOP:
+				return (Encoding<T>) new ByteArrayStopEncoding();
 			case EXTERNAL:
 				return (Encoding<T>) new ExternalByteArrayEncoding();
 

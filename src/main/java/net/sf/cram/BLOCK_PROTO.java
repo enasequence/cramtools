@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.encoding.DataReaderFactory;
+import net.sf.cram.encoding.DataReaderFactory.DataReaderWithStats;
 import net.sf.cram.encoding.DataWriterFactory;
 import net.sf.cram.encoding.Reader;
 import net.sf.cram.encoding.Writer;
@@ -45,6 +46,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
@@ -61,19 +63,27 @@ public class BLOCK_PROTO {
 			IllegalAccessException, IOException {
 		long time1 = System.nanoTime();
 		List<CramRecord> records = new ArrayList<CramRecord>();
-		for (Slice s : c.slices)
-			records.addAll(getRecords(s, h, fileHeader));
+		Map<String, Long> nanoMap = new TreeMap<String, Long>() ;
+		for (Slice s : c.slices) 
+			records.addAll(getRecords(s, h, fileHeader, nanoMap));
 
 		long time2 = System.nanoTime();
 
 		c.parseTime = time2 - time1;
+		
+		if (log.isEnabled(LogLevel.DEBUG)) {
+			for (String key:nanoMap.keySet()) {
+				log.debug(String.format("%s: %dms.", key, nanoMap.get(key).longValue()/1000000)) ;
+			}
+		}
 
 		return records;
 	}
 
 	private static List<CramRecord> getRecords(Slice s, CompressionHeader h,
-			SAMFileHeader fileHeader) throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+			SAMFileHeader fileHeader, Map<String, Long> nanoMap)
+			throws IllegalArgumentException, IllegalAccessException,
+			IOException {
 		String seqName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
 		if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 			SAMSequenceRecord sequence = fileHeader.getSequence(s.sequenceId);
@@ -90,19 +100,35 @@ public class BLOCK_PROTO {
 				new ByteArrayInputStream(s.coreBlock.content)), inputMap, h);
 
 		List<CramRecord> records = new ArrayList<CramRecord>();
+		
+		long readNanos = 0 ;
 		for (int i = 0; i < s.nofRecords; i++) {
 			CramRecord r = new CramRecord();
 			r.setSequenceName(seqName);
 			r.sequenceId = s.sequenceId;
 
 			try {
+				long time = System.nanoTime() ;
 				reader.read(r);
+				readNanos += System.nanoTime()-time ;
 			} catch (EOFException e) {
 				e.printStackTrace();
 				throw e;
 			}
 			records.add(r);
 
+		}
+		log.debug("Slice records read time: " + readNanos/1000000) ;
+		Map<String, DataReaderWithStats> statMap = f
+				.getStats(reader);
+		for (String key : statMap.keySet()) {
+			long value = 0;
+			if (!nanoMap.containsKey(key)) {
+				nanoMap.put(key, 0L);
+				value = 0;
+			} else
+				value = nanoMap.get(key);
+			nanoMap.put(key, value + statMap.get(key).nanos);
 		}
 
 		return records;
@@ -197,9 +223,9 @@ public class BLOCK_PROTO {
 			Block externalBlock = new Block();
 			externalBlock.contentType = BlockContentType.EXTERNAL;
 			externalBlock.contentId = i;
-			
-//			externalBlock.content = os.getBuffer();
-			externalBlock.content = os.toByteArray() ;
+
+			// externalBlock.content = os.getBuffer();
+			externalBlock.content = os.toByteArray();
 			slice.external.put(i, externalBlock);
 		}
 

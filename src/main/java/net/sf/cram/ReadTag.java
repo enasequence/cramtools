@@ -39,6 +39,9 @@ public class ReadTag implements Comparable<ReadTag> {
 	private static final long MAX_USHORT = MAX_SHORT * 2 + 1;
 	private static final long MAX_BYTE = Byte.MAX_VALUE;
 	private static final long MAX_UBYTE = MAX_BYTE * 2 + 1;
+	
+	public static final int OQZ = (('O' << 16) | ('Q' << 8)) | 'Z' ;  
+	public static final int BQZ = (('B' << 16) | ('Q' << 8)) | 'Z' ;  
 
 	// non-null
 	private String key;
@@ -185,7 +188,7 @@ public class ReadTag implements Comparable<ReadTag> {
 	}
 
 	// copied from net.sf.samtools.BinaryTagCodec 1.62:
-	private static char getTagValueType(final Object value) {
+	public static char getTagValueType(final Object value) {
 		if (value instanceof String) {
 			return 'Z';
 		} else if (value instanceof Character) {

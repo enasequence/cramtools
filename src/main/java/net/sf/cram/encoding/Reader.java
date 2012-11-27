@@ -3,6 +3,7 @@ package net.sf.cram.encoding;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -70,6 +71,9 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE)
 	public DataReader<Byte> qc;
+	
+	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE_ARRAY)
+	public DataReader<byte[]> qcArray;
 
 	@DataSeries(key = EncodingKey.BS_BaseSubstitutionCode, type = DataSeriesType.BYTE)
 	public DataReader<Byte> bsc;
@@ -206,9 +210,10 @@ public class Reader {
 				// mapping quality:
 				r.setMappingQuality(mqc.readData());
 				if (r.forcePreserveQualityScores) {
-					byte[] qs = new byte[r.getReadLength()];
-					for (int i = 0; i < qs.length; i++)
-						qs[i] = qc.readData();
+//					byte[] qs = new byte[r.getReadLength()];
+//					for (int i = 0; i < qs.length; i++)
+//						qs[i] = qc.readData();
+					byte[] qs = qcArray.readDataArray(r.getReadLength()) ;
 					r.setQualityScores(qs);
 				}
 			} else {
@@ -218,9 +223,10 @@ public class Reader {
 				r.setReadBases(bases);
 
 				if (r.forcePreserveQualityScores) {
-					byte[] qs = new byte[r.getReadLength()];
-					for (int i = 0; i < qs.length; i++)
-						qs[i] = qc.readData();
+//					byte[] qs = new byte[r.getReadLength()];
+//					for (int i = 0; i < qs.length; i++)
+//						qs[i] = qc.readData();
+					byte[] qs = qcArray.readDataArray(r.getReadLength()) ;
 					r.setQualityScores(qs);
 				}
 			}

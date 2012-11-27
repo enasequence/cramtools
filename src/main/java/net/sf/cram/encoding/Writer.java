@@ -69,6 +69,9 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> qc;
+	
+	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE_ARRAY)
+	public DataWriter<byte[]> qcArray;
 
 	@DataSeries(key = EncodingKey.BS_BaseSubstitutionCode, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> bsc;
@@ -196,15 +199,17 @@ public class Writer {
 			// mapping quality:
 			mqc.writeData(r.getMappingQuality());
 			if (r.forcePreserveQualityScores) {
-				for (byte q : r.getQualityScores())
-					qc.writeData(q);
+				qcArray.writeData(r.getQualityScores()) ;
+//				for (byte q : r.getQualityScores())
+//					qc.writeData(q);
 			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
 			if (r.forcePreserveQualityScores) {
-				for (byte q : r.getQualityScores())
-					qc.writeData(q);
+				qcArray.writeData(r.getQualityScores()) ;
+//				for (byte q : r.getQualityScores())
+//					qc.writeData(q);
 			}
 		}
 	}

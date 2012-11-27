@@ -16,20 +16,18 @@ import net.sf.cram.Utils;
 import net.sf.cram.encoding.BetaIntegerEncoding;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.ByteArrayLenEncoding;
+import net.sf.cram.encoding.ByteArrayStopEncoding;
 import net.sf.cram.encoding.Encoding;
 import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GammaIntegerEncoding;
-import net.sf.cram.encoding.GolombIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
 import net.sf.cram.encoding.read_features.DeletionVariation;
-import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.cram.huffman.HuffmanCode;
 import net.sf.cram.huffman.HuffmanTree;
@@ -39,6 +37,8 @@ import net.sf.picard.util.Log;
 public class CompressionHeaderFactory {
 	private static final Charset charset = Charset.forName("US-ASCII");
 	private static Log log = Log.getInstance(CompressionHeaderFactory.class);
+	private static final int oqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
+	private static final int bqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 
 	public CompressionHeader build(List<CramRecord> records) {
 		CompressionHeader h = new CompressionHeader();
@@ -125,15 +125,18 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // read name encoding:
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.getReadName().length());
-			calculator.calculate();
-
-			h.eMap.put(EncodingKey.RN_ReadName, ByteArrayLenEncoding.toParam(
-					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()), ExternalByteArrayEncoding
-							.toParam(readNameID)));
+			// HuffmanParamsCalculator calculator = new
+			// HuffmanParamsCalculator();
+			// for (CramRecord r : records)
+			// calculator.add(r.getReadName().length());
+			// calculator.calculate();
+			//
+			// h.eMap.put(EncodingKey.RN_ReadName, ByteArrayLenEncoding.toParam(
+			// HuffmanIntegerEncoding.toParam(calculator.values(),
+			// calculator.bitLens()), ExternalByteArrayEncoding
+			// .toParam(readNameID)));
+			h.eMap.put(EncodingKey.RN_ReadName,
+					ByteArrayStopEncoding.toParam((byte) 0, readNameID));
 		}
 
 		{ // records to next fragment
@@ -171,20 +174,39 @@ public class CompressionHeaderFactory {
 
 			h.eMap.put(EncodingKey.TN_TagNameAndType, HuffmanIntegerEncoding
 					.toParam(calculator.values(), calculator.bitLens()));
+//			h.eMap.put(EncodingKey.TN_TagNameAndType, ExternalByteArrayEncoding.toParam(tagValueExtID));
 		}
 
 		{ // tag values
-			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, CompressionHeaderFactory.HuffmanParamsCalculator>();
+			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, HuffmanParamsCalculator>();
+
 			for (CramRecord r : records) {
 				if (r.tags == null)
 					continue;
+
 				for (ReadTag tag : r.tags) {
-					HuffmanParamsCalculator c = cc.get(tag.keyType3BytesAsInt);
-					if (c == null) {
-						c = new HuffmanParamsCalculator();
-						cc.put(tag.keyType3BytesAsInt, c);
+					switch (tag.keyType3BytesAsInt) {
+					case ReadTag.OQZ:
+					case ReadTag.BQZ:
+						EncodingParams params = h.tMap
+								.get(tag.keyType3BytesAsInt);
+						if (params == null) {
+							h.tMap.put(tag.keyType3BytesAsInt,
+									ByteArrayStopEncoding.toParam((byte) 1,
+											tagValueExtID));
+						}
+						break;
+
+					default:
+						HuffmanParamsCalculator c = cc
+								.get(tag.keyType3BytesAsInt);
+						if (c == null) {
+							c = new HuffmanParamsCalculator();
+							cc.put(tag.keyType3BytesAsInt, c);
+						}
+						c.add(tag.getValueAsByteArray().length);
+						break;
 					}
-					c.add(tag.getValueAsByteArray().length);
 				}
 			}
 
@@ -197,8 +219,24 @@ public class CompressionHeaderFactory {
 							HuffmanIntegerEncoding.toParam(c.values(),
 									c.bitLens()),
 							ExternalByteArrayEncoding.toParam(tagValueExtID)));
-
 				}
+			
+			for (Integer key:h.tMap.keySet()) {
+				log.debug(String.format("TAG ENCODING: %d, %s", key, h.tMap.get(key))) ;
+			}
+
+			// for (CramRecord r : records) {
+			// if (r.tags == null || r.tags.isEmpty())
+			// continue;
+			// for (ReadTag tag : r.tags) {
+			// EncodingParams params = h.tMap.get(tag.keyType3BytesAsInt);
+			// if (params == null) {
+			// h.tMap.put(tag.keyType3BytesAsInt,
+			// ByteArrayStopEncoding.toParam((byte) 0,
+			// tagValueExtID));
+			// }
+			// }
+			// }
 		}
 
 		{ // number of read features
@@ -251,28 +289,30 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // quality scores:
-		// HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-		// for (CramRecord r : records) {
-		// if (r.getQualityScores() == null) {
-		// if (r.getReadFeatures() != null) {
-		// for (ReadFeature f:r.getReadFeatures()) {
-		// switch (f.getOperator()) {
-		// case BaseQualityScore.operator:
-		// calculator.add(((BaseQualityScore)f).getQualityScore()) ;
-		// break;
-		// default:
-		// break;
-		// }
-		// }
-		// }
-		// } else {
-		// for (byte s:r.getQualityScores()) calculator.add(s) ;
-		// }
-		// }
-		// calculator.calculate();
-		//
-		// h.eMap.put(EncodingKey.QS_QualityScore, HuffmanByteEncoding.toParam(
-		// calculator.valuesAsBytes(), calculator.bitLens));
+			// HuffmanParamsCalculator calculator = new
+			// HuffmanParamsCalculator();
+			// for (CramRecord r : records) {
+			// if (r.getQualityScores() == null) {
+			// if (r.getReadFeatures() != null) {
+			// for (ReadFeature f:r.getReadFeatures()) {
+			// switch (f.getOperator()) {
+			// case BaseQualityScore.operator:
+			// calculator.add(((BaseQualityScore)f).getQualityScore()) ;
+			// break;
+			// default:
+			// break;
+			// }
+			// }
+			// }
+			// } else {
+			// for (byte s:r.getQualityScores()) calculator.add(s) ;
+			// }
+			// }
+			// calculator.calculate();
+			//
+			// h.eMap.put(EncodingKey.QS_QualityScore,
+			// HuffmanByteEncoding.toParam(
+			// calculator.valuesAsBytes(), calculator.bitLens));
 
 			h.eMap.put(EncodingKey.QS_QualityScore,
 					ExternalByteEncoding.toParam(qualityScoreID));
@@ -296,28 +336,32 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // insertion bases
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.getReadName().length());
-			for (CramRecord r : records)
-				if (r.getReadFeatures() == null)
-					continue;
-				else
-					for (ReadFeature rf : r.getReadFeatures()) {
-						if (rf.getOperator() == InsertionVariation.operator)
-							calculator.add(((InsertionVariation) rf)
-									.getSequence().length);
-						if (rf.getOperator() == SoftClipVariation.operator)
-							calculator.add(((SoftClipVariation) rf)
-									.getSequence().length);
-					}
-
-			calculator.calculate();
-
-			h.eMap.put(EncodingKey.IN_Insertion, ByteArrayLenEncoding.toParam(
-					HuffmanIntegerEncoding.toParam(calculator.values(),
-							calculator.bitLens()), ExternalByteArrayEncoding
-							.toParam(baseID)));
+			// HuffmanParamsCalculator calculator = new
+			// HuffmanParamsCalculator();
+			// for (CramRecord r : records)
+			// calculator.add(r.getReadName().length());
+			// for (CramRecord r : records)
+			// if (r.getReadFeatures() == null)
+			// continue;
+			// else
+			// for (ReadFeature rf : r.getReadFeatures()) {
+			// if (rf.getOperator() == InsertionVariation.operator)
+			// calculator.add(((InsertionVariation) rf)
+			// .getSequence().length);
+			// if (rf.getOperator() == SoftClipVariation.operator)
+			// calculator.add(((SoftClipVariation) rf)
+			// .getSequence().length);
+			// }
+			//
+			// calculator.calculate();
+			//
+			// h.eMap.put(EncodingKey.IN_Insertion,
+			// ByteArrayLenEncoding.toParam(
+			// HuffmanIntegerEncoding.toParam(calculator.values(),
+			// calculator.bitLens()), ExternalByteArrayEncoding
+			// .toParam(baseID)));
+			h.eMap.put(EncodingKey.IN_Insertion,
+					ByteArrayStopEncoding.toParam((byte) 0, baseID));
 		}
 
 		{ // deletion length
@@ -374,8 +418,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // test mark
-		// h.eMap.put(EncodingKey.TM_TestMark,
-		// BetaIntegerEncoding.toParam(0, 32));
+			// h.eMap.put(EncodingKey.TM_TestMark,
+			// BetaIntegerEncoding.toParam(0, 32));
 		}
 
 		return h;
@@ -529,9 +573,9 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-//			for (int i = 2; i < 10; i++)
-//				calcs.add(new EncodingLengthCalculator(
-//						new GolombIntegerEncoding(i)));
+			// for (int i = 2; i < 10; i++)
+			// calcs.add(new EncodingLengthCalculator(
+			// new GolombIntegerEncoding(i)));
 
 			// for (int i = 2; i < 20; i++)
 			// calcs.add(new EncodingLengthCalculator(

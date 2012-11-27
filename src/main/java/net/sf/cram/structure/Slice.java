@@ -13,4 +13,6 @@ public class Slice {
 	public BlockContentType contentType;
 	public Block coreBlock;
 	public Map<Integer, Block> external;
+	
+	public int offset = -1 ;
 }
