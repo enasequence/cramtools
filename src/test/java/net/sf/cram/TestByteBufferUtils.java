@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import net.sf.cram.io.ByteBufferUtils;
 
@@ -162,6 +163,14 @@ public class TestByteBufferUtils {
 				.printf("Direct bytes: buf size %.2f megabytes, write time %dms, read time %dms.\n",
 						buf.limit() / 1024f / 1024f, writeNanos / 1000000,
 						readNanos / 1000000);
+	}
+	
+	@Test
+	public void test4() {
+		int value = ByteBufferUtils.readUnsignedITF8(new byte[]{-127, 8}) ;
+		System.out.println(value);
+		
+		System.out.println(Arrays.toString(ByteBufferUtils.writeUnsignedITF8(value)));
 	}
 
 }

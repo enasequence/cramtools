@@ -7,7 +7,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ReadWrite.CramHeader;
@@ -23,7 +26,10 @@ import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTextWriter;
+import net.sf.samtools.util.SeekableFileStream;
+import net.sf.samtools.util.SeekableStream;
 import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
+import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -70,6 +76,9 @@ public class Cram2Bam {
 
 		Log.setGlobalLogLevel(params.logLevel);
 
+		if (params.locations == null)
+			params.locations = new ArrayList<String>();
+
 		char[] pass = null;
 		if (params.decrypt) {
 			if (System.console() == null)
@@ -82,8 +91,9 @@ public class Cram2Bam {
 
 		InputStream is;
 		if (params.cramFile != null) {
-			FileInputStream fis = new FileInputStream(params.cramFile);
-			is = new BufferedInputStream(fis);
+			// FileInputStream fis = new FileInputStream(params.cramFile);
+			// is = new BufferedInputStream(fis);
+			is = new SeekableFileStream(params.cramFile);
 		} else
 			is = System.in;
 
@@ -91,59 +101,76 @@ public class Cram2Bam {
 			CipherInputStream_256 cipherInputStream_256 = new CipherInputStream_256(
 					is, pass, 128);
 			is = cipherInputStream_256.getCipherInputStream();
-			// is = new SeekableCipherStream_256(new SeekableFileStream(
-			// params.cramFile), pass, 1, 128);
+			if (params.locations != null && !params.locations.isEmpty()) {
+				is = new SeekableCipherStream_256(new SeekableFileStream(
+						params.cramFile), pass, 1, 128);
+			}
 		}
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(is);
+
+		List<Index.Entry> entries = null;
+		if (!params.locations.isEmpty() && params.cramFile != null) {
+			File indexFile = new File(params.cramFile.getAbsolutePath()
+					+ ".crai");
+			FileInputStream fis = new FileInputStream(indexFile);
+			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
+					fis));
+			BufferedInputStream bis = new BufferedInputStream(gis);
+			List<Index.Entry> full = Index.readIndex(gis);
+
+			entries = new LinkedList<Index.Entry>();
+			for (String location : params.locations) {
+				String[] chunks = location.split(":");
+				if (chunks.length != 2)
+					throw new RuntimeException("Invalid location: " + location);
+				String seq = chunks[0];
+				SAMSequenceRecord sequence = cramHeader.samFileHeader
+						.getSequence(seq);
+				if (sequence == null)
+					throw new RuntimeException("Sequence not found: " + seq);
+
+				chunks = chunks[1].split("-");
+				int start = 0, span = Integer.MAX_VALUE;
+				if (chunks.length == 0)
+					throw new RuntimeException("Invalid location: " + location);
+				if (chunks.length > 1)
+					start = Integer.valueOf(chunks[0]);
+				if (chunks.length == 2)
+					span = Integer.valueOf(chunks[1]) - start;
+				if (chunks.length > 2)
+					throw new RuntimeException("Invalid location: " + location);
+
+				entries.addAll(Index.find(full, sequence.getSequenceIndex(),
+						start, span));
+			}
+
+			bis.close();
+		} else
+			entries = new LinkedList<Index.Entry>();
+
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
 		samFileWriterFactory.setAsyncOutputBufferSize(100000);
 		samFileWriterFactory.setCreateIndex(false);
 		samFileWriterFactory.setCreateMd5File(false);
 		samFileWriterFactory.setUseAsyncIo(true);
 
-		SAMFileWriter writer = null;
-		{ // building sam writer, sometimes we have to go deeper to get to the
-			// required functionality:
-			if (params.outputFile == null) {
-				if (params.outputBAM) {
-					BAMFileWriter ret = new BAMFileWriter(System.out, null);
-					ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(),
-							true);
-					ret.setHeader(cramHeader.samFileHeader);
-					writer = ret;
-				} else {
-					if (params.printSAMHeader) {
-						writer = samFileWriterFactory.makeSAMWriter(
-								cramHeader.samFileHeader, true, System.out);
-					} else {
-						SwapOutputStream sos = new SwapOutputStream();
-
-						final SAMTextWriter ret = new SAMTextWriter(sos);
-						ret.setSortOrder(
-								cramHeader.samFileHeader.getSortOrder(), true);
-						ret.setHeader(cramHeader.samFileHeader);
-						ret.getWriter().flush();
-
-						writer = ret;
-
-						sos.delegate = System.out;
-					}
-				}
-			} else {
-				writer = samFileWriterFactory.makeSAMOrBAMWriter(
-						cramHeader.samFileHeader, true, params.outputFile);
-			}
-		}
+		SAMFileWriter writer = createSAMFileWriter(params, cramHeader,
+				samFileWriterFactory);
 
 		long recordCount = 0;
 		while (true) {
+			if (is instanceof SeekableStream) {
+				SeekableStream ss = (SeekableStream) is;
+			}
+
 			Container c = null;
 			try {
 				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
 			} catch (EOFException e) {
 				break;
 			}
+
 			if (params.countOnly && params.requiredFlags == 0
 					&& params.filteringFlags == 0) {
 				recordCount += c.nofRecords;
@@ -225,6 +252,45 @@ public class Cram2Bam {
 			System.out.println(recordCount);
 
 		writer.close();
+	}
+
+	private static SAMFileWriter createSAMFileWriter(Params params,
+			CramHeader cramHeader, SAMFileWriterFactory samFileWriterFactory)
+			throws IOException {
+		/*
+		 * building sam writer, sometimes we have to go deeper to get to the
+		 * required functionality:
+		 */
+		SAMFileWriter writer;
+		if (params.outputFile == null) {
+			if (params.outputBAM) {
+				BAMFileWriter ret = new BAMFileWriter(System.out, null);
+				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
+				ret.setHeader(cramHeader.samFileHeader);
+				writer = ret;
+			} else {
+				if (params.printSAMHeader) {
+					writer = samFileWriterFactory.makeSAMWriter(
+							cramHeader.samFileHeader, true, System.out);
+				} else {
+					SwapOutputStream sos = new SwapOutputStream();
+
+					final SAMTextWriter ret = new SAMTextWriter(sos);
+					ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(),
+							true);
+					ret.setHeader(cramHeader.samFileHeader);
+					ret.getWriter().flush();
+
+					writer = ret;
+
+					sos.delegate = System.out;
+				}
+			}
+		} else {
+			writer = samFileWriterFactory.makeSAMOrBAMWriter(
+					cramHeader.samFileHeader, true, params.outputFile);
+		}
+		return writer;
 	}
 
 	private static class SwapOutputStream extends OutputStream {
