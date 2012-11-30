@@ -1,7 +1,7 @@
 package net.sf.cram.lossy;
 
 public enum ReadCategoryType {
-	UNPLACED('P'), HIGHER_MAPPING_SCORE('M'), LOWER_MAPPING_SCORE('m');
+	UNPLACED('P'), HIGHER_MAPPING_SCORE('M'), LOWER_MAPPING_SCORE('m'), ALL ('*');
 
 	public char code;
 

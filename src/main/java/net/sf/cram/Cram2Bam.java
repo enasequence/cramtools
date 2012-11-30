@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.Index.Entry;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
@@ -111,6 +112,9 @@ public class Cram2Bam {
 
 		List<Index.Entry> entries = null;
 		if (!params.locations.isEmpty() && params.cramFile != null) {
+			if (params.locations.size() > 1)
+				throw new RuntimeException("Only one location is supported.");
+
 			File indexFile = new File(params.cramFile.getAbsolutePath()
 					+ ".crai");
 			FileInputStream fis = new FileInputStream(indexFile);
@@ -158,15 +162,30 @@ public class Cram2Bam {
 		SAMFileWriter writer = createSAMFileWriter(params, cramHeader,
 				samFileWriterFactory);
 
-		long recordCount = 0;
-		while (true) {
+		if (!entries.isEmpty()) {
+			// position the stream for random access:
 			if (is instanceof SeekableStream) {
 				SeekableStream ss = (SeekableStream) is;
-			}
+				Entry entry = entries.get(0) ;
+				ss.seek(entry.offset) ;
+			} else
+				throw new RuntimeException(
+						"The input stream does not support random access.");
+		}
 
+		long recordCount = 0;
+		long readTime = 0;
+		long parseTime = 0;
+		long normTime = 0;
+		long samTime = 0;
+		long writeTime = 0;
+		long time = 0;
+		while (true) {
 			Container c = null;
 			try {
+				time = System.nanoTime();
 				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+				readTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				break;
 			}
@@ -179,8 +198,10 @@ public class Cram2Bam {
 
 			List<CramRecord> cramRecords = null;
 			try {
+				time = System.nanoTime();
 				cramRecords = BLOCK_PROTO.getRecords(c.h, c,
 						cramHeader.samFileHeader);
+				parseTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				throw e;
 			}
@@ -199,6 +220,7 @@ public class Cram2Bam {
 					ref, c.alignmentStart);
 			n.normalize(cramRecords, true);
 			long time2 = System.nanoTime();
+			normTime += time2 - time1;
 
 			Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
 					cramHeader.samFileHeader);
@@ -207,12 +229,13 @@ public class Cram2Bam {
 			long sWriteTime = 0;
 
 			for (CramRecord r : cramRecords) {
-				long time = System.nanoTime();
+				time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
 				if (ref != null)
 					Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag,
 							params.calculateNmTag);
 				c2sTime += System.nanoTime() - time;
+				samTime += System.nanoTime() - time;
 				try {
 
 					if (params.requiredFlags != 0
@@ -229,6 +252,7 @@ public class Cram2Bam {
 					time = System.nanoTime();
 					writer.addAlignment(s);
 					sWriteTime += System.nanoTime() - time;
+					writeTime += System.nanoTime() - time;
 					if (params.outputFile == null && System.out.checkError())
 						break;
 				} catch (NullPointerException e) {
@@ -252,6 +276,12 @@ public class Cram2Bam {
 			System.out.println(recordCount);
 
 		writer.close();
+
+		log.warn(String
+				.format("TIMES: io %ds, parse %ds, norm %ds, convert %ds, BAM write %ds",
+						readTime / 1000000000, parseTime / 1000000000,
+						normTime / 1000000000, samTime / 1000000000,
+						writeTime / 1000000000));
 	}
 
 	private static SAMFileWriter createSAMFileWriter(Params params,

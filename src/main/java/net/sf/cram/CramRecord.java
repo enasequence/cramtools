@@ -26,7 +26,7 @@ import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 
-public class CramRecord implements Serializable{
+public class CramRecord implements Serializable {
 
 	public Collection<ReadTag> tags;
 
@@ -112,7 +112,7 @@ public class CramRecord implements Serializable{
 
 	public void setFlags(int value) {
 		int b = value;
-		
+
 		duplicate = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		vendorFiltered = ((b & 1) == 0) ? false : true;
@@ -407,7 +407,7 @@ public class CramRecord implements Serializable{
 	public int calcualteAlignmentEnd() {
 		if (readFeatures == null || readFeatures.isEmpty())
 			return alignmentStart + readLength;
-		
+
 		int len = readLength;
 		for (ReadFeature f : readFeatures) {
 			switch (f.getOperator()) {
@@ -428,7 +428,7 @@ public class CramRecord implements Serializable{
 				break;
 			}
 		}
-		return alignmentStart + len;
+		return alignmentStart + len - 1;
 	}
 
 }

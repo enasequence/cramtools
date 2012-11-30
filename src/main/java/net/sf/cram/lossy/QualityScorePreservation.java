@@ -45,28 +45,18 @@ public class QualityScorePreservation {
 			}
 		});
 	}
+	
+	public List<PreservationPolicy> getPreservationPolicies () {
+		return policyList ;
+	}
 
 	private static final int readParam(LinkedList<Character> list) {
 		int value = 0;
 
-		while (!list.isEmpty() && Character.isDigit(list.getFirst())) {
+		while (!list.isEmpty() && Character.isDigit(list.getFirst())) 
 			value = value * 10 + (list.removeFirst() - 48);
-		}
 
 		return value;
-		// char b1 = list.removeFirst();
-		// if (!Character.isDigit(b1))
-		// throw new RuntimeException("Expecting a digit but got: " + b1);
-		//
-		// if (list.isEmpty())
-		// return b1 - 48;
-		//
-		// char b2 = list.getFirst();
-		// if (!Character.isDigit(b2))
-		// return b1 - 48;
-		//
-		// b2 = list.removeFirst();
-		// return (b1 - 48) * 10 + (b2 - 48);
 	}
 
 	private static final QualityScoreTreatment readTreament(
@@ -128,9 +118,21 @@ public class QualityScorePreservation {
 				p.treatment = readTreament(list);
 				break;
 			case 'P':
-				p.baseCategories.add(BaseCategory.pileup(3));
+				int mismatches = readParam(list) ;
+				p.baseCategories.add(BaseCategory.pileup(mismatches));
 				p.treatment = readTreament(list);
 				break;
+			case 'I':
+				p.baseCategories.add(BaseCategory.insertion());
+				p.treatment = readTreament(list);
+				break;
+//			case '_':
+//				p.treatment = readTreament(list);
+//				break;
+//			case '*':
+//				p.readCategory = ReadCategory.all();
+//				p.treatment = readTreament(list);
+//				break;
 
 			default:
 				throw new RuntimeException("Uknown read or base category: "

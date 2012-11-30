@@ -35,8 +35,11 @@ public class Cram2BamRecordFactory {
 		samRecord.setReferenceIndex(cramRecord.sequenceId);
 		samRecord.setAlignmentStart(cramRecord.getAlignmentStart());
 		samRecord.setMappingQuality(cramRecord.getMappingQuality());
-		samRecord.setCigar(getCigar2(cramRecord.getReadFeatures(),
-				cramRecord.getReadLength()));
+		if (cramRecord.segmentUnmapped)
+			samRecord.setCigarString(SAMRecord.NO_ALIGNMENT_CIGAR);
+		else
+			samRecord.setCigar(getCigar2(cramRecord.getReadFeatures(),
+					cramRecord.getReadLength()));
 
 		if (samRecord.getReadPairedFlag()) {
 			samRecord.setMateReferenceIndex(cramRecord.mateSequnceID);
@@ -58,7 +61,8 @@ public class Cram2BamRecordFactory {
 				samRecord.setAttribute(tag.getKey(), tag.getValue());
 
 		if (cramRecord.getReadGroupID() < header.getReadGroups().size()) {
-			SAMReadGroupRecord readGroupRecord = header.getReadGroups().get(cramRecord.getReadGroupID()) ;
+			SAMReadGroupRecord readGroupRecord = header.getReadGroups().get(
+					cramRecord.getReadGroupID());
 			samRecord.setAttribute("RG", readGroupRecord.getId());
 		}
 

@@ -2,6 +2,7 @@ package net.sf.cram;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -539,7 +540,7 @@ public class ReadWrite {
 		os.write(bytes);
 		os.write(baos.getBuffer(), 0, baos.size());
 		
-		return baos.size() ;
+		return bytes.length + baos.size() ;
 	}
 
 	private static SAMFileHeader readSAMFileHeader(String id, InputStream is)

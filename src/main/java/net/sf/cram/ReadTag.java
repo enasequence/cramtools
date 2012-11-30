@@ -184,6 +184,7 @@ public class ReadTag implements Comparable<ReadTag> {
 
 	public static Object restoreValueFromByteArray(char type, byte[] array) {
 		ByteBuffer buf = ByteBuffer.wrap(array) ;
+		buf.order(ByteOrder.LITTLE_ENDIAN) ;
 		return readSingleValue((byte) type, buf, null) ;
 	}
 

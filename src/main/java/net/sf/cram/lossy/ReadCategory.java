@@ -22,6 +22,10 @@ public class ReadCategory {
 		return new ReadCategory(ReadCategoryType.LOWER_MAPPING_SCORE, score);
 	};
 	
+	public static ReadCategory all() {
+		return new ReadCategory(ReadCategoryType.ALL, -1);
+	};
+	
 	@Override
 	public String toString() {
 		return String.format("[%s%d]", type.name(), param) ;

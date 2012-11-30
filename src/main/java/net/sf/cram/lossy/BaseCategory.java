@@ -29,6 +29,10 @@ public class BaseCategory {
 		return new BaseCategory(BaseCategoryType.LOWER_COVERAGE, coverage);
 	};
 	
+	public static BaseCategory insertion() {
+		return new BaseCategory(BaseCategoryType.INSERTION, -1);
+	};
+	
 	@Override
 	public String toString() {
 		return String.format("[%s%d]", type.name(), param) ;

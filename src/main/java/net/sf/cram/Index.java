@@ -119,8 +119,8 @@ public class Index {
 		if (index2 < 0)
 			index2 = -index2 - 1;
 
-		if (index2 < index)
-			index2 = index;
+		if (index2 <= index)
+			index2 = index+1;
 
 		return list.subList(index, index2);
 	}

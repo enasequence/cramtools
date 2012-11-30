@@ -288,9 +288,6 @@ public class Utils {
 
 		int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition) ? +1
 				: -1;
-		// this seems to correlate with reality more, although Picard disagrees: 
-		adjustment = -adjustment ;
-		
 		return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
 	}
 
@@ -381,8 +378,9 @@ public class Utils {
 	 */
 	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref,
 			boolean calcMD, boolean calcNM) {
-		if (!calcMD && !calcMD) return ;
-		
+		if (!calcMD && !calcMD)
+			return;
+
 		Cigar cigar = record.getCigar();
 		List<CigarElement> cigarElements = cigar.getCigarElements();
 		byte[] seq = record.getReadBases();
