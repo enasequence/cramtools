@@ -92,9 +92,9 @@ public class Cram2Bam {
 
 		InputStream is;
 		if (params.cramFile != null) {
-			// FileInputStream fis = new FileInputStream(params.cramFile);
-			// is = new BufferedInputStream(fis);
-			is = new SeekableFileStream(params.cramFile);
+			 FileInputStream fis = new FileInputStream(params.cramFile);
+			 is = new BufferedInputStream(fis);
+//			is = new SeekableFileStream(params.cramFile);
 		} else
 			is = System.in;
 

@@ -186,16 +186,16 @@ public class CompressionHeaderFactory {
 
 				for (ReadTag tag : r.tags) {
 					switch (tag.keyType3BytesAsInt) {
-					case ReadTag.OQZ:
-					case ReadTag.BQZ:
-						EncodingParams params = h.tMap
-								.get(tag.keyType3BytesAsInt);
-						if (params == null) {
-							h.tMap.put(tag.keyType3BytesAsInt,
-									ByteArrayStopEncoding.toParam((byte) 1,
-											tagValueExtID));
-						}
-						break;
+//					case ReadTag.OQZ:
+//					case ReadTag.BQZ:
+//						EncodingParams params = h.tMap
+//								.get(tag.keyType3BytesAsInt);
+//						if (params == null) {
+//							h.tMap.put(tag.keyType3BytesAsInt,
+//									ByteArrayStopEncoding.toParam((byte) 1,
+//											tagValueExtID));
+//						}
+//						break;
 
 					default:
 						HuffmanParamsCalculator c = cc

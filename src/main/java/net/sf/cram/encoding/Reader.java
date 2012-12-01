@@ -105,7 +105,7 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataReader<Integer> testC;
-
+	
 	public void read(CramRecord r) throws IOException {
 		try {
 //			int mark = testC.readData();

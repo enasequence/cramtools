@@ -58,15 +58,15 @@ class Helper {
 		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list
 				.size()]);
 
-		System.out.println("Sorted codes:");
-		for (HuffmanBitCode code : sortedCodes)
-			System.out.println(code);
+//		System.out.println("Sorted codes:");
+//		for (HuffmanBitCode code : sortedCodes)
+//			System.out.println(code);
 
 		sortedValues = Arrays.copyOf(values, values.length);
 		Arrays.sort(sortedValues);
-		System.out.println("Sorted values:");
-		for (int value : sortedValues)
-			System.out.println(value);
+//		System.out.println("Sorted values:");
+//		for (int value : sortedValues)
+//			System.out.println(value);
 
 		{
 			int i = 0;
@@ -75,9 +75,9 @@ class Helper {
 				sortedByValue[i++] = codes.get(value);
 		}
 
-		System.out.println("Sorted by value:");
-		for (HuffmanBitCode code : sortedByValue)
-			System.out.println(code);
+//		System.out.println("Sorted by value:");
+//		for (HuffmanBitCode code : sortedByValue)
+//			System.out.println(code);
 
 		sortedBitCodes = new int[sortedCodes.length];
 		sortedValuesByBitCode = new int[sortedCodes.length];
@@ -218,7 +218,15 @@ class Helper {
 	}
 
 	public static void main(String[] args) throws IOException {
-		int size = 10000000;
+		long nt = 0 ;
+		for (int i=0; i<1000000; i++) {
+		long time = System.nanoTime() ;
+		nt += System.nanoTime()-time ;
+		}
+		
+		System.out.println(nt);
+		
+		int size = 100000;
 
 		long time5 = System.nanoTime();
 		CompressionHeaderFactory.HuffmanParamsCalculator cal = new HuffmanParamsCalculator();

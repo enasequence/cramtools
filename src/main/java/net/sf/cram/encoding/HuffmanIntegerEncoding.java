@@ -4,9 +4,9 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
+import net.sf.cram.encoding.huffint.CanonicalHuffmanIntegerCodec2;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 
@@ -58,7 +58,7 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 	@Override
 	public BitCodec<Integer> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new CanonicalHuffmanIntegerCodec(values, bitLengths);
+		return new CanonicalHuffmanIntegerCodec2(values, bitLengths);
 	}
 
 	public static EncodingParams toParam(int[] bfValues, int[] bfBitLens) {

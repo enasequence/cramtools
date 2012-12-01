@@ -79,6 +79,33 @@ public class BLOCK_PROTO {
 
 		return records;
 	}
+	
+	private static class SwapInputStream extends InputStream {
+		private InputStream delegate ;
+		
+		@Override
+		public int read() throws IOException {
+			return delegate.read();
+		}
+		
+		@Override
+		public int read(byte[] b) throws IOException {
+			return delegate.read(b);
+		}
+		
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			return delegate.read(b, off, len);
+		}
+
+		public InputStream getDelegate() {
+			return delegate;
+		}
+
+		public void setDelegate(InputStream delegate) {
+			this.delegate = delegate;
+		}
+	}
 
 	private static List<CramRecord> getRecords(Slice s, CompressionHeader h,
 			SAMFileHeader fileHeader, Map<String, Long> nanoMap)
@@ -96,8 +123,12 @@ public class BLOCK_PROTO {
 					s.external.get(exId).content));
 		}
 
+		long time =0 ;
+//		time = System.nanoTime();
 		Reader reader = f.buildReader(new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.content)), inputMap, h);
+//		long readerBuildTime = System.nanoTime() - time ;
+//		log.debug("Reader build time: " + readerBuildTime/1000000 + "ms.") ;
 
 		List<CramRecord> records = new ArrayList<CramRecord>();
 		
@@ -108,7 +139,7 @@ public class BLOCK_PROTO {
 			r.sequenceId = s.sequenceId;
 
 			try {
-				long time = System.nanoTime() ;
+				time = System.nanoTime() ;
 				reader.read(r);
 				readNanos += System.nanoTime()-time ;
 			} catch (EOFException e) {
@@ -119,6 +150,7 @@ public class BLOCK_PROTO {
 
 		}
 		log.debug("Slice records read time: " + readNanos/1000000) ;
+		
 		Map<String, DataReaderWithStats> statMap = f
 				.getStats(reader);
 		for (String key : statMap.keySet()) {
