@@ -4,25 +4,16 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import net.sf.cram.ReadTag;
-import net.sf.cram.encoding.CanonicalHuffmanIntegerCodec;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.DefaultBitInputStream;
@@ -30,22 +21,25 @@ import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.cram.stats.CompressionHeaderFactory.HuffmanParamsCalculator;
 
-class Helper {
+class HelperByte {
 	TreeMap<Integer, HuffmanBitCode> codes;
 
-	int[] values, bitLengths;
+	int[] values;
+	int[] bitLengths;
 	private TreeMap<Integer, SortedSet<Integer>> codebook;
 
 	final HuffmanBitCode[] sortedCodes;
-	final HuffmanBitCode[] sortedByValue;
-	final int[] sortedValues;
-	final int[] sortedBitCodes;
+	final byte[] sortedValues;
 	final int[] sortedValuesByBitCode;
 	final int[] sortedBitLensByBitCode;
 	final int[] bitCodeToValue;
+	final HuffmanBitCode[] valueToCode;
 
-	Helper(int[] values, int[] bitLengths) {
-		this.values = values;
+	HelperByte(byte[] values, int[] bitLengths) {
+		this.values = new int[values.length];
+		for (int i = 0; i < values.length; i++)
+			this.values[i] = values[i];
+
 		this.bitLengths = bitLengths;
 
 		buildCodeBook();
@@ -58,33 +52,20 @@ class Helper {
 		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list
 				.size()]);
 
-//		System.out.println("Sorted codes:");
-//		for (HuffmanBitCode code : sortedCodes)
-//			System.out.println(code);
+		// System.out.println("Sorted codes:");
+		// for (HuffmanBitCode code : sortedCodes)
+		// System.out.println(code);
 
 		sortedValues = Arrays.copyOf(values, values.length);
 		Arrays.sort(sortedValues);
-//		System.out.println("Sorted values:");
-//		for (int value : sortedValues)
-//			System.out.println(value);
+		// System.out.println("Sorted values:");
+		// for (int value : sortedValues)
+		// System.out.println(value);
 
-		{
-			int i = 0;
-			sortedByValue = new HuffmanBitCode[sortedValues.length];
-			for (int value : sortedValues)
-				sortedByValue[i++] = codes.get(value);
-		}
-
-//		System.out.println("Sorted by value:");
-//		for (HuffmanBitCode code : sortedByValue)
-//			System.out.println(code);
-
-		sortedBitCodes = new int[sortedCodes.length];
 		sortedValuesByBitCode = new int[sortedCodes.length];
 		sortedBitLensByBitCode = new int[sortedCodes.length];
 		int maxBitCode = 0;
-		for (int i = 0; i < sortedBitCodes.length; i++) {
-			sortedBitCodes[i] = sortedCodes[i].bitCode;
+		for (int i = 0; i < sortedCodes.length; i++) {
 			sortedValuesByBitCode[i] = sortedCodes[i].value;
 			sortedBitLensByBitCode[i] = sortedCodes[i].bitLentgh;
 			if (maxBitCode < sortedCodes[i].bitCode)
@@ -93,8 +74,14 @@ class Helper {
 
 		bitCodeToValue = new int[maxBitCode + 1];
 		Arrays.fill(bitCodeToValue, -1);
-		for (int i = 0; i < sortedBitCodes.length; i++) {
+		for (int i = 0; i < sortedCodes.length; i++) {
 			bitCodeToValue[sortedCodes[i].bitCode] = i;
+		}
+
+		valueToCode = new HuffmanBitCode[255];
+		Arrays.fill(valueToCode, null);
+		for (HuffmanBitCode code : sortedCodes) {
+			valueToCode[code.value] = code;
 		}
 	}
 
@@ -140,9 +127,9 @@ class Helper {
 		}
 	}
 
-	final long write(final BitOutputStream bos, final int value) throws IOException {
-		int index = Arrays.binarySearch(sortedValues, value);
-		HuffmanBitCode code = sortedByValue[index];
+	final long write(final BitOutputStream bos, final byte value)
+			throws IOException {
+		HuffmanBitCode code = valueToCode[value];
 		if (code.value != value)
 			throw new RuntimeException(String.format(
 					"Searching for %d but found %s.", value, code.toString()));
@@ -151,9 +138,7 @@ class Helper {
 		return code.bitLentgh;
 	}
 
-	private HuffmanBitCode searchCode = new HuffmanBitCode();
-
-	final int read(final BitInputStream bis) throws IOException {
+	final byte read(final BitInputStream bis) throws IOException {
 		int prevLen = 0;
 		int bits = 0;
 		for (int i = 0; i < sortedCodes.length; i++) {
@@ -162,31 +147,13 @@ class Helper {
 			bits |= bis.readBits(len - prevLen);
 			prevLen = len;
 
-			/*
-			 * Variant 1: searchCode.bitCode = bits; searchCode.bitLentgh = len;
-			 * int index = Arrays.binarySearch(sortedBitCodes, bits); if (index
-			 * > -1 && sortedBitLensByBitCode[index] == len) return
-			 * sortedValuesByBitCode[index];
-			 * 
-			 * for (int j = i; sortedCodes[j + 1].bitLentgh == len && j <
-			 * sortedCodes.length; j++) i++;
-			 */
+			int index = bitCodeToValue[bits];
+			if (index > -1 && sortedBitLensByBitCode[index] == len)
+				return (byte) (0xFF & sortedValuesByBitCode[index]);
 
-			{ // Variant 2:
-				int index = bitCodeToValue[bits];
-				if (index > -1 && sortedBitLensByBitCode[index] == len)
-					return sortedValuesByBitCode[index];
-
-				for (int j = i; sortedCodes[j + 1].bitLentgh == len
-						&& j < sortedCodes.length; j++)
-					i++;
-			}
-
-			/*
-			 * Variant 3: for (int j = i; sortedCodes[j].bitLentgh == len && j <
-			 * sortedCodes.length; j++) if (sortedCodes[j].bitCode == bits)
-			 * return sortedCodes[j].value;
-			 */
+			for (int j = i; sortedCodes[j + 1].bitLentgh == len
+					&& j < sortedCodes.length; j++)
+				i++;
 		}
 
 		throw new RuntimeException("Not found.");
@@ -222,27 +189,13 @@ class Helper {
 
 		long time5 = System.nanoTime();
 		CompressionHeaderFactory.HuffmanParamsCalculator cal = new HuffmanParamsCalculator();
-		cal.add(ReadTag.nameType3BytesToInt("OQ", 'Z'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X0", 'C'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X0", 'c'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X0", 's'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X1", 'C'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X1", 'c'), size);
-		cal.add(ReadTag.nameType3BytesToInt("X1", 's'), size);
-		cal.add(ReadTag.nameType3BytesToInt("XA", 'Z'), size);
-		cal.add(ReadTag.nameType3BytesToInt("XC", 'c'), size);
-		cal.add(ReadTag.nameType3BytesToInt("XT", 'A'), size);
-		cal.add(ReadTag.nameType3BytesToInt("OP", 'i'), size);
-		cal.add(ReadTag.nameType3BytesToInt("OC", 'Z'), size);
-		cal.add(ReadTag.nameType3BytesToInt("BQ", 'Z'), size);
-		cal.add(ReadTag.nameType3BytesToInt("AM", 'c'), size);
-
+		for (byte i = 33; i < 33 + 15; i++)
+			cal.add(i);
 		cal.calculate();
 
-		// CanonicalHuffmanIntegerCodec helper = new
-		// CanonicalHuffmanIntegerCodec(
-		// cal.values(), cal.bitLens());
-		Helper helper = new Helper(cal.values(), cal.bitLens());
+		// CanonicalHuffmanByteCodec helper = new CanonicalHuffmanByteCodec(
+		// cal.valuesAsBytes(), cal.bitLens());
+		HelperByte helper = new HelperByte(cal.valuesAsBytes(), cal.bitLens());
 		long time6 = System.nanoTime();
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -250,7 +203,7 @@ class Helper {
 
 		long time1 = System.nanoTime();
 		for (int i = 0; i < size; i++) {
-			for (int b : cal.values()) {
+			for (byte b : cal.valuesAsBytes()) {
 				helper.write(bos, b);
 			}
 		}
@@ -280,36 +233,6 @@ class Helper {
 								/ cal.values().length,
 						(time6 - time5) / 1000000, (time2 - time1) / 1000000,
 						(time4 - time3) / 1000000);
-
-		// String message = "12341111111111111122222223334";
-		//
-		// ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		// DefaultBitOutputStream bos = new DefaultBitOutputStream(baos);
-		// HuffmanParamsCalculator c = new HuffmanParamsCalculator();
-		// for (byte b : message.getBytes())
-		// c.add(b);
-		// c.calculate();
-		//
-		// CanonicalHuffmanIntegerCodec codec = new
-		// CanonicalHuffmanIntegerCodec(
-		// c.values(), c.bitLens());
-		// for (byte b : message.getBytes())
-		// codec.write(bos, new Integer(b));
-		//
-		// bos.close();
-		//
-		// ByteArrayInputStream bais = new
-		// ByteArrayInputStream(baos.toByteArray());
-		// DefaultBitInputStream bis = new DefaultBitInputStream(bais);
-		// Helper helper = new Helper(c.values(), c.bitLens());
-		//
-		// for (byte b : message.getBytes()) {
-		// int value = helper.read(bis);
-		// if (b != value)
-		// throw new RuntimeException(String.format(
-		// "Expecting %d but got %d.", b, value));
-		// }
-		// System.out.println("Done.");
 	}
 
 }

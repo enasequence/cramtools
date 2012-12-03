@@ -83,7 +83,7 @@ public class SCSTest {
 				sequence.getBases(), samFileReader.getFileHeader());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		List<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		QualityScorePreservation preservation = new QualityScorePreservation(
@@ -171,8 +171,9 @@ public class SCSTest {
 				+ " detached records.");
 
 		try {
-			cramRecords = BLOCK_PROTO.getRecords(c.h, c,
-					samFileReader.getFileHeader());
+			cramRecords.clear() ;
+			BLOCK_PROTO.getRecords(c.h, c,
+					samFileReader.getFileHeader(), cramRecords);
 		} catch (Exception e1) {
 			System.err.println("Read " + Reader.detachedCount
 					+ " detached records.");

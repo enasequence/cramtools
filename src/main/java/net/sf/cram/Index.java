@@ -113,6 +113,7 @@ public class Index {
 		int index = Collections.binarySearch(list, query);
 		if (index < 0)
 			index = -index - 1;
+		if (list.get(index).sequenceId != seqId) return Collections.EMPTY_LIST;
 
 		query.alignmentStart = start + span;
 		int index2 = Collections.binarySearch(list, query);

@@ -59,10 +59,9 @@ public class BLOCK_PROTO {
 	public static int recordsPerSlice = 10000;
 
 	static List<CramRecord> getRecords(CompressionHeader h, Container c,
-			SAMFileHeader fileHeader) throws IllegalArgumentException,
+			SAMFileHeader fileHeader, ArrayList<CramRecord> records) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		long time1 = System.nanoTime();
-		List<CramRecord> records = new ArrayList<CramRecord>();
 		Map<String, Long> nanoMap = new TreeMap<String, Long>() ;
 		for (Slice s : c.slices) 
 			records.addAll(getRecords(s, h, fileHeader, nanoMap));
@@ -372,8 +371,9 @@ public class BLOCK_PROTO {
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
 
+		ArrayList<CramRecord> readRecords = new ArrayList<CramRecord>(); 
 		time1 = System.nanoTime();
-		List<CramRecord> readRecords = getRecords(c.h, c, samFileHeader);
+		getRecords(c.h, c, samFileHeader, readRecords);
 		time2 = System.nanoTime();
 		System.out.println("Container read in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -537,9 +537,10 @@ public class BLOCK_PROTO {
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
 
+		ArrayList<CramRecord> newRecords = new ArrayList<CramRecord>() ;
 		time1 = System.nanoTime();
-		List<CramRecord> newRecords = getRecords(c.h, c,
-				samFileReader.getFileHeader());
+		getRecords(c.h, c,
+				samFileReader.getFileHeader(), newRecords);
 
 		mateMap.clear();
 		{
@@ -612,7 +613,8 @@ public class BLOCK_PROTO {
 		cramHeader = ReadWrite.readCramHeader(bis);
 		c = ReadWrite.readContainer(cramHeader.samFileHeader, bis);
 
-		newRecords = getRecords(c.h, c, cramHeader.samFileHeader);
+		newRecords.clear() ;
+		getRecords(c.h, c, cramHeader.samFileHeader, newRecords);
 
 		mateMap.clear();
 		{

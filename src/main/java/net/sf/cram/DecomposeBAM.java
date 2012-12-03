@@ -114,7 +114,8 @@ public class DecomposeBAM {
 			throws IOException {
 		Out out = map.get(name);
 		if (out == null) {
-			out = new Out(name, params.arith, params.model);
+			out = new Out(name, params.arith, params.model, params.snappy,
+					params.raw);
 			map.put(name, out);
 		}
 
@@ -125,12 +126,23 @@ public class DecomposeBAM {
 		private File file;
 		private OutputStream os;
 
-		public Out(String name, boolean arith, String modelName)
-				throws IOException {
-			if (arith) {
+		public Out(String name, boolean arith, String modelName,
+				boolean snappy, boolean raw) throws IOException {
+			if (raw) {
+				this.file = new File(name + ".raw");
+				FileOutputStream fos = new FileOutputStream(this.file);
+				os = new BufferedOutputStream(fos);
+			} else if (snappy) {
+				throw new RuntimeException("Not implemented.");
+				// this.file = new File(name + ".snappy");
+				// FileOutputStream fos = new FileOutputStream(this.file);
+				// SnappyOutputStream sos = new SnappyOutputStream(
+				// new BufferedOutputStream(fos));
+				// os = new BufferedOutputStream(sos);
+			} else if (arith) {
 				throw new RuntimeException("Not implemented.");
 
-				// this.file = new File(name + ".gz");
+				// this.file = new File(name + ".a" + modelName);
 				// FileOutputStream fos = new FileOutputStream(this.file);
 				// ArithCodeModel model = null;
 				// if ("A".equals(modelName))
@@ -146,8 +158,7 @@ public class DecomposeBAM {
 				// else
 				// throw new RuntimeException("Unknown model: " + modelName);
 				//
-				// os = new ArithCodeOutputStream(fos,
-				// model);
+				// os = new ArithCodeOutputStream(fos, model);
 			} else {
 				this.file = new File(name + ".gz");
 				FileOutputStream fos = new FileOutputStream(this.file);
@@ -192,5 +203,11 @@ public class DecomposeBAM {
 
 		@Parameter(names = { "--arith-model" }, hidden = true, description = "Choose coding model: A (adaptive), P (PPM), U(uniform).")
 		String model = "A";
+
+		@Parameter(names = { "--snappy" }, hidden = true, description = "Apply snappy compression.")
+		boolean snappy = false;
+
+		@Parameter(names = { "--raw" }, hidden = true, description = "Do not apply any compression.")
+		boolean raw = false;
 	}
 }

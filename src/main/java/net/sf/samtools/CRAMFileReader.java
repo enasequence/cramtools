@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
@@ -16,11 +17,16 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	private File file;
 	private ReferenceSequenceFile referenceSequenceFile;
 	private CramHeader header;
+	private InputStream is;
+	private SAMIterator it;
 
-	public CRAMFileReader(File file, ReferenceSequenceFile referenceSequenceFile) {
-		super();
+	public CRAMFileReader(File file, InputStream is,
+			ReferenceSequenceFile referenceSequenceFile) {
 		this.file = file;
+		this.is = is;
 		this.referenceSequenceFile = referenceSequenceFile;
+		
+		if (file == null) getIterator () ;
 	}
 
 	private void readHeader() throws FileNotFoundException, IOException {
@@ -82,10 +88,16 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	@Override
 	CloseableIterator<SAMRecord> getIterator() {
-		SAMIterator it;
+		if (it != null && file == null)
+			return it;
 		try {
+			if (file != null)
 			it = new SAMIterator(new FileInputStream(file),
 					referenceSequenceFile);
+			else it = new SAMIterator(is,
+					referenceSequenceFile);
+			
+			header = it.getCramHeader() ;
 			return it;
 		} catch (Exception e) {
 			throw new RuntimeException(e);

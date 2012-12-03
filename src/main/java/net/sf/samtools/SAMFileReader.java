@@ -544,9 +544,12 @@ public class SAMFileReader implements Iterable<SAMRecord>, Closeable {
             else bufferedStream = IOUtil.toBufferedStream(stream);
             if (isCRAMFile(bufferedStream)) {
                 mIsBinary = true;
-                	bufferedStream.close();
-                	ReferenceSequenceFile referenceSequenceFile = ReferenceDiscovery.findReferenceSequenceFileOrFail(stream, file, indexFile) ;
-                    mReader = new CRAMFileReader (file, referenceSequenceFile) ;
+				if (file != null && file.isFile())
+					bufferedStream.close();
+				ReferenceSequenceFile referenceSequenceFile = ReferenceDiscovery
+						.findReferenceSequenceFileOrFail(stream, file,
+								indexFile);
+				mReader = new CRAMFileReader (file, bufferedStream, referenceSequenceFile) ;
             } else
             if (isBAMFile(bufferedStream)) {
                 mIsBinary = true;

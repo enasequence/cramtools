@@ -1,5 +1,6 @@
 package net.sf.cram;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -26,26 +27,31 @@ public class CramNormalizer {
 	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<Integer, CramRecord>();
 	private byte[] ref;
 
+	private List<CramRecord> list = new ArrayList<CramRecord>();
+
 	public CramNormalizer(SAMFileHeader header, byte[] ref, int alignmentStart) {
 		this.header = header;
 		this.ref = ref;
 		this.alignmentStart = alignmentStart;
 	}
 
-	public void normalize(List<CramRecord> records, boolean resetPairing) {
-		if (resetPairing)
+	public void normalize(ArrayList<CramRecord> records, boolean resetPairing) {
+		if (resetPairing) {
 			pairingByIndexMap.clear();
+		}
+		list.clear();
 
+		int startCounter = readCounter;
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
+//			list.add(r);
 
 			alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
 
 			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
 				r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
-			}
-			else {
+			} else {
 				r.setSequenceName(header.getSequence(r.sequenceId)
 						.getSequenceName());
 				r.setAlignmentStart(alignmentStart);
@@ -61,45 +67,84 @@ public class CramNormalizer {
 					r.previous = null;
 					continue;
 				}
-
 				if (r.hasMateDownStream) {
-					pairingByIndexMap.put(
-							r.index + r.recordsToNextFragment + 1, r);
-				} else {
-					r.recordsToNextFragment = -1;
-					CramRecord prev = pairingByIndexMap.remove(r.index);
-					if (prev == null)
-						throw new RuntimeException("Pairing broken: "
-								+ r.toString());
-					else {
-						r.previous = prev;
-						prev.next = r;
+					CramRecord downMate = records.get(r.index
+							+ r.recordsToNextFragment - startCounter-1);
+					r.next = downMate ;
+					downMate.previous = r ;
+					
+					r.mateAlignmentStart = downMate.getAlignmentStart();
+					r.mateUmapped = downMate.segmentUnmapped;
+					r.mateNegativeStrand = downMate.negativeStrand;
+					r.mateSequnceID = downMate.sequenceId;
+					if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+						r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
-						r.mateAlignmentStart = prev.getAlignmentStart();
-						r.mateUmapped = prev.segmentUnmapped;
-						r.mateNegativeStrand = prev.negativeStrand;
-						r.mateSequnceID = prev.sequenceId;
-						if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-							r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
+					downMate.mateAlignmentStart = r.getAlignmentStart();
+					downMate.mateUmapped = r.segmentUnmapped;
+					downMate.mateNegativeStrand = r.negativeStrand;
+					downMate.mateSequnceID = r.sequenceId;
+					if (downMate.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
-						prev.mateAlignmentStart = r.getAlignmentStart();
-						prev.mateUmapped = r.segmentUnmapped;
-						prev.mateNegativeStrand = r.negativeStrand;
-						prev.mateSequnceID = r.sequenceId;
-						if (prev.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-							prev.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
-
-						if (r.firstSegment && prev.lastSegment) {
-							r.templateSize = Utils.computeInsertSize(r, prev);
-							prev.templateSize = -r.templateSize;
-						} else if (r.lastSegment && prev.firstSegment) {
-							prev.templateSize = Utils
-									.computeInsertSize(prev, r);
-							r.templateSize = -prev.templateSize;
-						}
+					if (r.firstSegment && downMate.lastSegment) {
+						r.templateSize = Utils.computeInsertSize(r, downMate);
+						downMate.templateSize = -r.templateSize;
+					} else if (r.lastSegment && downMate.firstSegment) {
+						downMate.templateSize = Utils
+								.computeInsertSize(downMate, r);
+						r.templateSize = -downMate.templateSize;
 					}
 				}
 			}
+
+//			for (CramRecord r : records) {
+//				if (!r.multiFragment || r.detached) {
+//					r.recordsToNextFragment = -1;
+//
+//					r.next = null;
+//					r.previous = null;
+//					continue;
+//				}
+//
+//				if (r.hasMateDownStream) {
+//					pairingByIndexMap.put(
+//							r.index + r.recordsToNextFragment + 1, r);
+//				} else {
+//					r.recordsToNextFragment = -1;
+//					CramRecord prev = pairingByIndexMap.remove(r.index);
+//					if (prev == null)
+//						throw new RuntimeException("Pairing broken: "
+//								+ r.toString());
+//					else {
+//						r.previous = prev;
+//						prev.next = r;
+//
+//						r.mateAlignmentStart = prev.getAlignmentStart();
+//						r.mateUmapped = prev.segmentUnmapped;
+//						r.mateNegativeStrand = prev.negativeStrand;
+//						r.mateSequnceID = prev.sequenceId;
+//						if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+//							r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
+//
+//						prev.mateAlignmentStart = r.getAlignmentStart();
+//						prev.mateUmapped = r.segmentUnmapped;
+//						prev.mateNegativeStrand = r.negativeStrand;
+//						prev.mateSequnceID = r.sequenceId;
+//						if (prev.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+//							prev.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
+//
+//						if (r.firstSegment && prev.lastSegment) {
+//							r.templateSize = Utils.computeInsertSize(r, prev);
+//							prev.templateSize = -r.templateSize;
+//						} else if (r.lastSegment && prev.firstSegment) {
+//							prev.templateSize = Utils
+//									.computeInsertSize(prev, r);
+//							r.templateSize = -prev.templateSize;
+//						}
+//					}
+//				}
+//			}
 		}
 
 		// assign some read names if needed:

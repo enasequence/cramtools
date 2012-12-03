@@ -92,9 +92,11 @@ public class Cram2Bam {
 
 		InputStream is;
 		if (params.cramFile != null) {
-			 FileInputStream fis = new FileInputStream(params.cramFile);
-			 is = new BufferedInputStream(fis);
-//			is = new SeekableFileStream(params.cramFile);
+			FileInputStream fis = new FileInputStream(params.cramFile);
+			if (params.locations == null || params.locations.isEmpty())
+				is = new BufferedInputStream(fis);
+			else
+				is = new SeekableFileStream(params.cramFile);
 		} else
 			is = System.in;
 
@@ -148,6 +150,11 @@ public class Cram2Bam {
 				entries.addAll(Index.find(full, sequence.getSequenceIndex(),
 						start, span));
 			}
+			
+			if (entries.isEmpty()) {
+				log.warn("No records found.") ;
+				return ;
+			}
 
 			bis.close();
 		} else
@@ -166,8 +173,8 @@ public class Cram2Bam {
 			// position the stream for random access:
 			if (is instanceof SeekableStream) {
 				SeekableStream ss = (SeekableStream) is;
-				Entry entry = entries.get(0) ;
-				ss.seek(entry.offset) ;
+				Entry entry = entries.get(0);
+				ss.seek(entry.offset);
 			} else
 				throw new RuntimeException(
 						"The input stream does not support random access.");
@@ -180,6 +187,7 @@ public class Cram2Bam {
 		long samTime = 0;
 		long writeTime = 0;
 		long time = 0;
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(100000) ;
 		while (true) {
 			Container c = null;
 			try {
@@ -196,11 +204,11 @@ public class Cram2Bam {
 				continue;
 			}
 
-			List<CramRecord> cramRecords = null;
 			try {
 				time = System.nanoTime();
-				cramRecords = BLOCK_PROTO.getRecords(c.h, c,
-						cramHeader.samFileHeader);
+				cramRecords.clear() ;
+				BLOCK_PROTO.getRecords(c.h, c,
+						cramHeader.samFileHeader, cramRecords);
 				parseTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				throw e;

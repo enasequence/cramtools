@@ -108,7 +108,7 @@ public class ReadWrite {
 	private static void writeBlock(Block b, OutputStream os) throws IOException {
 
 		log.debug("WRITING BLOCK: " + b.toString());
-
+		
 		b.rawContentSize = b.content.length;
 		b.compressedContentSize = b.rawContentSize;
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();

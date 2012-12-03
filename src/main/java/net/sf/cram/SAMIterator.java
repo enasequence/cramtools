@@ -59,10 +59,11 @@ public class SAMIterator implements SAMRecordIterator {
 			return;
 		}
 
-		List<CramRecord> cramRecords = null;
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>() ;
 		try {
-			cramRecords = BLOCK_PROTO.getRecords(c.h, c,
-					cramHeader.samFileHeader);
+			cramRecords.clear() ;
+			BLOCK_PROTO.getRecords(c.h, c,
+					cramHeader.samFileHeader, cramRecords);
 		} catch (EOFException e) {
 			throw e;
 		}

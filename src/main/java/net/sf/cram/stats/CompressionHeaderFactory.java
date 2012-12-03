@@ -177,6 +177,43 @@ public class CompressionHeaderFactory {
 			// ExternalByteArrayEncoding.toParam(tagValueExtID));
 		}
 
+//		{ // EXPERIMENT: tag count, name and type
+//			Map<Integer, MutableInt> map = new HashMap<Integer, CompressionHeaderFactory.MutableInt>() ;
+//			for (CramRecord r : records) {
+//				if (r.tags == null)
+//					continue;
+//				for (ReadTag tag : r.tags) {
+//					MutableInt mutableInt = map.get(tag.keyType3BytesAsInt) ;
+//					if (mutableInt == null) {
+//						mutableInt = new MutableInt() ;
+//						map.put(tag.keyType3BytesAsInt, mutableInt) ;
+//					}
+//					
+//					mutableInt.value++ ;
+//				}
+//			}
+//			
+//			System.out.println("Tag codes: ");
+//			for (int value:map.keySet()) {
+//				System.out.println(value + ": " + map.get(value).value);
+//			}
+//			
+//			
+//			
+//			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+//			for (CramRecord r : records) {
+//				if (r.tags == null)
+//					continue;
+//				for (ReadTag tag : r.tags) {
+//
+//					calculator.add(tag.keyType3BytesAsInt);
+//
+//				}
+//			}
+//			calculator.calculate();
+//
+//		}
+
 		{ // tag values
 			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, HuffmanParamsCalculator>();
 
@@ -186,16 +223,16 @@ public class CompressionHeaderFactory {
 
 				for (ReadTag tag : r.tags) {
 					switch (tag.keyType3BytesAsInt) {
-//					case ReadTag.OQZ:
-//					case ReadTag.BQZ:
-//						EncodingParams params = h.tMap
-//								.get(tag.keyType3BytesAsInt);
-//						if (params == null) {
-//							h.tMap.put(tag.keyType3BytesAsInt,
-//									ByteArrayStopEncoding.toParam((byte) 1,
-//											tagValueExtID));
-//						}
-//						break;
+					// case ReadTag.OQZ:
+					// case ReadTag.BQZ:
+					// EncodingParams params = h.tMap
+					// .get(tag.keyType3BytesAsInt);
+					// if (params == null) {
+					// h.tMap.put(tag.keyType3BytesAsInt,
+					// ByteArrayStopEncoding.toParam((byte) 1,
+					// tagValueExtID));
+					// }
+					// break;
 
 					default:
 						HuffmanParamsCalculator c = cc
