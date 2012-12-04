@@ -32,9 +32,17 @@ public class Cram2BamRecordFactory {
 
 		samRecord.setReadName(cramRecord.getReadName());
 		copyFlags(cramRecord, samRecord);
-		samRecord.setReferenceIndex(cramRecord.sequenceId);
-		samRecord.setAlignmentStart(cramRecord.getAlignmentStart());
-		samRecord.setMappingQuality(cramRecord.getMappingQuality());
+
+		if (cramRecord.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			samRecord.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+			samRecord.setMappingQuality(SAMRecord.NO_MAPPING_QUALITY);
+			samRecord.setReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+		} else {
+			samRecord.setReferenceIndex(cramRecord.sequenceId);
+			samRecord.setAlignmentStart(cramRecord.getAlignmentStart());
+			samRecord.setMappingQuality(cramRecord.getMappingQuality());
+		}
+
 		if (cramRecord.segmentUnmapped)
 			samRecord.setCigarString(SAMRecord.NO_ALIGNMENT_CIGAR);
 		else
@@ -43,7 +51,9 @@ public class Cram2BamRecordFactory {
 
 		if (samRecord.getReadPairedFlag()) {
 			samRecord.setMateReferenceIndex(cramRecord.mateSequnceID);
-			samRecord.setMateAlignmentStart(cramRecord.mateAlignmentStart);
+			samRecord
+					.setMateAlignmentStart(cramRecord.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? SAMRecord.NO_ALIGNMENT_START
+							: cramRecord.mateAlignmentStart);
 			samRecord.setMateNegativeStrandFlag(cramRecord.mateNegativeStrand);
 			samRecord.setMateUnmappedFlag(cramRecord.mateUmapped);
 		} else {

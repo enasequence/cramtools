@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
@@ -19,7 +18,6 @@ import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeEOFException;
 
 public class SAMIterator implements SAMRecordIterator {
@@ -31,7 +29,10 @@ public class SAMIterator implements SAMRecordIterator {
 	private SAMRecord nextRecord = null;
 	private ReferenceSequenceFile referenceSequenceFile;
 	private boolean restoreNMTag = true;
-	private boolean restoreMDTag = true;
+	private boolean restoreMDTag = false;
+	private CramNormalizer normalizer;
+	private byte[] refs;
+	private int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 
 	public SAMIterator(InputStream is,
 			ReferenceSequenceFile referenceSequenceFile) throws IOException {
@@ -39,6 +40,7 @@ public class SAMIterator implements SAMRecordIterator {
 		this.referenceSequenceFile = referenceSequenceFile;
 		cramHeader = ReadWrite.readCramHeader(is);
 		records = new ArrayList<SAMRecord>(100000);
+		normalizer = new CramNormalizer(cramHeader.samFileHeader);
 	}
 
 	public CramHeader getCramHeader() {
@@ -59,27 +61,29 @@ public class SAMIterator implements SAMRecordIterator {
 			return;
 		}
 
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>() ;
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		try {
-			cramRecords.clear() ;
-			BLOCK_PROTO.getRecords(c.h, c,
-					cramHeader.samFileHeader, cramRecords);
+			cramRecords.clear();
+			BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader,
+					cramRecords);
 		} catch (EOFException e) {
 			throw e;
 		}
-		byte[] ref = null;
-		if (c.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+
+		if (c.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			refs = new byte[] {};
+		} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 			SAMSequenceRecord sequence = cramHeader.samFileHeader
 					.getSequence(c.sequenceId);
 			ReferenceSequence referenceSequence = referenceSequenceFile
 					.getSequence(sequence.getSequenceName());
-			ref = referenceSequence.getBases();
+			refs = referenceSequence.getBases();
+			prevSeqId = c.sequenceId;
 		}
 
 		long time1 = System.nanoTime();
-		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader, ref,
-				c.alignmentStart);
-		n.normalize(cramRecords, true);
+
+		normalizer.normalize(cramRecords, true, refs, c.alignmentStart);
 		long time2 = System.nanoTime();
 
 		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
@@ -92,7 +96,7 @@ public class SAMIterator implements SAMRecordIterator {
 			SAMRecord s = c2sFactory.create(r);
 			c2sTime += System.nanoTime() - time;
 			if (!r.segmentUnmapped)
-				Utils.calculateMdAndNmTags(s, ref, restoreMDTag, restoreNMTag);
+				Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
 			records.add(s);
 		}
 		log.info(String.format(

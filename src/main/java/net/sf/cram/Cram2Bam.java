@@ -7,10 +7,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.Index.Entry;
@@ -150,10 +155,10 @@ public class Cram2Bam {
 				entries.addAll(Index.find(full, sequence.getSequenceIndex(),
 						start, span));
 			}
-			
+
 			if (entries.isEmpty()) {
-				log.warn("No records found.") ;
-				return ;
+				log.warn("No records found.");
+				return;
 			}
 
 			bis.close();
@@ -187,7 +192,12 @@ public class Cram2Bam {
 		long samTime = 0;
 		long writeTime = 0;
 		long time = 0;
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(100000) ;
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(100000);
+
+		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader);
+
+		byte[] ref = null;
+		int prevSeqId = -1;
 		while (true) {
 			Container c = null;
 			try {
@@ -206,27 +216,27 @@ public class Cram2Bam {
 
 			try {
 				time = System.nanoTime();
-				cramRecords.clear() ;
-				BLOCK_PROTO.getRecords(c.h, c,
-						cramHeader.samFileHeader, cramRecords);
+				cramRecords.clear();
+				BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader,
+						cramRecords);
 				parseTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				throw e;
 			}
 
-			byte[] ref = null;
-			if (c.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			if (c.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				ref = new byte[] {};
+			} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 				SAMSequenceRecord sequence = cramHeader.samFileHeader
 						.getSequence(c.sequenceId);
 				ReferenceSequence referenceSequence = referenceSequenceFile
 						.getSequence(sequence.getSequenceName());
 				ref = referenceSequence.getBases();
+				prevSeqId = c.sequenceId;
 			}
 
 			long time1 = System.nanoTime();
-			CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
-					ref, c.alignmentStart);
-			n.normalize(cramRecords, true);
+			n.normalize(cramRecords, true, ref, c.alignmentStart);
 			long time2 = System.nanoTime();
 			normTime += time2 - time1;
 
@@ -239,40 +249,47 @@ public class Cram2Bam {
 			for (CramRecord r : cramRecords) {
 				time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
+
+				if (params.requiredFlags != 0
+						&& ((params.requiredFlags & s.getFlags()) == 0))
+					continue;
+				if (params.filteringFlags != 0
+						&& ((params.filteringFlags & s.getFlags()) != 0))
+					continue;
+				if (params.countOnly) {
+					recordCount++;
+					continue;
+				}
+				
 				if (ref != null)
 					Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag,
 							params.calculateNmTag);
 				c2sTime += System.nanoTime() - time;
 				samTime += System.nanoTime() - time;
-				try {
 
-					if (params.requiredFlags != 0
-							&& ((params.requiredFlags & s.getFlags()) == 0))
-						continue;
-					if (params.filteringFlags != 0
-							&& ((params.filteringFlags & s.getFlags()) != 0))
-						continue;
-					if (params.countOnly) {
-						recordCount++;
-						continue;
-					}
-
-					time = System.nanoTime();
-					writer.addAlignment(s);
-					sWriteTime += System.nanoTime() - time;
-					writeTime += System.nanoTime() - time;
-					if (params.outputFile == null && System.out.checkError())
-						break;
-				} catch (NullPointerException e) {
-					System.out.println(r.toString());
-					throw e;
-				}
+				time = System.nanoTime();
+				writer.addAlignment(s);
+				sWriteTime += System.nanoTime() - time;
+				writeTime += System.nanoTime() - time;
+				if (params.outputFile == null && System.out.checkError())
+					break;
 			}
+
+			// if (!params.countOnly) {
+			// time = System.nanoTime();
+			// for (SAMRecord s : samRecords) {
+			// writer.addAlignment(s);
+			// if (params.outputFile == null && System.out.checkError())
+			// break;
+			// }
+			// sWriteTime += System.nanoTime() - time;
+			// writeTime += System.nanoTime() - time;
+			// }
 
 			log.info(String
 					.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
 							c.readTime / 1000000, c.parseTime / 1000000,
-							c2sTime / 1000000, (time2 - time1) / 1000000,
+							(time2 - time1) / 1000000, c2sTime / 1000000,
 							sWriteTime / 1000000));
 
 			if (params.outputFile == null && System.out.checkError())
@@ -299,8 +316,30 @@ public class Cram2Bam {
 		 * building sam writer, sometimes we have to go deeper to get to the
 		 * required functionality:
 		 */
-		SAMFileWriter writer;
-		if (params.outputFile == null) {
+		SAMFileWriter writer = null;
+		if (params.outputFastq) {
+			if (params.cramFile == null) {
+				writer = new FastqSAMFileWriter(System.out, null,
+						cramHeader.samFileHeader);
+			} else {
+				writer = new FastqSAMFileWriter(
+						params.cramFile.getAbsolutePath(), false,
+						cramHeader.samFileHeader);
+
+			}
+		} else if (params.outputFastqGz) {
+			if (params.cramFile == null) {
+				GZIPOutputStream gos = new GZIPOutputStream(System.out);
+				PrintStream ps = new PrintStream(gos);
+				writer = new FastqSAMFileWriter(ps, null,
+						cramHeader.samFileHeader);
+			} else {
+				writer = new FastqSAMFileWriter(
+						params.cramFile.getAbsolutePath(), true,
+						cramHeader.samFileHeader);
+
+			}
+		} else if (params.outputFile == null) {
 			if (params.outputBAM) {
 				BAMFileWriter ret = new BAMFileWriter(System.out, null);
 				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
@@ -369,6 +408,12 @@ public class Cram2Bam {
 
 		@Parameter(names = { "-b", "--output-bam-format" }, description = "Output in BAM format.")
 		boolean outputBAM = false;
+
+		@Parameter(names = { "-q", "--output-fastq-format" }, hidden = true, description = "Output in fastq format.")
+		boolean outputFastq = false;
+
+		@Parameter(names = { "-z", "--output-fastq-gz-format" }, hidden = true, description = "Output in gzipped fastq format.")
+		boolean outputFastqGz = false;
 
 		@Parameter(names = { "--print-sam-header" }, description = "Print SAM header when writing SAM format.")
 		boolean printSAMHeader = false;

@@ -14,6 +14,7 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 
@@ -21,30 +22,18 @@ public class CramNormalizer {
 	private SAMFileHeader header;
 	private int readCounter = 0;
 	private String readNamePrefix = "";
-	private int alignmentStart = 1;
 	private byte defaultQualityScore = '?' - '!';
 
-	private Map<Integer, CramRecord> pairingByIndexMap = new HashMap<Integer, CramRecord>();
-	private byte[] ref;
+	private static Log log = Log.getInstance(CramNormalizer.class);
 
-	private List<CramRecord> list = new ArrayList<CramRecord>();
-
-	public CramNormalizer(SAMFileHeader header, byte[] ref, int alignmentStart) {
+	public CramNormalizer(SAMFileHeader header) {
 		this.header = header;
-		this.ref = ref;
-		this.alignmentStart = alignmentStart;
 	}
 
-	public void normalize(ArrayList<CramRecord> records, boolean resetPairing) {
-		if (resetPairing) {
-			pairingByIndexMap.clear();
-		}
-		list.clear();
-
+	public void normalize(ArrayList<CramRecord> records, boolean resetPairing, byte[] ref, int alignmentStart) {
 		int startCounter = readCounter;
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
-//			list.add(r);
 
 			alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
 
@@ -69,10 +58,10 @@ public class CramNormalizer {
 				}
 				if (r.hasMateDownStream) {
 					CramRecord downMate = records.get(r.index
-							+ r.recordsToNextFragment - startCounter-1);
-					r.next = downMate ;
-					downMate.previous = r ;
-					
+							+ r.recordsToNextFragment - startCounter);
+					r.next = downMate;
+					downMate.previous = r;
+
 					r.mateAlignmentStart = downMate.getAlignmentStart();
 					r.mateUmapped = downMate.segmentUnmapped;
 					r.mateNegativeStrand = downMate.negativeStrand;
@@ -91,60 +80,12 @@ public class CramNormalizer {
 						r.templateSize = Utils.computeInsertSize(r, downMate);
 						downMate.templateSize = -r.templateSize;
 					} else if (r.lastSegment && downMate.firstSegment) {
-						downMate.templateSize = Utils
-								.computeInsertSize(downMate, r);
+						downMate.templateSize = Utils.computeInsertSize(
+								downMate, r);
 						r.templateSize = -downMate.templateSize;
 					}
 				}
 			}
-
-//			for (CramRecord r : records) {
-//				if (!r.multiFragment || r.detached) {
-//					r.recordsToNextFragment = -1;
-//
-//					r.next = null;
-//					r.previous = null;
-//					continue;
-//				}
-//
-//				if (r.hasMateDownStream) {
-//					pairingByIndexMap.put(
-//							r.index + r.recordsToNextFragment + 1, r);
-//				} else {
-//					r.recordsToNextFragment = -1;
-//					CramRecord prev = pairingByIndexMap.remove(r.index);
-//					if (prev == null)
-//						throw new RuntimeException("Pairing broken: "
-//								+ r.toString());
-//					else {
-//						r.previous = prev;
-//						prev.next = r;
-//
-//						r.mateAlignmentStart = prev.getAlignmentStart();
-//						r.mateUmapped = prev.segmentUnmapped;
-//						r.mateNegativeStrand = prev.negativeStrand;
-//						r.mateSequnceID = prev.sequenceId;
-//						if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-//							r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
-//
-//						prev.mateAlignmentStart = r.getAlignmentStart();
-//						prev.mateUmapped = r.segmentUnmapped;
-//						prev.mateNegativeStrand = r.negativeStrand;
-//						prev.mateSequnceID = r.sequenceId;
-//						if (prev.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-//							prev.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
-//
-//						if (r.firstSegment && prev.lastSegment) {
-//							r.templateSize = Utils.computeInsertSize(r, prev);
-//							prev.templateSize = -r.templateSize;
-//						} else if (r.lastSegment && prev.firstSegment) {
-//							prev.templateSize = Utils
-//									.computeInsertSize(prev, r);
-//							r.templateSize = -prev.templateSize;
-//						}
-//					}
-//				}
-//			}
 		}
 
 		// assign some read names if needed:

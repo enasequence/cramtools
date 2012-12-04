@@ -83,7 +83,8 @@ public class SCSTest {
 				sequence.getBases(), samFileReader.getFileHeader());
 		f.captureUnmappedBases = true;
 		f.captureUnmappedScores = true;
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(maxRecords);
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(
+				maxRecords);
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
 		QualityScorePreservation preservation = new QualityScorePreservation(
@@ -171,9 +172,9 @@ public class SCSTest {
 				+ " detached records.");
 
 		try {
-			cramRecords.clear() ;
-			BLOCK_PROTO.getRecords(c.h, c,
-					samFileReader.getFileHeader(), cramRecords);
+			cramRecords.clear();
+			BLOCK_PROTO.getRecords(c.h, c, samFileReader.getFileHeader(),
+					cramRecords);
 		} catch (Exception e1) {
 			System.err.println("Read " + Reader.detachedCount
 					+ " detached records.");
@@ -196,9 +197,8 @@ public class SCSTest {
 			return;
 
 		long time1 = System.nanoTime();
-		CramNormalizer n = new CramNormalizer(samFileReader.getFileHeader(),
-				ref, alStart);
-		n.normalize(cramRecords, true);
+		CramNormalizer n = new CramNormalizer(samFileReader.getFileHeader());
+		n.normalize(cramRecords, true, ref, alStart);
 		long time2 = System.nanoTime();
 		System.err.printf("Normalized in %d ms.\n", (time2 - time1) / 1000000);
 

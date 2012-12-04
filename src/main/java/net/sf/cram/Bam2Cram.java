@@ -244,7 +244,7 @@ public class Bam2Cram {
 		ReferenceSequence sequence = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
 				params.maxContainerSize);
-		int prevSeqId = -1;
+		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		SAMRecordIterator iterator = samFileReader.iterator();
 		{
 			String seqName = null;
@@ -336,12 +336,15 @@ public class Bam2Cram {
 							externalBytes[i] += s.external.get(i).compressedContentSize;
 					}
 				}
+			}
 
+			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					sequence = referenceSequenceFile.getSequence(samRecord
 							.getReferenceName());
 					ref = sequence.getBases();
-				}
+				} else
+					ref = new byte[] {};
 				prevSeqId = samRecord.getReferenceIndex();
 			}
 

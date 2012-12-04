@@ -389,7 +389,8 @@ public class Utils {
 		int nm = 0;
 		StringBuffer str = new StringBuffer();
 
-		for (i = y = 0, x = start; i < cigarElements.size(); ++i) {
+		int size = cigarElements.size(); 
+		for (i = y = 0, x = start; i < size; ++i) {
 			CigarElement ce = cigarElements.get(i);
 			int j, l = ce.getLength();
 			CigarOperator op = ce.getOperator();
@@ -406,14 +407,6 @@ public class Utils {
 					// try {
 					c1 = seq[z];
 					c2 = ref[x + j];
-					// } catch (ArrayIndexOutOfBoundsException e) {
-					// System.err.println("Offending record: ");
-					// System.err.println(record.getSAMString());
-					// System.err.printf("z=%d; x=%d; j=%d; i=%d; y=%d, l=%d\n",
-					// z, x, j, i, y, l);
-					// System.err.printf("Cigar op=%s\n", op.name());
-					// throw e ;
-					// }
 
 					if ((c1 == c2 && c1 != 15 && c2 != 15) || c1 == 0) {
 						// a match
