@@ -15,4 +15,7 @@ public class Slice {
 	public Map<Integer, Block> external;
 	
 	public int offset = -1 ;
+	public long containerOffset = -1 ;
+	public int size = -1;
+	public int index = -1;
 }

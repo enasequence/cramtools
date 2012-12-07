@@ -320,8 +320,9 @@ public class Bam2Cram {
 							params.preserveReadNames);
 					records.clear();
 					long len = ReadWrite.writeContainer(container, os);
+					container.offset = offset ;
 					if (index != null)
-						index.addContainer(container, offset);
+						index.addContainer(container);
 					offset += len;
 
 					log.info(String

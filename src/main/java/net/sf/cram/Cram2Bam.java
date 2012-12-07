@@ -115,7 +115,10 @@ public class Cram2Bam {
 			}
 		}
 
-		CramHeader cramHeader = ReadWrite.readCramHeader(is);
+		long offset = 0;
+		CountingInputStream cis = new CountingInputStream(is);
+		CramHeader cramHeader = ReadWrite.readCramHeader(cis);
+		offset = cis.getCount() ;
 
 		List<Index.Entry> entries = null;
 		if (!params.locations.isEmpty() && params.cramFile != null) {
@@ -180,6 +183,7 @@ public class Cram2Bam {
 				SeekableStream ss = (SeekableStream) is;
 				Entry entry = entries.get(0);
 				ss.seek(entry.offset);
+				offset = entry.offset ;
 			} else
 				throw new RuntimeException(
 						"The input stream does not support random access.");
@@ -202,7 +206,10 @@ public class Cram2Bam {
 			Container c = null;
 			try {
 				time = System.nanoTime();
-				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+				cis = new CountingInputStream(is) ;
+				c = ReadWrite.readContainer(cramHeader.samFileHeader, cis);
+				c.offset = offset ;
+				offset += cis.getCount() ;
 				readTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				break;

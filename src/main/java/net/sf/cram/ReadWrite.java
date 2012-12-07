@@ -84,8 +84,8 @@ public class ReadWrite {
 		os.write(h.id);
 
 		long len = writeContainer(h.samFileHeader, os);
-		
-		return 4+1+1+20+len ;
+
+		return 4 + 1 + 1 + 20 + len;
 	}
 
 	public static CramHeader readCramHeader(InputStream is) throws IOException {
@@ -108,7 +108,7 @@ public class ReadWrite {
 	private static void writeBlock(Block b, OutputStream os) throws IOException {
 
 		log.debug("WRITING BLOCK: " + b.toString());
-		
+
 		b.rawContentSize = b.content.length;
 		b.compressedContentSize = b.rawContentSize;
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
@@ -218,13 +218,14 @@ public class ReadWrite {
 
 	private static Slice readMappedSlice(LinkedList<Block> blocks)
 			throws IOException {
+		Slice s = new Slice();
+
 		Block b = blocks.removeFirst();
 
 		if (b.contentType != BlockContentType.MAPPED_SLICE)
 			throw new RuntimeException("Unknown slice content type: "
 					+ b.contentType.name());
 
-		Slice s = new Slice();
 		s.contentType = b.contentType;
 		ByteBuffer buf = ByteBuffer.wrap(b.content);
 		s.sequenceId = ByteBufferUtils.readUnsignedITF8(buf);
@@ -310,7 +311,7 @@ public class ReadWrite {
 			ByteBufferUtils.writeUnsignedITF8(c.h.tMap.size(), mapBuf);
 			for (Integer eKey : c.h.tMap.keySet()) {
 				ByteBufferUtils.writeUnsignedITF8(eKey, mapBuf);
-				
+
 				EncodingParams params = c.h.tMap.get(eKey);
 				mapBuf.put((byte) (0xFF & params.id.ordinal()));
 				ByteBufferUtils.writeUnsignedITF8(params.params.length, mapBuf);
@@ -405,7 +406,7 @@ public class ReadWrite {
 			int mapSize = ByteBufferUtils.readUnsignedITF8(buf);
 			h.tMap = new TreeMap<Integer, EncodingParams>();
 			for (int i = 0; i < mapSize; i++) {
-				int key = ByteBufferUtils.readUnsignedITF8(buf) ;
+				int key = ByteBufferUtils.readUnsignedITF8(buf);
 
 				EncodingID id = EncodingID.values()[buf.get()];
 				int paramLen = ByteBufferUtils.readUnsignedITF8(buf);
@@ -450,6 +451,9 @@ public class ReadWrite {
 		c.landmarks = new int[landmarks.size()];
 		for (int i = 0; i < c.landmarks.length; i++)
 			c.landmarks[i] = landmarks.get(i);
+		
+		c.containerByteSize = baos.size() ;
+		calculateSliceOffsetsAndSizes(c) ;
 
 		ByteBuffer buf = ByteBuffer.allocate(1024);
 		ByteBufferUtils.writeUnsignedITF8(baos.size(), buf);
@@ -473,8 +477,8 @@ public class ReadWrite {
 
 		log.debug("CONTAINER WRITTEN: " + c.toString());
 		c.writeTime = time2 - time1;
-		
-		return header.length + baos.size() ;
+
+		return header.length + baos.size();
 	}
 
 	public static Container readContainer(SAMFileHeader samFileHeader,
@@ -514,13 +518,26 @@ public class ReadWrite {
 		}
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
+		
+		calculateSliceOffsetsAndSizes(c) ;
 
 		long time2 = System.nanoTime();
 
 		log.debug("READ CONTAINER: " + c.toString());
 		c.readTime = time2 - time1;
-		
+
 		return c;
+	}
+	
+	private static void calculateSliceOffsetsAndSizes (Container c) {
+		for (int i = 0; i < c.slices.length - 1; i++) {
+			Slice s = c.slices[i];
+			s.offset = c.landmarks[i];
+			s.size = c.landmarks[i + 1] - s.offset;
+		}
+		Slice lastSlice = c.slices[c.slices.length - 1];
+		lastSlice.offset = c.landmarks[c.landmarks.length - 1];
+		lastSlice.size = c.containerByteSize - lastSlice.offset;
 	}
 
 	private static long writeContainer(SAMFileHeader samFileHeader,
@@ -539,8 +556,8 @@ public class ReadWrite {
 
 		os.write(bytes);
 		os.write(baos.getBuffer(), 0, baos.size());
-		
-		return bytes.length + baos.size() ;
+
+		return bytes.length + baos.size();
 	}
 
 	private static SAMFileHeader readSAMFileHeader(String id, InputStream is)

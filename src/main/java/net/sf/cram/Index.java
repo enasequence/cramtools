@@ -18,14 +18,14 @@ public class Index {
 		this.os = os;
 	}
 
-	public void addContainer(Container c, long offset) throws IOException {
+	public void addContainer(Container c) throws IOException {
 		int i = 0;
 		for (Slice s : c.slices) {
 			Entry e = new Entry();
 			e.sequenceId = c.sequenceId;
 			e.alignmentStart = s.alignmentStart;
 			e.nofRecords = s.nofRecords;
-			e.offset = offset;
+			e.offset = c.offset;
 			e.slice = i++;
 
 			String string = e.toString();
