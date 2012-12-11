@@ -197,6 +197,8 @@ public class CRAMIndexer {
          * @param rec The BAM record. Requires rec.getFileSource() is non-null.
          */
         public void processAlignment(Slice slice) {
+        	
+        	System.out.printf("%d\t%d\t%d\t%d\n", slice.alignmentStart, slice.alignmentSpan, slice.offset, slice.containerOffset);
 
             // metadata
             indexStats.recordMetaData(slice);
@@ -240,7 +242,8 @@ public class CRAMIndexer {
             // process chunks
 
             final long chunkStart = (slice.containerOffset << 16) | slice.index;
-            final long chunkEnd = (slice.containerOffset << 16) | slice.index;
+            final long chunkEnd = ((slice.containerOffset << 16) | slice.index) + 1;
+            
             Chunk newChunk = new Chunk(chunkStart, chunkEnd) ;
 
             final List<Chunk> oldChunks = bin.getChunkList();

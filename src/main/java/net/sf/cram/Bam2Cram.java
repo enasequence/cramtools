@@ -241,6 +241,7 @@ public class Bam2Cram {
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.referenceFasta);
 
+		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize ;
 		ReferenceSequence sequence = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
 				params.maxContainerSize);
@@ -259,6 +260,7 @@ public class Bam2Cram {
 				log.info("Adding default read group.");
 				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
 						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
+				
 				readGroup
 						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
 				samFileReader.getFileHeader().addReadGroup(readGroup);
@@ -428,7 +430,7 @@ public class Bam2Cram {
 		int maxSliceSize = 10000;
 
 		@Parameter(names = { "--max-container-size" }, hidden = true)
-		int maxContainerSize = 100000;
+		int maxContainerSize = 10000;
 
 		@Parameter(names = { "--illumina-quality-score-binning" }, description = "Use NCBI binning scheme for quality scores.")
 		boolean illuminaQualityScoreBinning = false;

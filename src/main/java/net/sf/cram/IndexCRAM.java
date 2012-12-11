@@ -1,7 +1,9 @@
 package net.sf.cram;
 
+import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
@@ -75,29 +77,41 @@ public class IndexCRAM {
 		Log.setGlobalLogLevel(LogLevel.INFO);
 
 		File file = new File(args[0]);
-		File indexFile = new File(file.getAbsolutePath() + ".bai");
+		File cramIndexFile = new File(file.getAbsolutePath() + ".brai");
+		File bamIndexFile = new File(file.getAbsolutePath().replaceAll(
+				".cram$", "")
+				+ ".bai");
+
 		// InputStream is = new BufferedInputStream(new FileInputStream(file));
-		// IndexCRAM ic = new IndexCRAM(is, indexFile);
+		// IndexCRAM ic = new IndexCRAM(is, cramIndexFile);
 		//
 		// ic.run();
+		//
+		// CRAMIndexer.createAndWriteIndex(cramIndexFile, new
+		// File("c:/temp/brai.txt"), true) ;
+		// CRAMIndexer.createAndWriteIndex(bamIndexFile, new
+		// File("c:/temp/bai.txt"), true) ;
 
-//		CRAMFileReader reader = new CRAMFileReader(file, indexFile,
-//				ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(
-//						args[1])));
-		SAMFileReader reader = new SAMFileReader(file, indexFile) ;
+		 CRAMFileReader reader = new CRAMFileReader(file, cramIndexFile,
+		 ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(
+		 args[1])));
+//		SAMFileReader reader = new SAMFileReader(file, bamIndexFile);
 
-		int position = 63693735;
-		query(reader, position);
-		
-		int minPos = 1;
-		int maxPos = 100000000;
-		Random random = new Random();
-		for (int i = 0; i < 10; i++) 
-			query(reader, random.nextInt(maxPos - minPos) + minPos);
+		 int position = 63693735;
+//		int position = 62965418;
+		for (int i = position; i < position + 10; i++)
+			query(reader, i);
+
+//		int minPos = 1;
+//		int maxPos = 100000000;
+//		Random random = new Random();
+//		for (int i = 0; i < 10; i++)
+//			query(reader, random.nextInt(maxPos - minPos) + minPos);
 	}
 
-	private static void query(SAMFileReader reader, int position) {
-		CloseableIterator<SAMRecord> iterator = reader.queryAlignmentStart("20", position);
+	private static void query(CRAMFileReader reader, int position) {
+		CloseableIterator<SAMRecord> iterator = reader.queryAlignmentStart(
+				"20", position);
 
 		System.out.println("Query: " + position);
 		SAMRecord record = null;
@@ -106,6 +120,8 @@ public class IndexCRAM {
 			record = iterator.next();
 			if (record.getAlignmentStart() >= position)
 				break;
+			else
+				record = null;
 			overhead++;
 		}
 		if (record == null)
