@@ -451,12 +451,12 @@ public class ReadWrite {
 		c.landmarks = new int[landmarks.size()];
 		for (int i = 0; i < c.landmarks.length; i++)
 			c.landmarks[i] = landmarks.get(i);
-		
-		c.containerByteSize = baos.size() ;
-		calculateSliceOffsetsAndSizes(c) ;
+
+		c.containerByteSize = baos.size();
+		calculateSliceOffsetsAndSizes(c);
 
 		ByteBuffer buf = ByteBuffer.allocate(1024);
-		ByteBufferUtils.writeUnsignedITF8(baos.size(), buf);
+		ByteBufferUtils.writeUnsignedITF8(c.containerByteSize, buf);
 		ByteBufferUtils.writeUnsignedITF8(c.sequenceId, buf);
 		ByteBufferUtils.writeUnsignedITF8(c.alignmentStart, buf);
 		ByteBufferUtils.writeUnsignedITF8(c.alignmentSpan, buf);
@@ -486,13 +486,10 @@ public class ReadWrite {
 		return readContainer(samFileHeader, is, 0, Integer.MAX_VALUE);
 	}
 
-	public static Container readContainer(SAMFileHeader samFileHeader,
-			InputStream is, int fromBlock, int howManySlices)
+	public static Container readContainerHeader(InputStream is)
 			throws IOException {
-
-		long time1 = System.nanoTime();
 		Container c = new Container();
-		int containerByteSize = ByteBufferUtils.readUnsignedITF8(is);
+		c.containerByteSize = ByteBufferUtils.readUnsignedITF8(is);
 		c.sequenceId = ByteBufferUtils.readUnsignedITF8(is);
 		c.alignmentStart = ByteBufferUtils.readUnsignedITF8(is);
 		c.alignmentSpan = ByteBufferUtils.readUnsignedITF8(is);
@@ -501,6 +498,16 @@ public class ReadWrite {
 		c.landmarks = new int[ByteBufferUtils.readUnsignedITF8(is)];
 		for (int i = 0; i < c.landmarks.length; i++)
 			c.landmarks[i] = ByteBufferUtils.readUnsignedITF8(is);
+
+		return c;
+	}
+
+	public static Container readContainer(SAMFileHeader samFileHeader,
+			InputStream is, int fromBlock, int howManySlices)
+			throws IOException {
+
+		long time1 = System.nanoTime();
+		Container c = readContainerHeader(is);
 
 		if (fromBlock > 0)
 			is.skip(c.landmarks[fromBlock]);
@@ -518,8 +525,8 @@ public class ReadWrite {
 		}
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
-		
-		calculateSliceOffsetsAndSizes(c) ;
+
+		calculateSliceOffsetsAndSizes(c);
 
 		long time2 = System.nanoTime();
 
@@ -528,8 +535,8 @@ public class ReadWrite {
 
 		return c;
 	}
-	
-	private static void calculateSliceOffsetsAndSizes (Container c) {
+
+	private static void calculateSliceOffsetsAndSizes(Container c) {
 		for (int i = 0; i < c.slices.length - 1; i++) {
 			Slice s = c.slices[i];
 			s.offset = c.landmarks[i];

@@ -33,6 +33,7 @@ public class SAMIterator implements SAMRecordIterator {
 	private CramNormalizer normalizer;
 	private byte[] refs;
 	private int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+	private Container container;
 
 	public SAMIterator(InputStream is,
 			ReferenceSequenceFile referenceSequenceFile) throws IOException {
@@ -54,9 +55,9 @@ public class SAMIterator implements SAMRecordIterator {
 		records.clear();
 		recordCounter = 0;
 
-		Container c = null;
+		container = null;
 		try {
-			c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+			container = ReadWrite.readContainer(cramHeader.samFileHeader, is);
 		} catch (EOFException e) {
 			return;
 		}
@@ -64,26 +65,26 @@ public class SAMIterator implements SAMRecordIterator {
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		try {
 			cramRecords.clear();
-			BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader,
+			BLOCK_PROTO.getRecords(container.h, container, cramHeader.samFileHeader,
 					cramRecords);
 		} catch (EOFException e) {
 			throw e;
 		}
 
-		if (c.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+		if (container.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 			refs = new byte[] {};
-		} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
+		} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
 			SAMSequenceRecord sequence = cramHeader.samFileHeader
-					.getSequence(c.sequenceId);
+					.getSequence(container.sequenceId);
 			ReferenceSequence referenceSequence = referenceSequenceFile
 					.getSequence(sequence.getSequenceName());
 			refs = referenceSequence.getBases();
-			prevSeqId = c.sequenceId;
+			prevSeqId = container.sequenceId;
 		}
 
 		long time1 = System.nanoTime();
 
-		normalizer.normalize(cramRecords, true, refs, c.alignmentStart);
+		normalizer.normalize(cramRecords, true, refs, container.alignmentStart);
 		long time2 = System.nanoTime();
 
 		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
@@ -101,10 +102,10 @@ public class SAMIterator implements SAMRecordIterator {
 		}
 		log.info(String.format(
 				"CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
-				c.readTime / 1000000, c.parseTime / 1000000, c2sTime / 1000000,
+				container.readTime / 1000000, container.parseTime / 1000000, c2sTime / 1000000,
 				(time2 - time1) / 1000000));
 	}
-
+	
 	@Override
 	public boolean hasNext() {
 		if (recordCounter + 1 >= records.size()) {

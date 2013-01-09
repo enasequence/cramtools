@@ -9,6 +9,7 @@ import java.io.InputStream;
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.SAMIterator;
+import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.util.CloseableIterator;
@@ -38,11 +39,11 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 		if (file == null)
 			getIterator();
 	}
-	
+
 	public CRAMFileReader(File bamFile, File indexFile,
 			ReferenceSequenceFile referenceSequenceFile) {
-		this.file = bamFile ;
-		this.mIndexFile = indexFile ;
+		this.file = bamFile;
+		this.mIndexFile = indexFile;
 		this.referenceSequenceFile = referenceSequenceFile;
 
 		if (file == null)
@@ -106,31 +107,6 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 								getFileHeader().getSequenceDictionary());
 		}
 		return mIndex;
-
-		// SeekableStream ss = null;
-		// BAMIndex index = null ;
-		// if (file != null)
-		// try {
-		// ss = new SeekableFileStream(file);
-		// index = new CachingBAMFileIndex(file,
-		// header.samFileHeader.getSequenceDictionary()) ;
-		// } catch (FileNotFoundException e) {
-		// throw new RuntimeException(
-		// "Failed to open file for random access: "
-		// + file.getAbsolutePath(), e);
-		// }
-		//
-		// if (ss == null && is != null && is instanceof SeekableStream) {
-		// ss = (SeekableStream) is;
-		// index = new CachingBAMFileIndex(indexStream,
-		// header.samFileHeader.getSequenceDictionary()) ;
-		// }
-		//
-		// if (ss == null || index == null)
-		// throw new RuntimeException(
-		// "Random access is required but cannot be obtain.");
-		//
-		// return index;
 	}
 
 	@Override
@@ -193,8 +169,8 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 		return null;
 	}
-	
-	private static CloseableIterator<SAMRecord> emptyIterator  = new CloseableIterator<SAMRecord>() {
+
+	private static CloseableIterator<SAMRecord> emptyIterator = new CloseableIterator<SAMRecord>() {
 
 		@Override
 		public boolean hasNext() {
@@ -215,7 +191,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 		public void close() {
 		}
 	};
-	
+
 	@Override
 	public CloseableIterator<SAMRecord> queryAlignmentStart(String sequence,
 			int start) {
@@ -232,9 +208,9 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 			filePointers = fileSpan != null ? fileSpan.toCoordinateArray()
 					: null;
 		}
-		
-		if (filePointers == null || filePointers.length == 0) 
-			return emptyIterator ; 
+
+		if (filePointers == null || filePointers.length == 0)
+			return emptyIterator;
 
 		SeekableStream s = null;
 		if (file != null) {
@@ -245,22 +221,28 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 			}
 		} else if (is instanceof SeekableStream)
 			s = (SeekableStream) is;
-		
 
 		SAMIterator it = null;
 		try {
-			s.seek(0) ;
+			s.seek(0);
 			it = new SAMIterator(s, referenceSequenceFile);
 		} catch (IOException e) {
 			throw new RuntimeEOFException(e);
 		}
 
-		long offset = filePointers[0] >>> 16;
-		int sliceOffset = (int) ((filePointers[0] <<48) >>> 48);
-		try {
-			s.seek(offset);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		for (int i = 0; i < filePointers.length; i += 2) {
+			long offset = filePointers[i] >>> 16;
+			int sliceOffset = (int) ((filePointers[i] << 48) >>> 48);
+			try {
+				s.seek(offset);
+				Container c = ReadWrite.readContainerHeader(s);
+				if (c.alignmentStart + c.alignmentSpan > start) {
+					s.seek(offset);
+					break;
+				}
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		return it;
@@ -268,8 +250,28 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	@Override
 	public CloseableIterator<SAMRecord> queryUnmapped() {
-		// TODO Auto-generated method stub
-		return null;
+		final long startOfLastLinearBin = getIndex().getStartOfLastLinearBin();
+		
+		SeekableStream s = null;
+		if (file != null) {
+			try {
+				s = new SeekableFileStream(file);
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException(e);
+			}
+		} else if (is instanceof SeekableStream)
+			s = (SeekableStream) is;
+		
+		SAMIterator it = null;
+		try {
+			s.seek(0);
+			it = new SAMIterator(s, referenceSequenceFile);
+			s.seek(startOfLastLinearBin) ;
+		} catch (IOException e) {
+			throw new RuntimeEOFException(e);
+		}
+		
+		return it;
 	}
 
 	@Override

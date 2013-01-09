@@ -1,11 +1,10 @@
 package net.sf.cram;
 
-import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.BitSet;
 import java.util.Random;
 
 import net.sf.cram.ReadWrite.CramHeader;
@@ -17,7 +16,6 @@ import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CRAMFileReader;
 import net.sf.samtools.CRAMIndexer;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 
@@ -74,39 +72,35 @@ public class IndexCRAM {
 	}
 
 	public static void main(String[] args) throws IOException {
-		Log.setGlobalLogLevel(LogLevel.INFO);
+		Log.setGlobalLogLevel(LogLevel.ERROR);
 
 		File file = new File(args[0]);
 		File cramIndexFile = new File(file.getAbsolutePath() + ".brai");
-		File bamIndexFile = new File(file.getAbsolutePath().replaceAll(
-				".cram$", "")
-				+ ".bai");
 
 		// InputStream is = new BufferedInputStream(new FileInputStream(file));
 		// IndexCRAM ic = new IndexCRAM(is, cramIndexFile);
 		//
 		// ic.run();
 		//
-		// CRAMIndexer.createAndWriteIndex(cramIndexFile, new
-		// File("c:/temp/brai.txt"), true) ;
+		// CRAMIndexer.createAndWriteIndex(cramIndexFile,
+		// new File(cramIndexFile.getAbsolutePath() + ".txt"), true);
 		// CRAMIndexer.createAndWriteIndex(bamIndexFile, new
 		// File("c:/temp/bai.txt"), true) ;
 
-		 CRAMFileReader reader = new CRAMFileReader(file, cramIndexFile,
-		 ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(
-		 args[1])));
-//		SAMFileReader reader = new SAMFileReader(file, bamIndexFile);
+		int position = 63693735;
+		CRAMFileReader reader = new CRAMFileReader(file, cramIndexFile,
+				ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(
+						args[1])));
 
-		 int position = 63693735;
-//		int position = 62965418;
-		for (int i = position; i < position + 10; i++)
-			query(reader, i);
+		position = 62965418;
+		position = 13627257;
+		query(reader, position);
 
-//		int minPos = 1;
-//		int maxPos = 100000000;
-//		Random random = new Random();
-//		for (int i = 0; i < 10; i++)
-//			query(reader, random.nextInt(maxPos - minPos) + minPos);
+		int minPos = 1;
+		int maxPos = 100000000;
+		Random random = new Random();
+		for (int i = 0; i < 10; i++)
+			query(reader, random.nextInt(maxPos - minPos) + minPos);
 	}
 
 	private static void query(CRAMFileReader reader, int position) {

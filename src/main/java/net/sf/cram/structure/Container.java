@@ -1,6 +1,7 @@
 package net.sf.cram.structure;
 
 public class Container {
+	public int bytes = -1 ;
 	public int sequenceId = -1;
 	public int alignmentStart = -1;
 	public int alignmentSpan = -1;

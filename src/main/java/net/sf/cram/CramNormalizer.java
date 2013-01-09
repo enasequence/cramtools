@@ -2,9 +2,7 @@ package net.sf.cram;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
@@ -30,7 +28,8 @@ public class CramNormalizer {
 		this.header = header;
 	}
 
-	public void normalize(ArrayList<CramRecord> records, boolean resetPairing, byte[] ref, int alignmentStart) {
+	public void normalize(ArrayList<CramRecord> records, boolean resetPairing,
+			byte[] ref, int alignmentStart) {
 		int startCounter = readCounter;
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
@@ -235,6 +234,29 @@ public class CramNormalizer {
 				ReadBase rb = (ReadBase) v;
 				bases[v.getPosition() - 1] = rb.getBase();
 				break;
+			default:
+				break;
+			}
+		}
+
+		for (int i = 0; i < bases.length; i++) {
+			switch (bases[i]) {
+			case 'a':
+				bases[i] = 'A';
+				break;
+			case 'c':
+				bases[i] = 'C';
+				break;
+			case 'g':
+				bases[i] = 'G';
+				break;
+			case 't':
+				bases[i] = 'T';
+				break;
+			case 'n':
+				bases[i] = 'N';
+				break;
+
 			default:
 				break;
 			}

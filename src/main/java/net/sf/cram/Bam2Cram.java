@@ -241,7 +241,7 @@ public class Bam2Cram {
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.referenceFasta);
 
-		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize ;
+		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
 		ReferenceSequence sequence = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
 				params.maxContainerSize);
@@ -250,6 +250,7 @@ public class Bam2Cram {
 		{
 			String seqName = null;
 			SAMRecord samRecord = iterator.next();
+			if (samRecord == null) throw new RuntimeException("No records found.");
 			samRecords.add(samRecord);
 			seqName = samRecord.getReferenceName();
 			prevSeqId = samRecord.getReferenceIndex();
@@ -260,19 +261,22 @@ public class Bam2Cram {
 				log.info("Adding default read group.");
 				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
 						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
-				
+
 				readGroup
 						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
 				samFileReader.getFileHeader().addReadGroup(readGroup);
 			}
 
-			sequence = referenceSequenceFile.getSequence(seqName);
+			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
+				sequence = null;
+			else
+				sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
 		QualityScorePreservation preservation = new QualityScorePreservation(
 				params.qsSpec);
 
-		byte[] ref = sequence.getBases();
+		byte[] ref = sequence == null ? new byte[0] : sequence.getBases();
 
 		OutputStream os;
 		Index index = null;
@@ -308,6 +312,9 @@ public class Bam2Cram {
 				return;
 
 			SAMRecord samRecord = iterator.next();
+			if (samRecord == null)
+				// no more records
+				break ;
 			if (samRecord.getReferenceIndex() != prevSeqId
 					|| samRecords.size() >= params.maxContainerSize) {
 				if (!samRecords.isEmpty()) {
@@ -322,7 +329,7 @@ public class Bam2Cram {
 							params.preserveReadNames);
 					records.clear();
 					long len = ReadWrite.writeContainer(container, os);
-					container.offset = offset ;
+					container.offset = offset;
 					if (index != null)
 						index.addContainer(container);
 					offset += len;

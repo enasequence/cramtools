@@ -182,7 +182,7 @@ public class CRAMIndexer {
             // reg2bin has zero-based, half-open API
             final int alignmentStart = slice.alignmentStart-1 ;
             int alignmentEnd = slice.alignmentStart+slice.alignmentSpan-1 ;
-            if (alignmentEnd <= 0) {
+            if (alignmentEnd <= alignmentStart) {
                 // If alignment end cannot be determined (e.g. because this read is not really aligned),
                 // then treat this as a one base alignment for indexing purposes.
                 alignmentEnd = alignmentStart + 1;
