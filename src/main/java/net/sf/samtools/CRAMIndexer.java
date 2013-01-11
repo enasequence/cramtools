@@ -198,7 +198,7 @@ public class CRAMIndexer {
          */
         public void processAlignment(Slice slice) {
         	
-        	System.out.printf("%d\t%d\t%d\t%d\n", slice.alignmentStart, slice.alignmentSpan, slice.offset, slice.containerOffset);
+//        	System.out.printf("%d\t%d\t%d\t%d\n", slice.alignmentStart, slice.alignmentSpan, slice.offset, slice.containerOffset);
 
             // metadata
             indexStats.recordMetaData(slice);

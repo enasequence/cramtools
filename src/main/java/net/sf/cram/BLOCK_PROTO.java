@@ -58,7 +58,7 @@ public class BLOCK_PROTO {
 	private static Log log = Log.getInstance(BLOCK_PROTO.class);
 	public static int recordsPerSlice = 10000;
 
-	static List<CramRecord> getRecords(CompressionHeader h, Container c,
+	public static List<CramRecord> getRecords(CompressionHeader h, Container c,
 			SAMFileHeader fileHeader, ArrayList<CramRecord> records)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {

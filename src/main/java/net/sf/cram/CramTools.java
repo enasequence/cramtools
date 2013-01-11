@@ -26,6 +26,7 @@ import com.beust.jcommander.Parameters;
 public class CramTools {
 	public static final String CRAM2BAM_COMMAND = "bam";
 	public static final String BAM2CRAM_COMMAND = "cram";
+	public static final String INDEX_COMMAND = "index";
 
 	private static Log log = Log.getInstance(CramTools.class);
 
@@ -37,9 +38,11 @@ public class CramTools {
 
 		Cram2Bam.Params cram2BamParams = new Cram2Bam.Params();
 		Bam2Cram.Params bam2CramParams = new Bam2Cram.Params();
+		IndexCRAM.Params indexParams = new IndexCRAM.Params();
 
 		jc.addCommand(CRAM2BAM_COMMAND, cram2BamParams);
 		jc.addCommand(BAM2CRAM_COMMAND, bam2CramParams);
+		jc.addCommand(INDEX_COMMAND, indexParams);
 
 		jc.parse(args);
 
@@ -63,6 +66,8 @@ public class CramTools {
 			Cram2Bam.main(commandArgs);
 		else if (BAM2CRAM_COMMAND.equals(command))
 			Bam2Cram.main(commandArgs);
+		else if (INDEX_COMMAND.equals(command))
+			IndexCRAM.main(commandArgs);
 
 	}
 

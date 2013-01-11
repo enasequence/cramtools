@@ -15,6 +15,7 @@ import net.sf.picard.sam.SamFileValidator;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.picard.util.ProgressLogger;
+import net.sf.samtools.SAMIterator;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.SAMValidationError.Type;
 

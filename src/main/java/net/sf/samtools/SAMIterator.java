@@ -1,4 +1,4 @@
-package net.sf.cram;
+package net.sf.samtools;
 
 import java.io.BufferedInputStream;
 import java.io.EOFException;
@@ -8,16 +8,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
+import net.sf.cram.BLOCK_PROTO;
+import net.sf.cram.Cram2BamRecordFactory;
+import net.sf.cram.CramNormalizer;
+import net.sf.cram.CramRecord;
+import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.Utils;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader.SortOrder;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.util.RuntimeEOFException;
 
 public class SAMIterator implements SAMRecordIterator {
@@ -35,6 +40,17 @@ public class SAMIterator implements SAMRecordIterator {
 	private int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 	private Container container;
 
+	private ValidationStringency validationStringency = ValidationStringency.SILENT;
+	public ValidationStringency getValidationStringency() {
+		return validationStringency;
+	}
+
+	public void setValidationStringency(ValidationStringency validationStringency) {
+		this.validationStringency = validationStringency;
+	}
+
+	private long samRecordIndex;
+
 	public SAMIterator(InputStream is,
 			ReferenceSequenceFile referenceSequenceFile) throws IOException {
 		this.is = is;
@@ -43,7 +59,7 @@ public class SAMIterator implements SAMRecordIterator {
 		records = new ArrayList<SAMRecord>(100000);
 		normalizer = new CramNormalizer(cramHeader.samFileHeader);
 	}
-
+	
 	public CramHeader getCramHeader() {
 		return cramHeader;
 	}
@@ -65,8 +81,8 @@ public class SAMIterator implements SAMRecordIterator {
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		try {
 			cramRecords.clear();
-			BLOCK_PROTO.getRecords(container.h, container, cramHeader.samFileHeader,
-					cramRecords);
+			BLOCK_PROTO.getRecords(container.h, container,
+					cramHeader.samFileHeader, cramRecords);
 		} catch (EOFException e) {
 			throw e;
 		}
@@ -98,14 +114,24 @@ public class SAMIterator implements SAMRecordIterator {
 			c2sTime += System.nanoTime() - time;
 			if (!r.segmentUnmapped)
 				Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
+
+			s.setValidationStringency(validationStringency);
+
+			if (validationStringency != ValidationStringency.SILENT) {
+				final List<SAMValidationError> validationErrors = s.isValid();
+				SAMUtils.processValidationErrors(validationErrors,
+						samRecordIndex, validationStringency);
+			}
+
 			records.add(s);
 		}
+
 		log.info(String.format(
 				"CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
-				container.readTime / 1000000, container.parseTime / 1000000, c2sTime / 1000000,
-				(time2 - time1) / 1000000));
+				container.readTime / 1000000, container.parseTime / 1000000,
+				c2sTime / 1000000, (time2 - time1) / 1000000));
 	}
-	
+
 	@Override
 	public boolean hasNext() {
 		if (recordCounter + 1 >= records.size()) {
