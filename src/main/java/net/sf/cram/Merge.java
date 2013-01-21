@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.TreeMap;
 
 import net.sf.picard.io.IoUtil;
 import net.sf.samtools.BAMFileWriter;
@@ -26,7 +28,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
 
-public class View {
+public class Merge {
 
 	public static void usage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -34,7 +36,7 @@ public class View {
 		jc.usage(sb);
 
 		System.out.println("Version "
-				+ View.class.getPackage().getImplementationVersion());
+				+ Merge.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -62,6 +64,7 @@ public class View {
 
 		List<SAMFileReader> readers = new ArrayList<SAMFileReader>(
 				params.files.size());
+		List<String> ids = new ArrayList<String>(params.files.size());
 		StringBuffer mergeComment = new StringBuffer("Merged from:");
 		for (File file : params.files) {
 			IoUtil.assertFileIsReadable(file);
@@ -75,11 +78,7 @@ public class View {
 				System.setProperty("reference",
 						params.reference.getAbsolutePath());
 			SAMFileReader reader = new SAMFileReader(file, index);
-
-			// reader = new CRAMFileReader(new SingleSeekableStreamFactory(new
-			// BufferedInputStream(new FileInputStream(
-			// file))), new FileInputStreamFactory(file), params.reference,
-			// index);
+			ids.add(file.getName());
 
 			readers.add(reader);
 
@@ -112,16 +111,17 @@ public class View {
 			writer = new SAMFileWriterFactory().makeSAMWriter(header, true,
 					new BufferedOutputStream(System.out));
 
-		List<SAMRecordIterator> iterators = new ArrayList<SAMRecordIterator>(
-				readers.size());
+		List<String> noCollisionIds = resolveCollisions(ids) ;
+		List<RecordSource> sources = new ArrayList<RecordSource>(readers.size());
+		int i = 0;
 		for (SAMFileReader reader : readers) {
 			SAMRecordIterator it = reader.query(query.sequence, query.start,
 					query.end, false);
-			iterators.add(it);
+			sources.add(new RecordSource(noCollisionIds.get(i++), it));
 		}
 
 		MergedSAMRecordIterator mergedIterator = new MergedSAMRecordIterator(
-				iterators, header);
+				sources, header);
 		while (mergedIterator.hasNext()) {
 			writer.addAlignment(mergedIterator.next());
 		}
@@ -143,10 +143,51 @@ public class View {
 				throw e;
 		}
 	}
+	
+	private static List<String> resolveCollisions (List<String> list) {
+		
+		ArrayList<String> result = new ArrayList<String>(list.size()) ;
+		
+		// count list entries:
+		Map<String, Integer> idCountMap = new TreeMap<String, Integer>();
+		for (String id : list) {
+			if (idCountMap.containsKey(id)) {
+				idCountMap.put(id,
+						((Integer) idCountMap.get(id)).intValue() + 1);
+			} else
+				idCountMap.put(id, 1);
+		}
+
+		// append entries with their number of occurrence except for singletons:
+		for (int i = list.size() - 1; i >= 0; i--) {
+			String id = list.get(i);
+			int count = idCountMap.get(id);
+			if (count > 1) {
+				result.set(i, id + String.valueOf(count));
+				idCountMap.put(id, --count);
+			}
+		}
+		
+		return result ;
+	}
+
+	private static class RecordSource {
+		private String id;
+		private SAMRecordIterator it;
+
+		public RecordSource() {
+		}
+
+		public RecordSource(String id, SAMRecordIterator it) {
+			this.id = id;
+			this.it = it;
+		}
+
+	}
 
 	private static class MergedSAMRecordIterator implements SAMRecordIterator {
-
-		private List<SAMRecordIterator> iterators;
+		private char delim = '.';
+		private List<RecordSource> sources;
 		private SAMRecord nextRecord;
 		private SAMFileHeader header;
 		private PriorityQueue<SAMRecord> queue = new PriorityQueue<SAMRecord>(
@@ -164,17 +205,17 @@ public class View {
 
 				});
 
-		public MergedSAMRecordIterator(List<SAMRecordIterator> iterators,
+		public MergedSAMRecordIterator(List<RecordSource> sources,
 				SAMFileHeader header) {
-			this.iterators = iterators;
+			this.sources = sources;
 			this.header = header;
 			nextRecord = doNext();
 		}
 
 		@Override
 		public void close() {
-			for (SAMRecordIterator it : iterators)
-				it.close();
+			for (RecordSource it : sources)
+				it.it.close();
 		}
 
 		@Override
@@ -185,18 +226,18 @@ public class View {
 		private boolean milk() {
 			boolean hasMore = false;
 			int counter = 0;
-			for (SAMRecordIterator it : iterators) {
+			for (RecordSource source : sources) {
 				counter++;
+				SAMRecordIterator it = source.it;
 				if (it.hasNext()) {
 					SAMRecord record;
 					try {
 						record = (SAMRecord) it.next().clone();
-						record.setReadName(String.valueOf(counter) + "_"
+						record.setReadName(source.id + delim
 								+ record.getReadName());
 						queue.add(record);
 					} catch (CloneNotSupportedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						throw new RuntimeException(e);
 					}
 					hasMore = true;
 				}
@@ -289,7 +330,7 @@ public class View {
 		return header;
 	}
 
-	@Parameters(commandDescription = "CRAM to BAM conversion. ")
+	@Parameters(commandDescription = "Tool to merge CRAM or BAM files. ")
 	static class Params {
 
 		@Parameter(names = { "--reference-fasta-file" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")

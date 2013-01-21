@@ -27,6 +27,7 @@ public class CramTools {
 	public static final String CRAM2BAM_COMMAND = "bam";
 	public static final String BAM2CRAM_COMMAND = "cram";
 	public static final String INDEX_COMMAND = "index";
+	public static final String MERGE_COMMAND = "merge";
 
 	private static Log log = Log.getInstance(CramTools.class);
 
@@ -39,10 +40,12 @@ public class CramTools {
 		Cram2Bam.Params cram2BamParams = new Cram2Bam.Params();
 		Bam2Cram.Params bam2CramParams = new Bam2Cram.Params();
 		IndexCRAM.Params indexParams = new IndexCRAM.Params();
+		Merge.Params mergeParams = new Merge.Params();
 
 		jc.addCommand(CRAM2BAM_COMMAND, cram2BamParams);
 		jc.addCommand(BAM2CRAM_COMMAND, bam2CramParams);
 		jc.addCommand(INDEX_COMMAND, indexParams);
+		jc.addCommand(MERGE_COMMAND, mergeParams);
 
 		jc.parse(args);
 
@@ -68,6 +71,8 @@ public class CramTools {
 			Bam2Cram.main(commandArgs);
 		else if (INDEX_COMMAND.equals(command))
 			IndexCRAM.main(commandArgs);
+		else if (MERGE_COMMAND.equals(command))
+			Merge.main(commandArgs);
 
 	}
 

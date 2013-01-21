@@ -17,6 +17,9 @@ package net.sf.cram;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,6 +40,8 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTag;
 
 public class Utils {
@@ -389,7 +394,7 @@ public class Utils {
 		int nm = 0;
 		StringBuffer str = new StringBuffer();
 
-		int size = cigarElements.size(); 
+		int size = cigarElements.size();
 		for (i = y = 0, x = start; i < size; ++i) {
 			CigarElement ce = cigarElements.get(i);
 			int j, l = ce.getLength();
@@ -481,4 +486,52 @@ public class Utils {
 			return -(o1[1] - o2[1]);
 		}
 	};
+
+	public static void checkRefMD5(SAMSequenceDictionary d,
+			ReferenceSequenceFile refFile, boolean checkExistingMD5,
+			boolean failIfMD5Mismatch) throws NoSuchAlgorithmException {
+
+		for (SAMSequenceRecord r : d.getSequences()) {
+			ReferenceSequence sequence = refFile.getSequence(r
+					.getSequenceName());
+			if (!r.getAttributes().contains(SAMSequenceRecord.MD5_TAG)) {
+				String md5 = calculateMD5(sequence.getBases());
+				r.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+			} else {
+				if (checkExistingMD5) {
+					String existingMD5 = r.getAttribute(SAMSequenceRecord.MD5_TAG);
+					String md5 = calculateMD5(sequence.getBases());
+					if (!md5.equals(existingMD5)) {
+
+						String message = String
+								.format("For sequence %s the md5 %s does not match the actual md5 %s.",
+										r.getSequenceName(), existingMD5,
+										md5);
+						
+						if (failIfMD5Mismatch)
+							throw new RuntimeException(message);
+						else
+							log.warn(message);
+					}
+				}
+			}
+		}
+	}
+
+
+	public static String calculateMD5(byte[] data)
+			throws NoSuchAlgorithmException {
+		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
+		md5_MessageDigest.reset();
+		md5_MessageDigest.update(data);
+		return String.format("%032x",
+				new BigInteger(md5_MessageDigest.digest()));
+	}
+
+	public static void main(String[] args) throws NoSuchAlgorithmException {
+		System.out.println(calculateMD5("363".getBytes()));
+		System.out.println(calculateMD5("a".getBytes()));
+		System.out.println(calculateMD5("Ჾ蠇".getBytes()));
+		System.out.println(calculateMD5("jk8ssl".getBytes()));
+	}
 }

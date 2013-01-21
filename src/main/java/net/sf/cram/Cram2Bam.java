@@ -11,9 +11,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -118,7 +115,7 @@ public class Cram2Bam {
 		long offset = 0;
 		CountingInputStream cis = new CountingInputStream(is);
 		CramHeader cramHeader = ReadWrite.readCramHeader(cis);
-		offset = cis.getCount() ;
+		offset = cis.getCount();
 
 		List<Index.Entry> entries = null;
 		if (!params.locations.isEmpty() && params.cramFile != null) {
@@ -183,7 +180,7 @@ public class Cram2Bam {
 				SeekableStream ss = (SeekableStream) is;
 				Entry entry = entries.get(0);
 				ss.seek(entry.offset);
-				offset = entry.offset ;
+				offset = entry.offset;
 			} else
 				throw new RuntimeException(
 						"The input stream does not support random access.");
@@ -206,10 +203,10 @@ public class Cram2Bam {
 			Container c = null;
 			try {
 				time = System.nanoTime();
-				cis = new CountingInputStream(is) ;
+				cis = new CountingInputStream(is);
 				c = ReadWrite.readContainer(cramHeader.samFileHeader, cis);
-				c.offset = offset ;
-				offset += cis.getCount() ;
+				c.offset = offset;
+				offset += cis.getCount();
 				readTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				break;
@@ -267,7 +264,7 @@ public class Cram2Bam {
 					recordCount++;
 					continue;
 				}
-				
+
 				if (ref != null)
 					Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag,
 							params.calculateNmTag);

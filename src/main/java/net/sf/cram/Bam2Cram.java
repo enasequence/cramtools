@@ -250,10 +250,11 @@ public class Bam2Cram {
 		{
 			String seqName = null;
 			SAMRecord samRecord = iterator.next();
-			if (samRecord == null) throw new RuntimeException("No records found.");
-			samRecords.add(samRecord);
+			if (samRecord == null)
+				throw new RuntimeException("No records found.");
 			seqName = samRecord.getReferenceName();
 			prevSeqId = samRecord.getReferenceIndex();
+			samRecords.add(samRecord);
 
 			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
 					|| samFileReader.getFileHeader().getReadGroup(
@@ -314,7 +315,7 @@ public class Bam2Cram {
 			SAMRecord samRecord = iterator.next();
 			if (samRecord == null)
 				// no more records
-				break ;
+				break;
 			if (samRecord.getReferenceIndex() != prevSeqId
 					|| samRecords.size() >= params.maxContainerSize) {
 				if (!samRecords.isEmpty()) {
@@ -444,6 +445,9 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--preserve-read-names" }, description = "Preserve all read names.")
 		boolean preserveReadNames = false;
+
+		@Parameter(names = { "--lossless-quality-score", "-Q" }, description = "Preserve all quality scores. Overwrites '--lossless-quality-score'.")
+		boolean losslessQS = false;
 
 		@Parameter(names = { "--lossy-quality-score-spec", "-L" }, description = "A string specifying what quality scores should be preserved.")
 		String qsSpec = "";

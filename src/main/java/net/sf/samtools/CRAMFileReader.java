@@ -81,7 +81,6 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	@Override
 	void setSAMRecordFactory(SAMRecordFactory factory) {
-		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override

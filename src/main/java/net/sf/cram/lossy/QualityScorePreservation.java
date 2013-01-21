@@ -126,13 +126,13 @@ public class QualityScorePreservation {
 				p.baseCategories.add(BaseCategory.insertion());
 				p.treatment = readTreament(list);
 				break;
-//			case '_':
-//				p.treatment = readTreament(list);
-//				break;
-//			case '*':
-//				p.readCategory = ReadCategory.all();
-//				p.treatment = readTreament(list);
-//				break;
+			case '_':
+				p.treatment = readTreament(list);
+				break;
+			case '*':
+				p.readCategory = ReadCategory.all();
+				p.treatment = readTreament(list);
+				break;
 
 			default:
 				throw new RuntimeException("Uknown read or base category: "
@@ -145,61 +145,6 @@ public class QualityScorePreservation {
 
 		return p;
 	}
-
-	// // public static List<PreservationPolicy> policyList = new ArrayList<>();
-	// static {
-	// // these should be sorted by qs treatment from none to max!
-	//
-	// // M40
-	// PreservationPolicy c1 = new PreservationPolicy();
-	// c1.readCategory = ReadCategory.higher_then_mapping_score(0) ;
-	// c1.treatment = QualityScoreTreatment.preserve();
-	// policyList.add(c1);
-	//
-	// // // N8
-	// // PreservationPolicy c1 = new PreservationPolicy();
-	// // c1.baseCategories.add(BaseCategory.mismatch());
-	// // c1.treatment = QualityScoreTreatment.preserve();
-	// // policyList.add(c1);
-	//
-	// // // R8X10-R40X5-N40-U40
-	// // PreservationPolicy c1 = new PreservationPolicy();
-	// // c1.baseCategories.add(BaseCategory.lower_than_coverage(10));
-	// // c1.baseCategories.add(BaseCategory.match());
-	// // c1.treatment = QualityScoreTreatment.bin(8);
-	// // policyList.add(c1);
-	// //
-	// // PreservationPolicy c2 = new PreservationPolicy();
-	// // c1.baseCategories.add(BaseCategory.lower_than_coverage(5));
-	// // c1.baseCategories.add(BaseCategory.match());
-	// // c2.treatment = QualityScoreTreatment.bin(40);
-	// // policyList.add(c2);
-	// //
-	// // PreservationPolicy c3 = new PreservationPolicy();
-	// // c1.baseCategories.add(BaseCategory.mismatch());
-	// // c3.treatment = QualityScoreTreatment.bin(40);
-	// // policyList.add(c3);
-	// //
-	// // PreservationPolicy c4 = new PreservationPolicy();
-	// // c4.readCategory = ReadCategory.unplaced();
-	// // c4.treatment = QualityScoreTreatment.bin(40);
-	// // policyList.add(c4);
-	// }
-	// static {
-	// Collections.sort(policyList, new Comparator<PreservationPolicy>() {
-	//
-	// @Override
-	// public int compare(PreservationPolicy o1, PreservationPolicy o2) {
-	// QualityScoreTreatment t1 = o1.treatment;
-	// QualityScoreTreatment t2 = o2.treatment;
-	// int result = t2.type.ordinal() - t1.type.ordinal();
-	// if (result != 0)
-	// return result;
-	//
-	// return 0;
-	// }
-	// });
-	// }
 
 	private static final void applyBinning(byte[] scores) {
 		for (int i = 0; i < scores.length; i++)
@@ -221,6 +166,12 @@ public class QualityScorePreservation {
 	}
 
 	public void addQualityScores(SAMRecord s, CramRecord r, ReferenceTracks t) {
+		if (s.getBaseQualities() == SAMRecord.NULL_QUALS) {
+			r.setQualityScores(SAMRecord.NULL_QUALS) ;
+			r.forcePreserveQualityScores = false ;
+			return ;
+		}
+		
 		byte[] scores = new byte[s.getReadLength()];
 		Arrays.fill(scores, (byte) -1);
 		for (PreservationPolicy p : policyList)
@@ -258,6 +209,8 @@ public class QualityScorePreservation {
 		if (p.readCategory != null) {
 			boolean properRead = false;
 			switch (p.readCategory.type) {
+			case ALL:
+				properRead = true ;
 			case UNPLACED:
 				properRead = s.getReadUnmappedFlag();
 				break;
