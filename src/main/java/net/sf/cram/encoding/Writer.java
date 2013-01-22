@@ -200,16 +200,12 @@ public class Writer {
 			mqc.writeData(r.getMappingQuality());
 			if (r.forcePreserveQualityScores) {
 				qcArray.writeData(r.getQualityScores()) ;
-//				for (byte q : r.getQualityScores())
-//					qc.writeData(q);
 			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
 			if (r.forcePreserveQualityScores) {
 				qcArray.writeData(r.getQualityScores()) ;
-//				for (byte q : r.getQualityScores())
-//					qc.writeData(q);
 			}
 		}
 	}

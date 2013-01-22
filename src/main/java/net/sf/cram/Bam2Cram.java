@@ -274,20 +274,18 @@ public class Bam2Cram {
 				sequence = referenceSequenceFile.getSequence(seqName);
 		}
 
-		QualityScorePreservation preservation = new QualityScorePreservation(
-				params.qsSpec);
+		QualityScorePreservation preservation;
+		if (params.losslessQS)
+			preservation = new QualityScorePreservation("*40");
+		else
+			preservation = new QualityScorePreservation(params.qsSpec);
 
 		byte[] ref = sequence == null ? new byte[0] : sequence.getBases();
 
 		OutputStream os;
-		Index index = null;
 		if (params.outputCramFile != null) {
 			FileOutputStream fos = new FileOutputStream(params.outputCramFile);
 			os = new BufferedOutputStream(fos);
-			if (params.createIndex)
-				index = new Index(new GZIPOutputStream(
-						new BufferedOutputStream(new FileOutputStream(new File(
-								params.outputCramFile + ".crai")))));
 		} else {
 			log.warn("No output file, writint to STDOUT.");
 			os = System.out;
@@ -331,8 +329,6 @@ public class Bam2Cram {
 					records.clear();
 					long len = ReadWrite.writeContainer(container, os);
 					container.offset = offset;
-					if (index != null)
-						index.addContainer(container);
 					offset += len;
 
 					log.info(String
@@ -395,8 +391,6 @@ public class Bam2Cram {
 		iterator.close();
 		samFileReader.close();
 		os.close();
-		if (index != null)
-			index.close();
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
@@ -440,10 +434,7 @@ public class Bam2Cram {
 		@Parameter(names = { "--max-container-size" }, hidden = true)
 		int maxContainerSize = 10000;
 
-		@Parameter(names = { "--illumina-quality-score-binning" }, description = "Use NCBI binning scheme for quality scores.")
-		boolean illuminaQualityScoreBinning = false;
-
-		@Parameter(names = { "--preserve-read-names" }, description = "Preserve all read names.")
+		@Parameter(names = { "--preserve-read-names", "-n" }, description = "Preserve all read names.")
 		boolean preserveReadNames = false;
 
 		@Parameter(names = { "--lossless-quality-score", "-Q" }, description = "Preserve all quality scores. Overwrites '--lossless-quality-score'.")
@@ -467,7 +458,5 @@ public class Bam2Cram {
 		@Parameter(names = { "--input-is-sam" }, description = "Input is in SAM format.")
 		boolean inputIsSam = false;
 
-		@Parameter(names = { "--create-index" }, hidden = true, description = "Create index file.")
-		boolean createIndex = false;
 	}
 }

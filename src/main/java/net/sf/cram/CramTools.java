@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import net.sf.cram.index.CramIndexer;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 
@@ -39,7 +40,7 @@ public class CramTools {
 
 		Cram2Bam.Params cram2BamParams = new Cram2Bam.Params();
 		Bam2Cram.Params bam2CramParams = new Bam2Cram.Params();
-		IndexCRAM.Params indexParams = new IndexCRAM.Params();
+		CramIndexer.Params indexParams = new CramIndexer.Params();
 		Merge.Params mergeParams = new Merge.Params();
 
 		jc.addCommand(CRAM2BAM_COMMAND, cram2BamParams);
@@ -70,7 +71,7 @@ public class CramTools {
 		else if (BAM2CRAM_COMMAND.equals(command))
 			Bam2Cram.main(commandArgs);
 		else if (INDEX_COMMAND.equals(command))
-			IndexCRAM.main(commandArgs);
+			CramIndexer.main(commandArgs);
 		else if (MERGE_COMMAND.equals(command))
 			Merge.main(commandArgs);
 

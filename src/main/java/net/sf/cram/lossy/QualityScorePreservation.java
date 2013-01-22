@@ -211,6 +211,7 @@ public class QualityScorePreservation {
 			switch (p.readCategory.type) {
 			case ALL:
 				properRead = true ;
+				break ;
 			case UNPLACED:
 				properRead = s.getReadUnmappedFlag();
 				break;
@@ -247,7 +248,7 @@ public class QualityScorePreservation {
 				r.forcePreserveQualityScores = true;
 				break;
 			case DROP:
-				r.setReadBases(null);
+				r.setQualityScores(null) ;
 				r.forcePreserveQualityScores = false;
 				break;
 
