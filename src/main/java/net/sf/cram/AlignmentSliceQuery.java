@@ -3,7 +3,7 @@ package net.sf.cram;
 public class AlignmentSliceQuery {
 	public String sequence;
 	public int start;
-	public int end;
+	public int end=Integer.MAX_VALUE;
 
 	public AlignmentSliceQuery(String spec) {
 		String[] chunks = spec.split(":");

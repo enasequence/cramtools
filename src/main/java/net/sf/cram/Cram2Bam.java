@@ -15,7 +15,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.Index.Entry;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
@@ -24,6 +23,7 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMFileWriter;
+import net.sf.samtools.BAMIndexFactory;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
@@ -117,56 +117,8 @@ public class Cram2Bam {
 		CramHeader cramHeader = ReadWrite.readCramHeader(cis);
 		offset = cis.getCount();
 
-		List<Index.Entry> entries = null;
-		if (!params.locations.isEmpty() && params.cramFile != null) {
-			if (params.locations.size() > 1)
-				throw new RuntimeException("Only one location is supported.");
-
-			File indexFile = new File(params.cramFile.getAbsolutePath()
-					+ ".crai");
-			FileInputStream fis = new FileInputStream(indexFile);
-			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
-					fis));
-			BufferedInputStream bis = new BufferedInputStream(gis);
-			List<Index.Entry> full = Index.readIndex(gis);
-
-			entries = new LinkedList<Index.Entry>();
-			for (String location : params.locations) {
-				String[] chunks = location.split(":");
-				if (chunks.length != 2)
-					throw new RuntimeException("Invalid location: " + location);
-				String seq = chunks[0];
-				SAMSequenceRecord sequence = cramHeader.samFileHeader
-						.getSequence(seq);
-				if (sequence == null)
-					throw new RuntimeException("Sequence not found: " + seq);
-
-				chunks = chunks[1].split("-");
-				int start = 0, span = Integer.MAX_VALUE;
-				if (chunks.length == 0)
-					throw new RuntimeException("Invalid location: " + location);
-				if (chunks.length > 1)
-					start = Integer.valueOf(chunks[0]);
-				if (chunks.length == 2)
-					span = Integer.valueOf(chunks[1]) - start;
-				if (chunks.length > 2)
-					throw new RuntimeException("Invalid location: " + location);
-
-				entries.addAll(Index.find(full, sequence.getSequenceIndex(),
-						start, span));
-			}
-
-			if (entries.isEmpty()) {
-				log.warn("No records found.");
-				return;
-			}
-
-			bis.close();
-		} else
-			entries = new LinkedList<Index.Entry>();
-
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
-		samFileWriterFactory.setAsyncOutputBufferSize(100000);
+		samFileWriterFactory.setAsyncOutputBufferSize(10000);
 		samFileWriterFactory.setCreateIndex(false);
 		samFileWriterFactory.setCreateMd5File(false);
 		samFileWriterFactory.setUseAsyncIo(true);
@@ -174,16 +126,16 @@ public class Cram2Bam {
 		SAMFileWriter writer = createSAMFileWriter(params, cramHeader,
 				samFileWriterFactory);
 
-		if (!entries.isEmpty()) {
-			// position the stream for random access:
-			if (is instanceof SeekableStream) {
-				SeekableStream ss = (SeekableStream) is;
-				Entry entry = entries.get(0);
-				ss.seek(entry.offset);
-				offset = entry.offset;
-			} else
-				throw new RuntimeException(
-						"The input stream does not support random access.");
+		AlignmentSliceQuery location = null;
+		if (!params.locations.isEmpty() && params.cramFile != null
+				&& is instanceof SeekableStream) {
+			if (params.locations.size() > 1)
+				throw new RuntimeException("Only one location is supported.");
+			location = new AlignmentSliceQuery(
+					params.locations.get(0));
+			
+			skipToContainer(params.cramFile, cramHeader, (SeekableStream) is,
+					location);
 		}
 
 		long recordCount = 0;
@@ -193,7 +145,7 @@ public class Cram2Bam {
 		long samTime = 0;
 		long writeTime = 0;
 		long time = 0;
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(100000);
+		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(10000);
 
 		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader);
 
@@ -279,17 +231,6 @@ public class Cram2Bam {
 					break;
 			}
 
-			// if (!params.countOnly) {
-			// time = System.nanoTime();
-			// for (SAMRecord s : samRecords) {
-			// writer.addAlignment(s);
-			// if (params.outputFile == null && System.out.checkError())
-			// break;
-			// }
-			// sWriteTime += System.nanoTime() - time;
-			// writeTime += System.nanoTime() - time;
-			// }
-
 			log.info(String
 					.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
 							c.readTime / 1000000, c.parseTime / 1000000,
@@ -311,6 +252,76 @@ public class Cram2Bam {
 						readTime / 1000000000, parseTime / 1000000000,
 						normTime / 1000000000, samTime / 1000000000,
 						writeTime / 1000000000));
+	}
+
+	private static Container skipToContainer(File cramFile,
+			CramHeader cramHeader, SeekableStream cramFileInputStream,
+			AlignmentSliceQuery location) throws IOException {
+		Container c = null;
+		long[] filePointers = getFilePointers(cramFile, cramHeader,
+				cramFileInputStream, location, false);
+		if (filePointers.length == 0)
+			filePointers = getFilePointers(cramFile, cramHeader,
+					cramFileInputStream, location, true);
+
+		for (int i = 0; i < filePointers.length; i += 2) {
+			long offset = filePointers[i] >>> 16;
+			int sliceOffset = (int) ((filePointers[i] << 48) >>> 48);
+			try {
+				cramFileInputStream.seek(offset);
+				c = ReadWrite.readContainerHeader(cramFileInputStream);
+				if (c.alignmentStart + c.alignmentSpan > location.start) {
+					cramFileInputStream.seek(offset);
+					return c;
+				}
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		return c;
+	}
+
+	private static long[] getFilePointers(File cramFile, CramHeader cramHeader,
+			SeekableStream cramFileInputStream, AlignmentSliceQuery location,
+			boolean bai) throws IOException {
+		long[] filePointers;
+
+		if (bai) {
+			File indexFile = new File(cramFile.getAbsolutePath() + ".bai");
+			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(
+					indexFile,
+					cramHeader.samFileHeader.getSequenceDictionary(),
+					location.sequence, location.start, location.end);
+		} else {
+			File indexFile = new File(cramFile.getAbsolutePath() + ".crai");
+			FileInputStream fis = new FileInputStream(indexFile);
+			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
+					fis));
+			BufferedInputStream bis = new BufferedInputStream(gis);
+			List<Index.Entry> full = Index.readIndex(gis);
+
+			List<Index.Entry> entries = new LinkedList<Index.Entry>();
+			SAMSequenceRecord sequence = cramHeader.samFileHeader
+					.getSequence(location.sequence);
+			if (sequence == null)
+				throw new RuntimeException("Sequence not found: "
+						+ location.sequence);
+
+			entries.addAll(Index.find(full, sequence.getSequenceIndex(),
+					location.start, location.end - location.start));
+
+			bis.close();
+
+			filePointers = new long[entries.size() * 2];
+			int i = 0;
+			for (Index.Entry entry : entries) {
+				filePointers[i++] = entry.offset;
+				filePointers[i++] = entry.slice;
+			}
+		}
+
+		return filePointers;
 	}
 
 	private static SAMFileWriter createSAMFileWriter(Params params,

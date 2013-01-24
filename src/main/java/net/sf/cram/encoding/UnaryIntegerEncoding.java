@@ -11,7 +11,7 @@ import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class UnaryIntegerEncoding implements Encoding<Integer> {
-	public static final EncodingID ENCODING_ID = EncodingID.GOLOMB;
+	public static final EncodingID ENCODING_ID = EncodingID.UNARY;
 	private int offset;
 	private boolean stopBit;
 
