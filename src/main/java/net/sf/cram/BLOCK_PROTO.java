@@ -260,7 +260,7 @@ public class BLOCK_PROTO {
 
 		bos.close();
 		slice.coreBlock = new Block();
-		slice.coreBlock.content = bitBAOS.getBuffer();
+		slice.coreBlock.content = bitBAOS.toByteArray() ;
 		slice.coreBlock.contentType = BlockContentType.CORE;
 
 		slice.external = new HashMap<Integer, Block>();

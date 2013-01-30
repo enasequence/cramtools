@@ -126,16 +126,21 @@ public class Cram2Bam {
 		SAMFileWriter writer = createSAMFileWriter(params, cramHeader,
 				samFileWriterFactory);
 
+		Container c = null;
 		AlignmentSliceQuery location = null;
 		if (!params.locations.isEmpty() && params.cramFile != null
 				&& is instanceof SeekableStream) {
 			if (params.locations.size() > 1)
 				throw new RuntimeException("Only one location is supported.");
-			location = new AlignmentSliceQuery(
-					params.locations.get(0));
+			location = new AlignmentSliceQuery(params.locations.get(0));
+
+			c = skipToContainer(params.cramFile, cramHeader,
+					(SeekableStream) is, location);
 			
-			skipToContainer(params.cramFile, cramHeader, (SeekableStream) is,
-					location);
+			if (c == null) {
+				log.warn("Nothing found.") ;
+				return ;
+			}
 		}
 
 		long recordCount = 0;
@@ -152,17 +157,22 @@ public class Cram2Bam {
 		byte[] ref = null;
 		int prevSeqId = -1;
 		while (true) {
-			Container c = null;
 			try {
 				time = System.nanoTime();
-				cis = new CountingInputStream(is);
-				c = ReadWrite.readContainer(cramHeader.samFileHeader, cis);
-				c.offset = offset;
-				offset += cis.getCount();
+				// cis = new CountingInputStream(is);
+					c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+				// c.offset = offset;
+				// offset += cis.getCount();
 				readTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				break;
 			}
+
+			// for random access check if the sequence is the one look for:
+			if (location != null
+					&& cramHeader.samFileHeader.getSequence(location.sequence)
+							.getSequenceIndex() != c.sequenceId)
+				break;
 
 			if (params.countOnly && params.requiredFlags == 0
 					&& params.filteringFlags == 0) {
@@ -203,6 +213,11 @@ public class Cram2Bam {
 			long sWriteTime = 0;
 
 			for (CramRecord r : cramRecords) {
+				// check if the record ends before the query start:
+				if (location != null
+						&& r.getAlignmentStart() < location.start)
+					continue;
+
 				time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
 
@@ -228,6 +243,10 @@ public class Cram2Bam {
 				sWriteTime += System.nanoTime() - time;
 				writeTime += System.nanoTime() - time;
 				if (params.outputFile == null && System.out.checkError())
+					break;
+
+				// we got all the reads for random access:
+				if (location != null && location.end < s.getAlignmentStart())
 					break;
 			}
 
@@ -263,6 +282,9 @@ public class Cram2Bam {
 		if (filePointers.length == 0)
 			filePointers = getFilePointers(cramFile, cramHeader,
 					cramFileInputStream, location, true);
+		if (filePointers.length == 0) {
+			return null ;
+		}
 
 		for (int i = 0; i < filePointers.length; i += 2) {
 			long offset = filePointers[i] >>> 16;
@@ -285,39 +307,43 @@ public class Cram2Bam {
 	private static long[] getFilePointers(File cramFile, CramHeader cramHeader,
 			SeekableStream cramFileInputStream, AlignmentSliceQuery location,
 			boolean bai) throws IOException {
-		long[] filePointers;
+		long[] filePointers = new long[0];
 
 		if (bai) {
 			File indexFile = new File(cramFile.getAbsolutePath() + ".bai");
-			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(
-					indexFile,
-					cramHeader.samFileHeader.getSequenceDictionary(),
-					location.sequence, location.start, location.end);
+			if (indexFile.exists())
+				filePointers = BAMIndexFactory.SHARED_INSTANCE
+						.getBAMIndexPointers(indexFile,
+								cramHeader.samFileHeader
+										.getSequenceDictionary(),
+								location.sequence, location.start, location.end);
 		} else {
 			File indexFile = new File(cramFile.getAbsolutePath() + ".crai");
-			FileInputStream fis = new FileInputStream(indexFile);
-			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
-					fis));
-			BufferedInputStream bis = new BufferedInputStream(gis);
-			List<Index.Entry> full = Index.readIndex(gis);
+			if (indexFile.exists()) {
+				FileInputStream fis = new FileInputStream(indexFile);
+				GZIPInputStream gis = new GZIPInputStream(
+						new BufferedInputStream(fis));
+				BufferedInputStream bis = new BufferedInputStream(gis);
+				List<Index.Entry> full = Index.readIndex(gis);
 
-			List<Index.Entry> entries = new LinkedList<Index.Entry>();
-			SAMSequenceRecord sequence = cramHeader.samFileHeader
-					.getSequence(location.sequence);
-			if (sequence == null)
-				throw new RuntimeException("Sequence not found: "
-						+ location.sequence);
+				List<Index.Entry> entries = new LinkedList<Index.Entry>();
+				SAMSequenceRecord sequence = cramHeader.samFileHeader
+						.getSequence(location.sequence);
+				if (sequence == null)
+					throw new RuntimeException("Sequence not found: "
+							+ location.sequence);
 
-			entries.addAll(Index.find(full, sequence.getSequenceIndex(),
-					location.start, location.end - location.start));
+				entries.addAll(Index.find(full, sequence.getSequenceIndex(),
+						location.start, location.end - location.start));
 
-			bis.close();
+				bis.close();
 
-			filePointers = new long[entries.size() * 2];
-			int i = 0;
-			for (Index.Entry entry : entries) {
-				filePointers[i++] = entry.offset;
-				filePointers[i++] = entry.slice;
+				filePointers = new long[entries.size() * 2];
+				int i = 0;
+				for (Index.Entry entry : entries) {
+					filePointers[i++] = entry.offset;
+					filePointers[i++] = entry.slice;
+				}
 			}
 		}
 
