@@ -1,4 +1,4 @@
-package net.sf.cram;
+package net.sf.cram.select;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import net.sf.cram.AlignmentSliceQuery;
+import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
@@ -33,17 +35,13 @@ public class SamRecordComparision {
 	private int maxValueLen = 15;
 	private static Log log = Log.getInstance(SamRecordComparision.class);
 
-	public enum FIELD {
-		QNAME, FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN, SEQ, QUAL, TAG;
-	}
-
-	public EnumSet<FIELD> fields = EnumSet.allOf(FIELD.class);
+	public EnumSet<FIELD_TYPE> fields = EnumSet.allOf(FIELD_TYPE.class);
 	public Set<String> tagsToIgnore = new TreeSet<String>();
 	public Set<String> tagsToCompare = new TreeSet<String>();
 	public boolean compareTags = false;
 
 	public static class SamRecordDiscrepancy {
-		public FIELD field;
+		public FIELD_TYPE field;
 		public String tagId;
 		public long recordCounter;
 
@@ -53,7 +51,8 @@ public class SamRecordComparision {
 
 	}
 
-	public static Object getValue(SAMRecord record, FIELD field, String tagId) {
+	public static Object getValue(SAMRecord record, FIELD_TYPE field,
+			String tagId) {
 		if (field == null)
 			throw new IllegalArgumentException("Record field is null.");
 
@@ -93,8 +92,8 @@ public class SamRecordComparision {
 		}
 	}
 
-	public boolean compareFieldValue(SAMRecord r1, SAMRecord r2, FIELD field,
-			String tagId) {
+	public boolean compareFieldValue(SAMRecord r1, SAMRecord r2,
+			FIELD_TYPE field, String tagId) {
 		if (field == null)
 			throw new IllegalArgumentException("Record field is null.");
 
@@ -132,29 +131,6 @@ public class SamRecordComparision {
 		return false;
 	}
 
-	public static String toString(Object value) {
-		if (value == null)
-			return null;
-		if (value.getClass().isArray()) {
-
-			if (value instanceof long[])
-				return Arrays.toString((long[]) value);
-
-			if (value instanceof int[])
-				return Arrays.toString((int[]) value);
-
-			if (value instanceof short[])
-				return Arrays.toString((short[]) value);
-
-			if (value instanceof byte[])
-				return new String((byte[]) value);
-
-			// this will fail if it is a primitive array:
-			return Arrays.toString((Object[]) value);
-		} else
-			return value.toString();
-	}
-
 	private boolean compareTags(SAMRecord r1, SAMRecord r2, long recordCounter,
 			List<SamRecordDiscrepancy> list) {
 		if (!compareTags)
@@ -181,7 +157,7 @@ public class SamRecordComparision {
 			SamRecordDiscrepancy d = new SamRecordDiscrepancy();
 			d.record1 = r1;
 			d.record2 = r2;
-			d.field = FIELD.TAG;
+			d.field = FIELD_TYPE.TAG;
 			d.tagId = id;
 			d.recordCounter = recordCounter;
 			list.add(d);
@@ -201,7 +177,7 @@ public class SamRecordComparision {
 			SamRecordDiscrepancy d = new SamRecordDiscrepancy();
 			d.record1 = r1;
 			d.record2 = r2;
-			d.field = FIELD.TAG;
+			d.field = FIELD_TYPE.TAG;
 			d.tagId = id;
 			d.recordCounter = recordCounter;
 			list.add(d);
@@ -219,9 +195,9 @@ public class SamRecordComparision {
 			System.err.println(r1.getSAMString());
 			System.err.println(r2.getSAMString());
 		}
-		for (FIELD field : fields) {
+		for (FIELD_TYPE field : fields) {
 			String tagId = null;
-			if (field == FIELD.TAG) {
+			if (field == FIELD_TYPE.TAG) {
 				compareTags(r1, r2, recordCounter, list);
 			} else {
 				if (!compareFieldValue(r1, r2, field, tagId)) {
@@ -276,18 +252,19 @@ public class SamRecordComparision {
 	private static void createDiscrepancyTable(String tableName, Connection c)
 			throws SQLException {
 		System.out.println(tableName);
-		PreparedStatement ps = c.prepareStatement("CREATE TABLE "
-				+ tableName
-				+ "(counter INT PRIMARY KEY, field VARCHAR, tag VARCHAR, premature int, value1 VARCHAR, value2 VARCHAR, name1 VARCHAR, name2 VARCHAR, record1 VARCHAR, record2 VARCHAR);");
-		ps.executeUpdate() ;
+		PreparedStatement ps = c
+				.prepareStatement("CREATE TABLE "
+						+ tableName
+						+ "(counter INT PRIMARY KEY, field VARCHAR, tag VARCHAR, premature int, value1 VARCHAR, value2 VARCHAR, name1 VARCHAR, name2 VARCHAR, record1 VARCHAR, record2 VARCHAR);");
+		ps.executeUpdate();
 		c.commit();
 	}
 
 	private static void dbLog(String tableName,
 			Iterator<SamRecordDiscrepancy> it, Connection c)
 			throws SQLException {
-		PreparedStatement ps = c
-				.prepareStatement("INSERT INTO "+tableName+" VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+		PreparedStatement ps = c.prepareStatement("INSERT INTO " + tableName
+				+ " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 		while (it.hasNext()) {
 			SamRecordDiscrepancy d = it.next();
 			int column = 1;
@@ -300,10 +277,12 @@ public class SamRecordComparision {
 			String value2 = null;
 			switch (d.prematureEnd) {
 			case 0:
-				value1 = toString(getValue(d.record1, d.field, d.tagId));
+				value1 = SAMRecordField.toString(getValue(d.record1, d.field,
+						d.tagId));
 				ps.setString(column++, value1);
 
-				value2 = toString(getValue(d.record2, d.field, d.tagId));
+				value2 = SAMRecordField.toString(getValue(d.record2, d.field,
+						d.tagId));
 				ps.setString(column++, value2);
 
 				ps.setString(column++, d.record1.getReadName());
@@ -315,7 +294,8 @@ public class SamRecordComparision {
 			case 1:
 				ps.setString(column++, null);
 
-				value2 = toString(getValue(d.record2, FIELD.TAG, d.tagId));
+				value2 = SAMRecordField.toString(getValue(d.record2,
+						FIELD_TYPE.TAG, d.tagId));
 				ps.setString(column++, value2);
 
 				ps.setString(column++, null);
@@ -325,7 +305,8 @@ public class SamRecordComparision {
 				ps.setString(column++, d.record2.getSAMString());
 				break;
 			case 2:
-				value1 = toString(getValue(d.record1, FIELD.TAG, d.tagId));
+				value1 = SAMRecordField.toString(getValue(d.record1,
+						FIELD_TYPE.TAG, d.tagId));
 				ps.setString(column++, value1);
 
 				ps.setString(column++, null);
@@ -350,15 +331,19 @@ public class SamRecordComparision {
 	public void log(SamRecordDiscrepancy d, PrintStream ps) {
 		switch (d.prematureEnd) {
 		case 0:
-			if (d.field != FIELD.TAG) {
-				String value1 = toString(getValue(d.record1, d.field, null));
-				String value2 = toString(getValue(d.record2, d.field, null));
+			if (d.field != FIELD_TYPE.TAG) {
+				String value1 = SAMRecordField.toString(getValue(d.record1,
+						d.field, null));
+				String value2 = SAMRecordField.toString(getValue(d.record2,
+						d.field, null));
 				ps.println(String.format("FIELD:\t%d\t%s\t%s\t%s",
 						d.recordCounter, d.field.name(),
 						print(value1, maxValueLen), print(value2, maxValueLen)));
 			} else {
-				String value1 = toString(getValue(d.record1, FIELD.TAG, d.tagId));
-				String value2 = toString(getValue(d.record2, FIELD.TAG, d.tagId));
+				String value1 = SAMRecordField.toString(getValue(d.record1,
+						FIELD_TYPE.TAG, d.tagId));
+				String value2 = SAMRecordField.toString(getValue(d.record2,
+						FIELD_TYPE.TAG, d.tagId));
 				ps.println(String.format("TAG:\t%d\t%s\t%s\t%s\t%s",
 						d.recordCounter, d.field.name(), d.tagId,
 						print(value1, maxValueLen), print(value2, maxValueLen)));
@@ -461,8 +446,7 @@ public class SamRecordComparision {
 			for (SamRecordDiscrepancy d : discrepancies)
 				c.log(d, System.out);
 		} else {
-			db(params.dbDumpFile,
-					"discrepancy".toUpperCase(),
+			db(params.dbDumpFile, "discrepancy".toUpperCase(),
 					discrepancies.iterator());
 		}
 
@@ -474,7 +458,8 @@ public class SamRecordComparision {
 	private static void db(File dbFile, String tableName,
 			Iterator<SamRecordDiscrepancy> it) throws SQLException {
 		// Server server = Server.createTcpServer("").start();
-		Connection connection = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath());
+		Connection connection = DriverManager.getConnection("jdbc:h2:"
+				+ dbFile.getAbsolutePath());
 		createDiscrepancyTable(tableName, connection);
 		dbLog(tableName, it, connection);
 		connection.commit();
