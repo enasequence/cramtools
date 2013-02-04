@@ -130,7 +130,7 @@ public class CramIndexer {
 		File referenceFastaFile;
 
 		@Parameter(names = { "--bam-style-index" }, description = "Choose between BAM index (bai) and CRAM index (crai). ")
-		boolean bai = true;
+		boolean bai = false;
 
 		@Parameter(names = { "--help", "-h" }, description = "Print help and exit.")
 		boolean help = false;
