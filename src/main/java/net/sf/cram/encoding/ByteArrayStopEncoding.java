@@ -12,7 +12,6 @@ import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
-import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class ByteArrayStopEncoding implements Encoding<byte[]> {
@@ -71,20 +70,20 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 
 	public static class ByteArrayStopCodec implements BitCodec<byte[]> {
 
-		private byte stop;
+		private int stop;
 		private InputStream is;
 		private OutputStream os;
 		private ByteArrayOutputStream readingBAOS = new ByteArrayOutputStream();
+		private int b;
 
 		public ByteArrayStopCodec(byte stopByte, InputStream is, OutputStream os) {
-			stop = stopByte;
+			this.stop = 0xFF & stopByte;
 			this.is = is;
 			this.os = os;
 		}
 
 		@Override
 		public byte[] read(BitInputStream bis) throws IOException {
-			int b;
 			readingBAOS.reset();
 			while ((b = is.read()) != -1 && b != stop)
 				readingBAOS.write(b);
