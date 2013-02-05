@@ -1,6 +1,7 @@
 package net.sf.cram;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -381,15 +382,16 @@ public class Cram2Bam {
 
 			}
 		} else if (params.outputFile == null) {
+			OutputStream os = new BufferedOutputStream(System.out) ;
 			if (params.outputBAM) {
-				BAMFileWriter ret = new BAMFileWriter(System.out, null);
+				BAMFileWriter ret = new BAMFileWriter(os, null);
 				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
 				ret.setHeader(cramHeader.samFileHeader);
 				writer = ret;
 			} else {
 				if (params.printSAMHeader) {
 					writer = samFileWriterFactory.makeSAMWriter(
-							cramHeader.samFileHeader, true, System.out);
+							cramHeader.samFileHeader, true, os);
 				} else {
 					SwapOutputStream sos = new SwapOutputStream();
 
@@ -401,7 +403,7 @@ public class Cram2Bam {
 
 					writer = ret;
 
-					sos.delegate = System.out;
+					sos.delegate = os;
 				}
 			}
 		} else {

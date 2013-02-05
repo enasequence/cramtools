@@ -61,22 +61,22 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	@Override
 	void enableFileSource(SAMFileReader reader, boolean enabled) {
-		throw new RuntimeException("Not implemented.");
+//		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableIndexCaching(boolean enabled) {
-		throw new RuntimeException("Not implemented.");
+//		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableIndexMemoryMapping(boolean enabled) {
-		throw new RuntimeException("Not implemented.");
+//		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableCrcChecking(boolean enabled) {
-		throw new RuntimeException("Not implemented.");
+//		throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
