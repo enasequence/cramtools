@@ -92,8 +92,7 @@ public class SAMIterator implements SAMRecordIterator {
 		} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
 			SAMSequenceRecord sequence = cramHeader.samFileHeader
 					.getSequence(container.sequenceId);
-			ReferenceSequence referenceSequence = referenceSequenceFile
-					.getSequence(sequence.getSequenceName());
+			ReferenceSequence referenceSequence = Utils.trySequenceNameVariants(referenceSequenceFile, sequence.getSequenceName());
 			refs = referenceSequence.getBases();
 			prevSeqId = container.sequenceId;
 		}

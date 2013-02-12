@@ -24,6 +24,7 @@ import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
+import net.sf.samtools.util.RuntimeEOFException;
 import net.sf.samtools.SAMRecordIterator;
 
 import com.beust.jcommander.JCommander;
@@ -39,7 +40,7 @@ public class SamRecordComparision {
 	public Set<String> tagsToIgnore = new TreeSet<String>();
 	public Set<String> tagsToCompare = new TreeSet<String>();
 	public boolean compareTags = false;
-
+	
 	public static class SamRecordDiscrepancy {
 		public FIELD_TYPE field;
 		public String tagId;
@@ -190,11 +191,12 @@ public class SamRecordComparision {
 
 	public void compareRecords(SAMRecord r1, SAMRecord r2, long recordCounter,
 			List<SamRecordDiscrepancy> list) {
-		if (!r1.getReadName().equals(r2.getReadName())
-				|| r1.getAlignmentStart() != r2.getAlignmentStart()) {
-			System.err.println(r1.getSAMString());
-			System.err.println(r2.getSAMString());
-		}
+//		if (!r1.getReadName().equals(r2.getReadName())
+//				|| r1.getAlignmentStart() != r2.getAlignmentStart()) {
+//			System.err.println("Name mismatch: ");
+//			System.err.println("\t"+r1.getSAMString());
+//			System.err.println("\t"+r2.getSAMString());
+//		}
 		for (FIELD_TYPE field : fields) {
 			String tagId = null;
 			if (field == FIELD_TYPE.TAG) {
@@ -222,7 +224,15 @@ public class SamRecordComparision {
 		while (it1.hasNext() && it2.hasNext()
 				&& discrepancies.size() < maxDiscrepandcies) {
 			recordCounter++;
-			compareRecords(it1.next(), it2.next(), recordCounter, discrepancies);
+			SAMRecord record1 = it1.next() ;
+			SAMRecord record2 = it2.next() ;
+			
+			if (record1.getReadName().equals(record2.getReadName())) {
+				System.out.println(record1.getSAMString());
+				System.out.println(record1.getSAMString());
+				throw new RuntimeEOFException("Mismatch") ;
+			}
+			compareRecords(record1, record2, recordCounter, discrepancies);
 		}
 
 		if (it1.hasNext() && !it2.hasNext()) {
@@ -436,6 +446,14 @@ public class SamRecordComparision {
 				c.tagsToIgnore.add(tagId);
 			}
 		}
+		
+		if (params.ignoreFields != null) {
+			String chunks[] = params.ignoreFields.split(":");
+			for (String fieldName : chunks) {
+				FIELD_TYPE type = FIELD_TYPE.valueOf(fieldName) ;
+				c.fields.remove(type) ;
+			}
+		}
 
 		List<SamRecordDiscrepancy> discrepancies = c.compareRecords(it1, it2,
 				params.maxDiscrepancies);
@@ -490,6 +508,9 @@ public class SamRecordComparision {
 
 		@Parameter(names = { "--ignore-tags" }, description = "List of tags to ignore, for example: MD:NM:AM")
 		String ignoreTags;
+		
+		@Parameter(names = { "--ignore-fields" }, description = "List of tags to ignore, for example: TLEN:CIGAR")
+		String ignoreFields;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
 		boolean help = false;

@@ -196,8 +196,7 @@ public class Cram2Bam {
 			} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 				SAMSequenceRecord sequence = cramHeader.samFileHeader
 						.getSequence(c.sequenceId);
-				ReferenceSequence referenceSequence = referenceSequenceFile
-						.getSequence(sequence.getSequenceName());
+				ReferenceSequence referenceSequence = Utils.trySequenceNameVariants(referenceSequenceFile,sequence.getSequenceName());
 				ref = referenceSequence.getBases();
 				prevSeqId = c.sequenceId;
 			}

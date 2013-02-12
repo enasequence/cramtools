@@ -271,7 +271,8 @@ public class Bam2Cram {
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
 				sequence = null;
 			else
-				sequence = referenceSequenceFile.getSequence(seqName);
+				sequence = Utils.trySequenceNameVariants(referenceSequenceFile, seqName) ;
+			
 		}
 
 		QualityScorePreservation preservation;
@@ -347,7 +348,7 @@ public class Bam2Cram {
 
 			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					sequence = referenceSequenceFile.getSequence(samRecord
+					sequence =Utils.trySequenceNameVariants(referenceSequenceFile, samRecord
 							.getReferenceName());
 					ref = sequence.getBases();
 				} else

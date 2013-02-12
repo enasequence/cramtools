@@ -322,9 +322,10 @@ public class Utils {
 	private static final Pattern chrPattern = Pattern.compile("chr.*",
 			Pattern.CASE_INSENSITIVE);
 
-	public static byte[] getBasesOrNull(ReferenceSequenceFile rsFile,
-			String name, int start, int len) {
+	public static ReferenceSequence trySequenceNameVariants(
+			ReferenceSequenceFile rsFile, String name) {
 		ReferenceSequence rs = getReferenceSequenceOrNull(rsFile, name);
+		
 		if (rs == null && name.equals("M")) {
 			rs = getReferenceSequenceOrNull(rsFile, "MT");
 		}
@@ -340,8 +341,23 @@ public class Utils {
 			else
 				rs = getReferenceSequenceOrNull(rsFile, "chr" + name);
 		}
+		
+		if (rs == null && "chrM".equals(name)) {
+			// chrM case:
+			rs = getReferenceSequenceOrNull(rsFile, "MT");
+		}
+		
 		if (rs == null)
 			return null;
+
+		return rs;
+	}
+
+	public static byte[] getBasesOrNull(ReferenceSequenceFile rsFile,
+			String name, int start, int len) {
+		
+		ReferenceSequence rs = trySequenceNameVariants(rsFile, name) ;
+		if (rs == null) return null ;
 
 		if (len < 1)
 			return rs.getBases();
@@ -383,7 +399,7 @@ public class Utils {
 	 */
 	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref,
 			boolean calcMD, boolean calcNM) {
-		if (!calcMD && !calcMD)
+		if (!calcMD && !calcNM)
 			return;
 
 		Cigar cigar = record.getCigar();
@@ -499,15 +515,15 @@ public class Utils {
 				r.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 			} else {
 				if (checkExistingMD5) {
-					String existingMD5 = r.getAttribute(SAMSequenceRecord.MD5_TAG);
+					String existingMD5 = r
+							.getAttribute(SAMSequenceRecord.MD5_TAG);
 					String md5 = calculateMD5(sequence.getBases());
 					if (!md5.equals(existingMD5)) {
 
 						String message = String
 								.format("For sequence %s the md5 %s does not match the actual md5 %s.",
-										r.getSequenceName(), existingMD5,
-										md5);
-						
+										r.getSequenceName(), existingMD5, md5);
+
 						if (failIfMD5Mismatch)
 							throw new RuntimeException(message);
 						else
@@ -517,7 +533,6 @@ public class Utils {
 			}
 		}
 	}
-
 
 	public static String calculateMD5(byte[] data)
 			throws NoSuchAlgorithmException {
