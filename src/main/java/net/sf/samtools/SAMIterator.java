@@ -133,7 +133,7 @@ public class SAMIterator implements SAMRecordIterator {
 
 	@Override
 	public boolean hasNext() {
-		if (recordCounter + 1 >= records.size()) {
+		if (recordCounter >= records.size()) {
 			try {
 				nextContainer();
 				if (records.isEmpty())
