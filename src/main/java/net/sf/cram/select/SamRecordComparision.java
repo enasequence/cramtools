@@ -227,11 +227,6 @@ public class SamRecordComparision {
 			SAMRecord record1 = it1.next() ;
 			SAMRecord record2 = it2.next() ;
 			
-			if (!record1.getReadName().equals(record2.getReadName())) {
-				System.out.println(record1.getSAMString());
-				System.out.println(record2.getSAMString());
-				throw new RuntimeEOFException("Mismatch at " + recordCounter) ;
-			}
 			compareRecords(record1, record2, recordCounter, discrepancies);
 		}
 

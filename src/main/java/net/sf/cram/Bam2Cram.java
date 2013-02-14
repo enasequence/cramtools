@@ -95,7 +95,7 @@ public class Bam2Cram {
 		f.captureUnmappedScores = true;
 		f.captureAllTags = captureAllTags;
 		f.captureTags = tagsNamesToSet(captureTags);
-		f.ignoreTags.addAll(tagsNamesToSet(captureTags));
+		f.ignoreTags.addAll(tagsNamesToSet(ignoreTags));
 
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
