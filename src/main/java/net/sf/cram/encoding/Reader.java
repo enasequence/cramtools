@@ -140,7 +140,7 @@ public class Reader {
 				r.setRecordsToNextFragment(distanceC.readData());
 
 			// tag records:
-			int tagCount = tagCountC.readData();
+			int tagCount = 0xFF & tagCountC.readData();
 			if (tagCount > 0) {
 				r.tags = new LinkedList<ReadTag>();
 				for (int i = 0; i < tagCount; i++) {

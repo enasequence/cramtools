@@ -22,6 +22,8 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GammaIntegerEncoding;
+import net.sf.cram.encoding.GolombIntegerEncoding;
+import net.sf.cram.encoding.GolombRiceIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
@@ -177,42 +179,43 @@ public class CompressionHeaderFactory {
 			// ExternalByteArrayEncoding.toParam(tagValueExtID));
 		}
 
-//		{ // EXPERIMENT: tag count, name and type
-//			Map<Integer, MutableInt> map = new HashMap<Integer, CompressionHeaderFactory.MutableInt>() ;
-//			for (CramRecord r : records) {
-//				if (r.tags == null)
-//					continue;
-//				for (ReadTag tag : r.tags) {
-//					MutableInt mutableInt = map.get(tag.keyType3BytesAsInt) ;
-//					if (mutableInt == null) {
-//						mutableInt = new MutableInt() ;
-//						map.put(tag.keyType3BytesAsInt, mutableInt) ;
-//					}
-//					
-//					mutableInt.value++ ;
-//				}
-//			}
-//			
-//			System.out.println("Tag codes: ");
-//			for (int value:map.keySet()) {
-//				System.out.println(value + ": " + map.get(value).value);
-//			}
-//			
-//			
-//			
-//			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-//			for (CramRecord r : records) {
-//				if (r.tags == null)
-//					continue;
-//				for (ReadTag tag : r.tags) {
-//
-//					calculator.add(tag.keyType3BytesAsInt);
-//
-//				}
-//			}
-//			calculator.calculate();
-//
-//		}
+		// { // EXPERIMENT: tag count, name and type
+		// Map<Integer, MutableInt> map = new HashMap<Integer,
+		// CompressionHeaderFactory.MutableInt>() ;
+		// for (CramRecord r : records) {
+		// if (r.tags == null)
+		// continue;
+		// for (ReadTag tag : r.tags) {
+		// MutableInt mutableInt = map.get(tag.keyType3BytesAsInt) ;
+		// if (mutableInt == null) {
+		// mutableInt = new MutableInt() ;
+		// map.put(tag.keyType3BytesAsInt, mutableInt) ;
+		// }
+		//
+		// mutableInt.value++ ;
+		// }
+		// }
+		//
+		// System.out.println("Tag codes: ");
+		// for (int value:map.keySet()) {
+		// System.out.println(value + ": " + map.get(value).value);
+		// }
+		//
+		//
+		//
+		// HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+		// for (CramRecord r : records) {
+		// if (r.tags == null)
+		// continue;
+		// for (ReadTag tag : r.tags) {
+		//
+		// calculator.add(tag.keyType3BytesAsInt);
+		//
+		// }
+		// }
+		// calculator.calculate();
+		//
+		// }
 
 		{ // tag values
 			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, HuffmanParamsCalculator>();
@@ -611,19 +614,29 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-			// for (int i = 2; i < 10; i++)
-			// calcs.add(new EncodingLengthCalculator(
-			// new GolombIntegerEncoding(i)));
-
-			// for (int i = 2; i < 20; i++)
-			// calcs.add(new EncodingLengthCalculator(
-			// new GolombRiceIntegerEncoding(i)));
+//			for (int i = 2; i < 10; i++)
+//				calcs.add(new EncodingLengthCalculator(
+//						new GolombIntegerEncoding(i)));
+//
+//			for (int i = 2; i < 20; i++)
+//				calcs.add(new EncodingLengthCalculator(
+//						new GolombRiceIntegerEncoding(i)));
 
 			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1)));
 
 			for (int i = 2; i < 5; i++)
 				calcs.add(new EncodingLengthCalculator(
 						new SubexpIntegerEncoding(i)));
+
+			if (dictionaryThreshold < 1)
+				dictionary = null;
+			else {
+				dictionary = new HashMap<Integer, MutableInt>();
+//				int pow = (int) Math.ceil(Math.log(dictionaryThreshold)
+//						/ Math.log(2f));
+//				dictionaryThreshold = 1 << pow ;
+//				dictionary = new HashMap<Integer, MutableInt>(dictionaryThreshold, 1);
+			}
 		}
 
 		public IntegerEncodingCalculator(String name) {
@@ -639,15 +652,17 @@ public class CompressionHeaderFactory {
 				c.add(value);
 
 			if (dictionary != null) {
-				MutableInt m = dictionary.get(value);
-				if (m == null) {
-					m = new MutableInt();
-					dictionary.put(value, m);
-				}
-				m.value++;
-
-				if (dictionary.size() > dictionaryThreshold)
+				if (dictionary.size() >= dictionaryThreshold - 1)
 					dictionary = null;
+				else {
+					MutableInt m = dictionary.get(value);
+					if (m == null) {
+						m = new MutableInt();
+						dictionary.put(value, m);
+					}
+					m.value++;
+				}
+
 			}
 
 		}
@@ -696,6 +711,11 @@ public class CompressionHeaderFactory {
 					}
 				}
 			}
+
+			byte[] params = bestEncoding.toByteArray();
+			params = Arrays.copyOf(params, Math.min(params.length, 20));
+			log.debug("Best encoding for " + name + ": "
+					+ bestEncoding.id().name() + Arrays.toString(params));
 
 			return bestEncoding;
 		}

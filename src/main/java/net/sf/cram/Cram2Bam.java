@@ -137,9 +137,9 @@ public class Cram2Bam {
 
 			c = skipToContainer(params.cramFile, cramHeader,
 					(SeekableStream) is, location);
-			
+
 			if (c == null) {
-				log.warn("Nothing found.") ;
+				log.error("Index file not found. ");
 				return ;
 			}
 		}
@@ -161,7 +161,7 @@ public class Cram2Bam {
 			try {
 				time = System.nanoTime();
 				// cis = new CountingInputStream(is);
-					c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
 				// c.offset = offset;
 				// offset += cis.getCount();
 				readTime += System.nanoTime() - time;
@@ -196,7 +196,9 @@ public class Cram2Bam {
 			} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 				SAMSequenceRecord sequence = cramHeader.samFileHeader
 						.getSequence(c.sequenceId);
-				ReferenceSequence referenceSequence = Utils.trySequenceNameVariants(referenceSequenceFile,sequence.getSequenceName());
+				ReferenceSequence referenceSequence = Utils
+						.trySequenceNameVariants(referenceSequenceFile,
+								sequence.getSequenceName());
 				ref = referenceSequence.getBases();
 				prevSeqId = c.sequenceId;
 			}
@@ -212,10 +214,10 @@ public class Cram2Bam {
 			long c2sTime = 0;
 			long sWriteTime = 0;
 
+			boolean enough = false;
 			for (CramRecord r : cramRecords) {
 				// check if the record ends before the query start:
-				if (location != null
-						&& r.getAlignmentStart() < location.start)
+				if (location != null && r.getAlignmentStart() < location.start)
 					continue;
 
 				time = System.nanoTime();
@@ -246,8 +248,10 @@ public class Cram2Bam {
 					break;
 
 				// we got all the reads for random access:
-				if (location != null && location.end < s.getAlignmentStart())
+				if (location != null && location.end < s.getAlignmentStart()) {
+					enough = true;
 					break;
+				}
 			}
 
 			log.info(String
@@ -256,14 +260,15 @@ public class Cram2Bam {
 							(time2 - time1) / 1000000, c2sTime / 1000000,
 							sWriteTime / 1000000));
 
-			if (params.outputFile == null && System.out.checkError())
+			if (enough
+					|| (params.outputFile == null && System.out.checkError()))
 				break;
-
 		}
 
 		if (params.countOnly)
 			System.out.println(recordCount);
 
+//		if (writer instanceof SAMTextWriter) ((SAMTextWriter)writer).getWriter().flush() ;
 		writer.close();
 
 		log.warn(String
@@ -283,7 +288,7 @@ public class Cram2Bam {
 			filePointers = getFilePointers(cramFile, cramHeader,
 					cramFileInputStream, location, true);
 		if (filePointers.length == 0) {
-			return null ;
+			return null;
 		}
 
 		for (int i = 0; i < filePointers.length; i += 2) {
@@ -341,8 +346,8 @@ public class Cram2Bam {
 				filePointers = new long[entries.size() * 2];
 				int i = 0;
 				for (Index.Entry entry : entries) {
-					filePointers[i++] = entry.offset;
-					filePointers[i++] = entry.slice;
+					filePointers[i++] = (entry.offset << 16) | entry.slice;
+					filePointers[i++] = 0;
 				}
 			}
 		}
@@ -381,57 +386,21 @@ public class Cram2Bam {
 
 			}
 		} else if (params.outputFile == null) {
-			OutputStream os = new BufferedOutputStream(System.out) ;
+			OutputStream os = new BufferedOutputStream(System.out);
 			if (params.outputBAM) {
 				BAMFileWriter ret = new BAMFileWriter(os, null);
 				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
 				ret.setHeader(cramHeader.samFileHeader);
 				writer = ret;
 			} else {
-				if (params.printSAMHeader) {
-					writer = samFileWriterFactory.makeSAMWriter(
-							cramHeader.samFileHeader, true, os);
-				} else {
-					SwapOutputStream sos = new SwapOutputStream();
-
-					final SAMTextWriter ret = new SAMTextWriter(sos);
-					ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(),
-							true);
-					ret.setHeader(cramHeader.samFileHeader);
-					ret.getWriter().flush();
-
-					writer = ret;
-
-					sos.delegate = os;
-				}
+				writer = Utils.createSAMTextWriter(samFileWriterFactory, os,
+						cramHeader.samFileHeader, params.printSAMHeader);
 			}
 		} else {
 			writer = samFileWriterFactory.makeSAMOrBAMWriter(
 					cramHeader.samFileHeader, true, params.outputFile);
 		}
 		return writer;
-	}
-
-	private static class SwapOutputStream extends OutputStream {
-		OutputStream delegate;
-
-		@Override
-		public void write(byte[] b) throws IOException {
-			if (delegate != null)
-				delegate.write(b);
-		}
-
-		@Override
-		public void write(int b) throws IOException {
-			if (delegate != null)
-				delegate.write(b);
-		}
-
-		@Override
-		public void write(byte[] b, int off, int len) throws IOException {
-			if (delegate != null)
-				delegate.write(b, off, len);
-		}
 	}
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")

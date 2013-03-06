@@ -6,7 +6,7 @@ public enum EncodingKey {
 	NF_RecordsToNextFragment, RL_ReadLength, RG_ReadGroup, MQ_MappingQualityScore, 
 	RN_ReadName, NP_NextFragmentAlignmentStart, TS_InsetSize, FN_NumberOfReadFeatures, 
 	BS_BaseSubstitutionCode, IN_Insertion, TC_TagCount, MF_MateBitFlags, 
-	NS_NextFragmentReferenceSequenceID, CF_CompressionBitFlags, TM_TestMark, TV_TagValue;
+	NS_NextFragmentReferenceSequenceID, CF_CompressionBitFlags, TV_TestMark, TM_TestMark;
 
 	public static final EncodingKey byFirstTwoChars(String chars) {
 		for (EncodingKey k : values()) {

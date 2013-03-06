@@ -38,7 +38,7 @@ class HelperByte {
 	HelperByte(byte[] values, int[] bitLengths) {
 		this.values = new int[values.length];
 		for (int i = 0; i < values.length; i++)
-			this.values[i] = values[i];
+			this.values[i] = 0xFF & values[i];
 
 		this.bitLengths = bitLengths;
 

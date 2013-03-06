@@ -24,6 +24,7 @@ import net.sf.cram.io.BitOutputStream;
 public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 	private int m;
 	private int log2m;
+	private long mask ;
 	private boolean quotientBit = false;
 	private int offset = 0;
 
@@ -40,6 +41,7 @@ public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 		m = 1 << log2m;
 		this.quotientBit = quotientBit;
 		this.offset = offset;
+		mask = ~(~0 << log2m) ;
 	}
 
 	public final Integer read(final BitInputStream bis) throws IOException {
@@ -57,7 +59,7 @@ public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 	@Override
 	public final long write(final BitOutputStream bos, final Integer value) throws IOException {
 		long newValue = value + offset;
-		long quotient = newValue / m;
+		long quotient = newValue >>> log2m;
 		if (quotient > 0x7fffffffL)
 			for (long i = 0; i < quotient; i++)
 				bos.write(quotientBit);
@@ -68,12 +70,12 @@ public class GolombRiceIntegerCodec implements BitCodec<Integer> {
 				bos.write(quotientBit);
 		}
 		bos.write(!quotientBit);
-		long remainder = newValue % m;
-		long mask = 1 << (log2m - 1);
+		long remainder = newValue & mask;
+		long reminderMask = 1 << (log2m - 1);
 		for (int i = log2m - 1; i >= 0; i--) {
-			final long b = remainder & mask;
+			final long b = remainder & reminderMask;
 			bos.write(b != 0L);
-			mask >>>= 1;
+			reminderMask >>>= 1;
 		}
 		long bits = quotient + 1 + log2m;
 		return bits;

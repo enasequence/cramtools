@@ -10,8 +10,9 @@ import net.sf.cram.EncodingParams;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 
+@Deprecated
 public class UnaryIntegerEncoding implements Encoding<Integer> {
-	public static final EncodingID ENCODING_ID = EncodingID.UNARY;
+	public static final EncodingID ENCODING_ID = null;
 	private int offset;
 	private boolean stopBit;
 

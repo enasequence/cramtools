@@ -27,7 +27,7 @@ class CraiIndexer {
 	public CraiIndexer(InputStream is, File output)
 			throws FileNotFoundException, IOException {
 		this.is = new CountingInputStream(is);
-		CramHeader cramHeader = ReadWrite.readCramHeader(is);
+		CramHeader cramHeader = ReadWrite.readCramHeader(this.is);
 		samFileHeader = cramHeader.samFileHeader ;
 		
 		index = new Index(new GZIPOutputStream(new BufferedOutputStream(

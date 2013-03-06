@@ -293,10 +293,7 @@ public class QualityScorePreservation {
 				pos = 0;
 				refPos = s.getAlignmentStart();
 				for (CigarElement ce : s.getCigar().getCigarElements()) {
-					switch (ce.getOperator()) {
-					case M:
-					case X:
-					case EQ:
+					if (ce.getOperator().consumesReadBases()) {
 						for (int i = 0; i < ce.getLength(); i++) {
 							boolean match = s.getReadBases()[pos + i] == t
 									.baseAt(refPos + i);
@@ -305,15 +302,32 @@ public class QualityScorePreservation {
 								mask[pos + i] = true;
 							}
 						}
-						break;
-					default:
-						break;
+						pos += ce.getLength();
 					}
-
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
 					refPos += ce.getOperator().consumesReferenceBases() ? ce
 							.getLength() : 0;
+					
+//					switch (ce.getOperator()) {
+//					case M:
+//					case X:
+//					case EQ:
+//						for (int i = 0; i < ce.getLength(); i++) {
+//							boolean match = s.getReadBases()[pos + i] == t
+//									.baseAt(refPos + i);
+//							if ((c.type == BaseCategoryType.MATCH && match)
+//									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
+//								mask[pos + i] = true;
+//							}
+//						}
+//						break;
+//					default:
+//						break;
+//					}
+//
+//					pos += ce.getOperator().consumesReadBases() ? ce
+//							.getLength() : 0;
+//					refPos += ce.getOperator().consumesReferenceBases() ? ce
+//							.getLength() : 0;
 				}
 				break;
 			case INSERTION:

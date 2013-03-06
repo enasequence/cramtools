@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +24,8 @@ import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
-import net.sf.samtools.util.RuntimeEOFException;
 import net.sf.samtools.SAMRecordIterator;
 
 import com.beust.jcommander.JCommander;
@@ -40,7 +41,9 @@ public class SamRecordComparision {
 	public Set<String> tagsToIgnore = new TreeSet<String>();
 	public Set<String> tagsToCompare = new TreeSet<String>();
 	public boolean compareTags = false;
-	
+	public int ignoreFlags = 0;
+	public int ignoreTLENDiff = 0;
+
 	public static class SamRecordDiscrepancy {
 		public FIELD_TYPE field;
 		public String tagId;
@@ -97,6 +100,20 @@ public class SamRecordComparision {
 			FIELD_TYPE field, String tagId) {
 		if (field == null)
 			throw new IllegalArgumentException("Record field is null.");
+
+		if (field == FIELD_TYPE.FLAG) {
+			int f1 = r1.getFlags() & ~ignoreFlags;
+			int f2 = r2.getFlags() & ~ignoreFlags;
+
+			return f1 == f2;
+		}
+
+		if (field == FIELD_TYPE.TLEN) {
+			int t1 = r1.getInferredInsertSize();
+			int t2 = r2.getInferredInsertSize();
+
+			return Math.abs(t1 - t2) <= ignoreTLENDiff;
+		}
 
 		Object value1 = getValue(r1, field, tagId);
 		Object value2 = getValue(r2, field, tagId);
@@ -191,12 +208,12 @@ public class SamRecordComparision {
 
 	public void compareRecords(SAMRecord r1, SAMRecord r2, long recordCounter,
 			List<SamRecordDiscrepancy> list) {
-//		if (!r1.getReadName().equals(r2.getReadName())
-//				|| r1.getAlignmentStart() != r2.getAlignmentStart()) {
-//			System.err.println("Name mismatch: ");
-//			System.err.println("\t"+r1.getSAMString());
-//			System.err.println("\t"+r2.getSAMString());
-//		}
+		// if (!r1.getReadName().equals(r2.getReadName())
+		// || r1.getAlignmentStart() != r2.getAlignmentStart()) {
+		// System.err.println("Name mismatch: ");
+		// System.err.println("\t"+r1.getSAMString());
+		// System.err.println("\t"+r2.getSAMString());
+		// }
 		for (FIELD_TYPE field : fields) {
 			String tagId = null;
 			if (field == FIELD_TYPE.TAG) {
@@ -224,9 +241,9 @@ public class SamRecordComparision {
 		while (it1.hasNext() && it2.hasNext()
 				&& discrepancies.size() < maxDiscrepandcies) {
 			recordCounter++;
-			SAMRecord record1 = it1.next() ;
-			SAMRecord record2 = it2.next() ;
-			
+			SAMRecord record1 = it1.next();
+			SAMRecord record2 = it2.next();
+
 			compareRecords(record1, record2, recordCounter, discrepancies);
 		}
 
@@ -333,7 +350,7 @@ public class SamRecordComparision {
 		c.commit();
 	}
 
-	public void log(SamRecordDiscrepancy d, PrintStream ps) {
+	public void log(SamRecordDiscrepancy d, boolean dumpRecords, PrintStream ps) {
 		switch (d.prematureEnd) {
 		case 0:
 			if (d.field != FIELD_TYPE.TAG) {
@@ -353,18 +370,22 @@ public class SamRecordComparision {
 						d.recordCounter, d.field.name(), d.tagId,
 						print(value1, maxValueLen), print(value2, maxValueLen)));
 			}
-			ps.println("\t" + d.record1.getSAMString());
-			ps.println("\t" + d.record2.getSAMString());
+			if (dumpRecords) {
+				ps.println("\t" + d.record1.getSAMString());
+				ps.println("\t" + d.record2.getSAMString());
+			}
 			break;
 		case 1:
 			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
 					d.prematureEnd));
-			ps.println("\t" + d.record2.getSAMString());
+			if (dumpRecords)
+				ps.println("\t" + d.record2.getSAMString());
 			break;
 		case 2:
 			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
 					d.prematureEnd));
-			ps.println("\t" + d.record1.getSAMString());
+			if (dumpRecords)
+				ps.println("\t" + d.record1.getSAMString());
 			break;
 
 		default:
@@ -372,6 +393,90 @@ public class SamRecordComparision {
 					+ d.prematureEnd);
 		}
 
+	}
+
+	private static class MutableInt {
+		int value;
+
+		public MutableInt(int value) {
+			this.value = value;
+		}
+	}
+
+	public void summary(List<SamRecordDiscrepancy> list, PrintStream ps) {
+		Map<String, MutableInt> map = new HashMap<String, SamRecordComparision.MutableInt>();
+		for (SamRecordDiscrepancy d : list) {
+			String id = d.field == FIELD_TYPE.TAG ? d.tagId : d.field.name();
+			MutableInt m = map.get(id);
+			if (m == null) {
+				m = new MutableInt(0);
+				map.put(id, m);
+			}
+			m.value++;
+		}
+
+		for (FIELD_TYPE f : FIELD_TYPE.values()) {
+			if (f == FIELD_TYPE.TAG)
+				continue;
+			MutableInt m = map.remove(f.name());
+			if (m == null)
+				continue;
+			ps.printf("%s: %d\n", f.name(), m.value);
+		}
+
+		for (String id : map.keySet()) {
+			MutableInt m = map.get(id);
+			ps.printf("%s: %d\n", id, m.value);
+		}
+	}
+
+	/**
+	 * Counts mismatches in mate flags only.
+	 * 
+	 * @param list
+	 * @return
+	 */
+	private int detectCorrectedMateFlagsInSecondMember(
+			List<SamRecordDiscrepancy> list) {
+		int count = 0;
+		for (SamRecordDiscrepancy d : list) {
+			if (d.record1.getMateNegativeStrandFlag() != d.record2
+					.getMateNegativeStrandFlag()
+					|| d.record1.getMateUnmappedFlag() != d.record2
+							.getMateUnmappedFlag())
+				count++;
+		}
+		return count;
+	}
+
+	/**
+	 * This is supposed to check if the mates have valid pairing flags.
+	 * 
+	 * @param r1
+	 * @param r2
+	 * @return
+	 */
+	private boolean checkMateFlags(SAMRecord r1, SAMRecord r2) {
+		if (!r1.getReadPairedFlag() || !r2.getReadPairedFlag())
+			return false;
+
+		if (r1.getReadUnmappedFlag() != r2.getMateUnmappedFlag())
+			return false;
+		if (r1.getReadNegativeStrandFlag() != r2.getMateNegativeStrandFlag())
+			return false;
+		if (r1.getProperPairFlag() != r2.getProperPairFlag())
+			return false;
+		if (r1.getFirstOfPairFlag() && r2.getFirstOfPairFlag())
+			return false;
+		if (r1.getSecondOfPairFlag() && r2.getSecondOfPairFlag())
+			return false;
+
+		if (r2.getReadUnmappedFlag() != r1.getMateUnmappedFlag())
+			return false;
+		if (r2.getReadNegativeStrandFlag() != r1.getMateNegativeStrandFlag())
+			return false;
+
+		return true;
 	}
 
 	private static void printUsage(JCommander jc) {
@@ -409,6 +514,7 @@ public class SamRecordComparision {
 			System.setProperty("reference",
 					params.referenceFasta.getAbsolutePath());
 
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT) ;
 		SAMFileReader r1 = new SAMFileReader(params.file1);
 		SAMFileReader r2 = new SAMFileReader(params.file2);
 
@@ -430,6 +536,8 @@ public class SamRecordComparision {
 		SamRecordComparision c = new SamRecordComparision();
 		c.maxValueLen = params.maxValueLength;
 		c.compareTags = params.compareTags;
+		c.ignoreFlags = params.ignoreFalgs;
+		c.ignoreTLENDiff = params.ignoreTLENDiff;
 
 		if (params.ignoreTags != null) {
 			String chunks[] = params.ignoreTags.split(":");
@@ -441,12 +549,12 @@ public class SamRecordComparision {
 				c.tagsToIgnore.add(tagId);
 			}
 		}
-		
+
 		if (params.ignoreFields != null) {
 			String chunks[] = params.ignoreFields.split(":");
 			for (String fieldName : chunks) {
-				FIELD_TYPE type = FIELD_TYPE.valueOf(fieldName) ;
-				c.fields.remove(type) ;
+				FIELD_TYPE type = FIELD_TYPE.valueOf(fieldName);
+				c.fields.remove(type);
 			}
 		}
 
@@ -456,8 +564,16 @@ public class SamRecordComparision {
 		if (params.countOnly)
 			System.out.println(discrepancies.size());
 		else if (params.dbDumpFile == null) {
-			for (SamRecordDiscrepancy d : discrepancies)
-				c.log(d, System.out);
+			if (discrepancies.isEmpty())
+				System.out.println("No discrepancies found");
+			else
+				System.out.println("Found discrepansies: "
+						+ discrepancies.size());
+			if (params.dumpDiscrepancies)
+				for (SamRecordDiscrepancy d : discrepancies)
+					c.log(d, params.dumpRecords, System.out);
+
+			c.summary(discrepancies, System.out);
 		} else {
 			db(params.dbDumpFile, "discrepancy".toUpperCase(),
 					discrepancies.iterator());
@@ -503,7 +619,7 @@ public class SamRecordComparision {
 
 		@Parameter(names = { "--ignore-tags" }, description = "List of tags to ignore, for example: MD:NM:AM")
 		String ignoreTags;
-		
+
 		@Parameter(names = { "--ignore-fields" }, description = "List of tags to ignore, for example: TLEN:CIGAR")
 		String ignoreFields;
 
@@ -516,10 +632,20 @@ public class SamRecordComparision {
 		@Parameter(names = { "--compare-tags" }, description = "Compare tags.")
 		boolean compareTags = false;
 
+		@Parameter(names = { "--print-discrepancies" }, description = "Print out the discrepancies found, one per line.")
+		boolean dumpDiscrepancies = false;
+
 		@Parameter(names = { "--dump-conflicting-records" }, description = "Print out the records that differ.")
 		boolean dumpRecords = false;
 
 		@Parameter(names = { "--dump-to-db" }, description = "Dump the results into the specified database instead of the standard output. ")
 		File dbDumpFile;
+
+		@Parameter(names = { "--ignore-flags" }, description = "Ignore some bit flags. This should be an integer mask.")
+		int ignoreFalgs = 0;
+
+		@Parameter(names = { "--ignore-tlen-diff" }, description = "Ignore TLEN differences less of equal to this value.")
+		int ignoreTLENDiff = 0;
+
 	}
 }

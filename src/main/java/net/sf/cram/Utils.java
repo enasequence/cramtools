@@ -17,6 +17,8 @@ package net.sf.cram;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,10 +41,13 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMTag;
+import net.sf.samtools.SAMTextWriter;
 
 public class Utils {
 
@@ -325,7 +330,7 @@ public class Utils {
 	public static ReferenceSequence trySequenceNameVariants(
 			ReferenceSequenceFile rsFile, String name) {
 		ReferenceSequence rs = getReferenceSequenceOrNull(rsFile, name);
-		
+
 		if (rs == null && name.equals("M")) {
 			rs = getReferenceSequenceOrNull(rsFile, "MT");
 		}
@@ -341,12 +346,12 @@ public class Utils {
 			else
 				rs = getReferenceSequenceOrNull(rsFile, "chr" + name);
 		}
-		
+
 		if (rs == null && "chrM".equals(name)) {
 			// chrM case:
 			rs = getReferenceSequenceOrNull(rsFile, "MT");
 		}
-		
+
 		if (rs == null)
 			return null;
 
@@ -355,9 +360,10 @@ public class Utils {
 
 	public static byte[] getBasesOrNull(ReferenceSequenceFile rsFile,
 			String name, int start, int len) {
-		
-		ReferenceSequence rs = trySequenceNameVariants(rsFile, name) ;
-		if (rs == null) return null ;
+
+		ReferenceSequence rs = trySequenceNameVariants(rsFile, name);
+		if (rs == null)
+			return null;
 
 		if (len < 1)
 			return rs.getBases();
@@ -540,7 +546,19 @@ public class Utils {
 		md5_MessageDigest.reset();
 		md5_MessageDigest.update(data);
 		return String.format("%032x",
-				new BigInteger(md5_MessageDigest.digest()));
+				new BigInteger(1, md5_MessageDigest.digest()));
+
+		// String s = new BigInteger(1,
+		// md5_MessageDigest.digest()).toString(16);
+		// if (s.length() != 32) {
+		// final String zeros = "00000000000000000000000000000000";
+		// s = zeros.substring(0, 32 - s.length()) + s;
+		// }
+		// return s ;
+
+		// BigInteger value = new BigInteger( 1, md5_MessageDigest.digest() );
+		// return String.format( String.format( "%%0%dx",
+		// md5_MessageDigest.digest().length << 1 ), value );
 	}
 
 	public static void main(String[] args) throws NoSuchAlgorithmException {
@@ -548,5 +566,64 @@ public class Utils {
 		System.out.println(calculateMD5("a".getBytes()));
 		System.out.println(calculateMD5("Ჾ蠇".getBytes()));
 		System.out.println(calculateMD5("jk8ssl".getBytes()));
+		System.out.println(calculateMD5("0".getBytes()));
+	}
+
+	public static SAMFileWriter createSAMTextWriter(
+			SAMFileWriterFactory factoryOrNull, OutputStream os,
+			SAMFileHeader header, boolean printHeader) throws IOException {
+		SAMFileWriter writer = null;
+		if (printHeader) {
+			if (factoryOrNull == null)
+				factoryOrNull = new SAMFileWriterFactory();
+			writer = factoryOrNull.makeSAMWriter(header, true, os);
+		} else {
+			SwapOutputStream sos = new SwapOutputStream();
+
+			final SAMTextWriter ret = new SAMTextWriter(sos);
+			ret.setSortOrder(header.getSortOrder(), true);
+			ret.setHeader(header);
+			ret.getWriter().flush();
+
+			writer = ret;
+
+			sos.delegate = os;
+		}
+
+		return writer;
+	}
+
+	private static class SwapOutputStream extends OutputStream {
+		OutputStream delegate;
+
+		@Override
+		public void write(byte[] b) throws IOException {
+			if (delegate != null)
+				delegate.write(b);
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			if (delegate != null)
+				delegate.write(b);
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			if (delegate != null)
+				delegate.write(b, off, len);
+		}
+
+		@Override
+		public void flush() throws IOException {
+			if (delegate != null)
+				delegate.flush();
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (delegate != null)
+				delegate.close();
+		}
 	}
 }

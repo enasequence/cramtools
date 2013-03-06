@@ -65,20 +65,20 @@ public class SubexpIntegerCodec implements BitCodec<Integer> {
 			throw new IllegalArgumentException("Value is less then offset: " + value);
 
 		long newValue = value + offset;
-		long b = 0;
-		long u = 0;
+		int b = 0;
+		int u = 0;
 		if (newValue < (1L << k)) {
 			b = k;
 			u = 0;
 		} else {
-			b = (long) (Math.log(newValue) / Math.log(2));
+			b = (int) (Math.log(newValue) / Math.log(2));
 			u = b - k + 1;
 		}
 
 		bos.write(unaryBit, u);
 		bos.write(!unaryBit);
 
-		bos.write(newValue, (int) (b));
+		bos.write(newValue, b);
 		return u + 1 + b;
 	}
 

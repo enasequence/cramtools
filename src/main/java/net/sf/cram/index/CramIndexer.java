@@ -57,11 +57,6 @@ public class CramIndexer {
 			System.exit(1);
 		}
 
-		if (params.referenceFastaFile == null) {
-			System.out.println("A reference fasta file is required.");
-			System.exit(1);
-		}
-
 		Log.setGlobalLogLevel(params.logLevel);
 
 		if (CRAMFileReader.isCRAMFile(params.inputFile)) {
@@ -70,20 +65,25 @@ public class CramIndexer {
 				File cramIndexFile = new File(
 						params.inputFile.getAbsolutePath() + ".bai");
 
-				create_BAI_forCramFile(params.inputFile, cramIndexFile,
-						params.referenceFastaFile);
+				create_BAI_forCramFile(params.inputFile, cramIndexFile);
 
-				if (params.test)
+				if (params.test) {
+					if (params.referenceFastaFile == null) {
+						System.out
+								.println("A reference fasta file is required.");
+						System.exit(1);
+					}
+
 					randomTestCramFileWithBaiIndex(params.inputFile,
 							cramIndexFile, params.referenceFastaFile,
 							params.testMinPos, params.testMaxPos,
 							params.testCount, params.testSequenceName);
+				}
 			} else {
 				File cramIndexFile = new File(
 						params.inputFile.getAbsolutePath() + ".crai");
 
-				create_CRAI_forCramFile(params.inputFile, cramIndexFile,
-						params.referenceFastaFile);
+				create_CRAI_forCramFile(params.inputFile, cramIndexFile);
 
 			}
 		} else {
@@ -126,7 +126,7 @@ public class CramIndexer {
 		@Parameter(names = { "--input-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM or CRAM file to be indexed. Omit if standard input (pipe).")
 		File inputFile;
 
-		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "The reference fasta file, uncompressed and indexed (.fai file, use 'samtools faidx'). ")
+		@Parameter(names = { "--reference-fasta-file", "-R" }, hidden = true, converter = FileConverter.class, description = "The reference fasta file, uncompressed and indexed (.fai file, use 'samtools faidx'). ")
 		File referenceFastaFile;
 
 		@Parameter(names = { "--bam-style-index" }, description = "Choose between BAM index (bai) and CRAM index (crai). ")
@@ -151,16 +151,16 @@ public class CramIndexer {
 		String testSequenceName = null;
 	}
 
-	public static void create_BAI_forCramFile(File cramFile,
-			File cramIndexFile, File refFile) throws IOException {
+	public static void create_BAI_forCramFile(File cramFile, File cramIndexFile)
+			throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
 		BaiIndexer ic = new BaiIndexer(is, cramIndexFile);
 
 		ic.run();
 	}
 
-	public static void create_CRAI_forCramFile(File cramFile,
-			File cramIndexFile, File refFile) throws IOException {
+	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile)
+			throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
 		CraiIndexer ic = new CraiIndexer(is, cramIndexFile);
 
