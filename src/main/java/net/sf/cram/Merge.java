@@ -5,11 +5,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
@@ -32,7 +30,6 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.SeekableFileStream;
 
@@ -120,14 +117,13 @@ public class Merge {
 		}
 
 		else {
-			writer = Utils.createSAMTextWriter(null, System.out, header, params.printSAMHeader) ;
+			writer = Utils.createSAMTextWriter(null, System.out, header,
+					params.printSAMHeader);
 		}
 
-		MergedSAMRecordIterator mergedIterator = new MergedSAMRecordIterator(
-				list, header);
+		MergedIterator mergedIterator = new MergedIterator(list, header);
 		while (mergedIterator.hasNext()) {
 			SAMRecord record = mergedIterator.next();
-			// System.out.println("> "+record.getSAMString());
 			writer.addAlignment(record);
 		}
 
@@ -270,122 +266,6 @@ public class Merge {
 
 	}
 
-	private static class MergedSAMRecordIterator implements SAMRecordIterator {
-		private char delim = '.';
-		private List<RecordSource> sources;
-		private SAMRecord nextRecord;
-		private SAMFileHeader header;
-		private PriorityQueue<SAMRecord> queue = new PriorityQueue<SAMRecord>(
-				10000, new Comparator<SAMRecord>() {
-
-					@Override
-					public int compare(SAMRecord o1, SAMRecord o2) {
-						int result = o1.getAlignmentStart()
-								- o2.getAlignmentStart();
-						if (result != 0)
-							return result;
-						else
-							return o1.getReadName().compareTo(o2.getReadName());
-					}
-
-				});
-
-		public MergedSAMRecordIterator(List<RecordSource> sources,
-				SAMFileHeader header) {
-			this.sources = sources;
-			this.header = header;
-			nextRecord = doNext();
-		}
-
-		@Override
-		public void close() {
-			for (RecordSource source : sources)
-				source.it.close();
-		}
-
-		@Override
-		public boolean hasNext() {
-			return nextRecord != null;
-		}
-
-		private boolean milk() {
-			boolean hasMore = false;
-			int counter = 0;
-			for (RecordSource source : sources) {
-				counter++;
-				CloseableIterator<SAMRecord> it = source.it;
-				if (it.hasNext()) {
-					SAMRecord record;
-					try {
-						record = (SAMRecord) it.next().clone();
-						record.setReadName(source.id + delim
-								+ record.getReadName());
-						queue.add(record);
-					} catch (CloneNotSupportedException e) {
-						throw new RuntimeException(e);
-					}
-					hasMore = true;
-				}
-			}
-			return hasMore;
-		}
-
-		private SAMRecord doNext() {
-			SAMRecord nextRecord = null;
-			do {
-				nextRecord = queue.poll();
-			} while (nextRecord == null && milk());
-
-			if (nextRecord != null) {
-
-				SAMSequenceRecord sequence = header.getSequence(nextRecord
-						.getReferenceName());
-
-				nextRecord.setHeader(header);
-
-				nextRecord.setReferenceIndex(sequence.getSequenceIndex());
-				if (nextRecord.getMateReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					nextRecord
-							.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
-				} else {
-					SAMSequenceRecord mateSequence = header
-							.getSequence(nextRecord.getMateReferenceName());
-					nextRecord.setMateReferenceIndex(mateSequence
-							.getSequenceIndex());
-				}
-			}
-
-			return nextRecord;
-		}
-
-		@Override
-		public SAMRecord next() {
-			if (nextRecord == null)
-				throw new RuntimeException("Iterator exchausted.");
-
-			SAMRecord toReturn = nextRecord;
-			nextRecord = doNext();
-
-			return toReturn;
-		}
-
-		@Override
-		public void remove() {
-			throw new RuntimeException("Not implemented.");
-		}
-
-		@Override
-		public SAMRecordIterator assertSorted(SortOrder sortOrder) {
-			if (sortOrder != SortOrder.coordinate)
-				throw new RuntimeException(
-						"Only coordinate sort order is supported: "
-								+ sortOrder.name());
-
-			return null;
-		}
-
-	}
-
 	private static SAMFileHeader mergeHeaders(List<RecordSource> sources) {
 		SAMFileHeader header = new SAMFileHeader();
 		for (RecordSource source : sources) {
@@ -413,6 +293,120 @@ public class Merge {
 
 		}
 		return header;
+	}
+
+	// private static class SAMQueue implements BlockingQueue<SAMRecord> {
+	// }
+
+	private static class MergedIterator implements SAMRecordIterator {
+		private static String delim = ".";
+		private RecordSource[] sources;
+		private SAMRecord[] records;
+		private SAMRecord next;
+		private SAMFileHeader header;
+
+		public MergedIterator(List<RecordSource> list, SAMFileHeader header) {
+			this.header = header;
+			sources = (RecordSource[]) list.toArray(new RecordSource[list
+					.size()]);
+			records = new SAMRecord[list.size()];
+
+			for (int i = 0; i < records.length; i++) {
+				if (sources[i].it.hasNext())
+					records[i] = sources[i].it.next();
+			}
+
+			advance();
+		}
+
+		@Override
+		public void close() {
+			if (sources != null)
+				for (RecordSource source : sources)
+					if (source != null)
+						source.close();
+
+			records = null;
+			next = null;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return next != null;
+		}
+
+		private void advance() {
+			int candidateIndex = getIndexOfMinAlignment();
+			if (candidateIndex < 0) {
+				next = null;
+			} else {
+				next = records[candidateIndex];
+				SAMSequenceRecord sequence = header.getSequence(next
+						.getReferenceName());
+
+				next.setHeader(header);
+
+				next.setReferenceIndex(sequence.getSequenceIndex());
+
+				next.setReadName(sources[candidateIndex].id + delim
+						+ next.getReadName());
+
+				if (next.getMateReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+					next.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+				} else {
+					SAMSequenceRecord mateSequence = header.getSequence(next
+							.getMateReferenceName());
+					next.setMateReferenceIndex(mateSequence.getSequenceIndex());
+				}
+
+				if (sources[candidateIndex].it.hasNext())
+					records[candidateIndex] = sources[candidateIndex].it.next();
+				else
+					records[candidateIndex] = null;
+			}
+		}
+
+		@Override
+		public SAMRecord next() {
+			if (next == null)
+				return null;
+
+			SAMRecord result = next;
+			advance();
+
+			return result;
+		}
+
+		@Override
+		public void remove() {
+			throw new RuntimeException("Unsupported operation.");
+		}
+
+		@Override
+		public SAMRecordIterator assertSorted(SortOrder sortOrder) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		private int getIndexOfMinAlignment() {
+			if (records == null || records.length == 0)
+				return -1;
+
+			int min = Integer.MAX_VALUE;
+			int index = -1;
+			for (int i = 0; i < records.length; i++) {
+				if (records[i] == null)
+					continue;
+
+				int start = records[i].getAlignmentStart();
+				if (start > 0 && start < min) {
+					min = start;
+					index = i;
+				}
+			}
+			return index;
+		}
+
 	}
 
 	@Parameters(commandDescription = "Tool to merge CRAM or BAM files. ")
