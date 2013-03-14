@@ -3,6 +3,7 @@ package net.sf.cram.stats;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +23,6 @@ import net.sf.cram.encoding.ExternalByteArrayEncoding;
 import net.sf.cram.encoding.ExternalByteEncoding;
 import net.sf.cram.encoding.ExternalIntegerEncoding;
 import net.sf.cram.encoding.GammaIntegerEncoding;
-import net.sf.cram.encoding.GolombIntegerEncoding;
-import net.sf.cram.encoding.GolombRiceIntegerEncoding;
 import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
@@ -156,7 +155,7 @@ public class CompressionHeaderFactory {
 		{ // tag count
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				calculator.add(r.tags == null ? 0 : r.tags.size());
+				calculator.add(r.tags == null ? 0 : r.tags.length);
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.TC_TagCount, HuffmanIntegerEncoding.toParam(
@@ -175,47 +174,75 @@ public class CompressionHeaderFactory {
 
 			h.eMap.put(EncodingKey.TN_TagNameAndType, HuffmanIntegerEncoding
 					.toParam(calculator.values(), calculator.bitLens()));
-			// h.eMap.put(EncodingKey.TN_TagNameAndType,
-			// ExternalByteArrayEncoding.toParam(tagValueExtID));
 		}
 
-		// { // EXPERIMENT: tag count, name and type
-		// Map<Integer, MutableInt> map = new HashMap<Integer,
-		// CompressionHeaderFactory.MutableInt>() ;
-		// for (CramRecord r : records) {
-		// if (r.tags == null)
-		// continue;
-		// for (ReadTag tag : r.tags) {
-		// MutableInt mutableInt = map.get(tag.keyType3BytesAsInt) ;
-		// if (mutableInt == null) {
-		// mutableInt = new MutableInt() ;
-		// map.put(tag.keyType3BytesAsInt, mutableInt) ;
-		// }
-		//
-		// mutableInt.value++ ;
-		// }
-		// }
-		//
-		// System.out.println("Tag codes: ");
-		// for (int value:map.keySet()) {
-		// System.out.println(value + ": " + map.get(value).value);
-		// }
-		//
-		//
-		//
-		// HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-		// for (CramRecord r : records) {
-		// if (r.tags == null)
-		// continue;
-		// for (ReadTag tag : r.tags) {
-		//
-		// calculator.add(tag.keyType3BytesAsInt);
-		//
-		// }
-		// }
-		// calculator.calculate();
-		//
-		// }
+		{
+
+			Comparator<ReadTag> comparator = new Comparator<ReadTag>() {
+
+				@Override
+				public int compare(ReadTag o1, ReadTag o2) {
+					return o1.keyType3BytesAsInt - o2.keyType3BytesAsInt;
+				}
+			};
+
+			Comparator<byte[]> baComparator = new Comparator<byte[]>() {
+
+				@Override
+				public int compare(byte[] o1, byte[] o2) {
+					if (o1.length - o2.length != 0)
+						return o1.length - o2.length;
+
+					for (int i = 0; i < o1.length; i++)
+						if (o1[i] != o2[i])
+							return o1[i] - o2[i];
+
+					return 0;
+				}
+			};
+
+			Map<byte[], MutableInt> map = new TreeMap<byte[], MutableInt>(
+					baComparator);
+			for (CramRecord r : records) {
+				if (r.tags == null)
+					continue;
+				Arrays.sort(r.tags, comparator);
+				r.tagIds = new byte[r.tags.length * 3];
+
+				int tagIndex = 0;
+				for (int i = 0; i < r.tagIds.length; i++) {
+					r.tagIds[i] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(i % 3);
+				}
+
+				MutableInt count = map.get(r.tagIds);
+				if (count == null) {
+					count = new MutableInt();
+					map.put(r.tagIds, count);
+				}
+				count.value++;
+				r.tagIdsIndex = count;
+			}
+
+			byte[][][] dic = new byte[map.size()][][];
+			int i = 0;
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (byte[] list : map.keySet()) {
+				dic[i] = new byte[list.length / 3][];
+				for (int j = 0; j < list.length; j++) {
+					dic[i][j] = new byte[3];
+					dic[i][j / 3][0] = list[j++];
+					dic[i][j / 3][1] = list[j++];
+					dic[i][j / 3][2] = list[j++];
+				}
+				calculator.add(i, map.get(list).value);
+				map.get(list).value = i++;
+			}
+
+			h.eMap.put(EncodingKey.TL_TagIdList, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
+			h.dictionary = dic;
+		}
 
 		{ // tag values
 			Map<Integer, HuffmanParamsCalculator> cc = new TreeMap<Integer, HuffmanParamsCalculator>();
@@ -466,10 +493,6 @@ public class CompressionHeaderFactory {
 		return h;
 	}
 
-	private static class MutableInt {
-		public int value = 0;
-	}
-
 	private static class BitCode implements Comparable<BitCode> {
 		int value;
 		int len;
@@ -493,11 +516,11 @@ public class CompressionHeaderFactory {
 		private int[] values = new int[] {};
 		private int[] bitLens = new int[] {};
 
-		public void add(int huffmanValue) {
-			MutableInt counter = countMap.get(huffmanValue);
+		public void add(int value) {
+			MutableInt counter = countMap.get(value);
 			if (counter == null) {
 				counter = new MutableInt();
-				countMap.put(huffmanValue, counter);
+				countMap.put(value, counter);
 			}
 			counter.value++;
 		}
@@ -614,13 +637,13 @@ public class CompressionHeaderFactory {
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold) {
 			this.name = name;
-//			for (int i = 2; i < 10; i++)
-//				calcs.add(new EncodingLengthCalculator(
-//						new GolombIntegerEncoding(i)));
-//
-//			for (int i = 2; i < 20; i++)
-//				calcs.add(new EncodingLengthCalculator(
-//						new GolombRiceIntegerEncoding(i)));
+			// for (int i = 2; i < 10; i++)
+			// calcs.add(new EncodingLengthCalculator(
+			// new GolombIntegerEncoding(i)));
+			//
+			// for (int i = 2; i < 20; i++)
+			// calcs.add(new EncodingLengthCalculator(
+			// new GolombRiceIntegerEncoding(i)));
 
 			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1)));
 
@@ -632,10 +655,11 @@ public class CompressionHeaderFactory {
 				dictionary = null;
 			else {
 				dictionary = new HashMap<Integer, MutableInt>();
-//				int pow = (int) Math.ceil(Math.log(dictionaryThreshold)
-//						/ Math.log(2f));
-//				dictionaryThreshold = 1 << pow ;
-//				dictionary = new HashMap<Integer, MutableInt>(dictionaryThreshold, 1);
+				// int pow = (int) Math.ceil(Math.log(dictionaryThreshold)
+				// / Math.log(2f));
+				// dictionaryThreshold = 1 << pow ;
+				// dictionary = new HashMap<Integer,
+				// MutableInt>(dictionaryThreshold, 1);
 			}
 		}
 

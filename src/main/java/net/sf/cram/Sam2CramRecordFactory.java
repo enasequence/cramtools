@@ -29,6 +29,7 @@ import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkipVariation;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.cram.mask.RefMaskUtils;
@@ -59,7 +60,6 @@ public class Sam2CramRecordFactory {
 	public final static byte unsetQualityScore = 32;
 	public final static byte ignorePositionsWithQualityScore = -1;
 
-
 	private byte[] refBases;
 	private byte[] refSNPs;
 	private RefMaskUtils.RefMask refPile;
@@ -71,7 +71,7 @@ public class Sam2CramRecordFactory {
 
 	private static Log log = Log.getInstance(Sam2CramRecordFactory.class);
 
-	private Map<String, Integer> readGroupMap = new HashMap<String, Integer>() ;
+	private Map<String, Integer> readGroupMap = new HashMap<String, Integer>();
 
 	private long landedRefMaskScores = 0;
 	private long landedPiledScores = 0;
@@ -165,37 +165,30 @@ public class Sam2CramRecordFactory {
 
 		cramRecord.setReadBases(record.getReadBases());
 		cramRecord.setQualityScores(record.getBaseQualities());
-		// for (int i = 0; i < cramRecord.getQualityScores().length; i++)
-		// cramRecord.getQualityScores()[i] += QS_asciiOffset;
 		landedTotalScores += cramRecord.getReadLength();
 
 		if (captureAllTags) {
 			List<SAMTagAndValue> attributes = record.getAttributes();
-			if (attributes != null && !attributes.isEmpty()) {
-				// attributes.size()
-				List<ReadTag> tags = new LinkedList<ReadTag>();
-				for (SAMTagAndValue tv : attributes) {
-					if (ignoreTags.contains(tv.tag))
-						continue;
+			cramRecord.tags = new ReadTag[attributes.size()];
+			List<ReadTag> tags = new LinkedList<ReadTag>();
+			int i=0; 
+			for (SAMTagAndValue tv : attributes) {
+				if (ignoreTags.contains(tv.tag))
+					continue;
 
-					ReadTag ra = ReadTag.deriveTypeFromValue(tv.tag, tv.value);
-					tags.add(ra);
-				}
-				cramRecord.tags = tags;
+				cramRecord.tags[i++] = ReadTag.deriveTypeFromValue(tv.tag, tv.value);
 			}
 		} else {
 			if (!captureTags.isEmpty()) {
 				List<SAMTagAndValue> attributes = record.getAttributes();
-				if (attributes != null && !attributes.isEmpty()) {
-					List<ReadTag> tags = new LinkedList<ReadTag>();
-					for (SAMTagAndValue tv : attributes) {
-						if (captureTags.contains(tv.tag)) {
-							ReadTag ra = ReadTag.deriveTypeFromValue(tv.tag,
-									tv.value);
-							tags.add(ra);
-						}
+				cramRecord.tags = new ReadTag[attributes.size()];
+				List<ReadTag> tags = new LinkedList<ReadTag>();
+				int i=0; 
+				for (SAMTagAndValue tv : attributes) {
+					if (captureTags.contains(tv.tag)) {
+						cramRecord.tags[i++] = ReadTag.deriveTypeFromValue(tv.tag,
+								tv.value);
 					}
-					cramRecord.tags = tags;
 				}
 			}
 		}
@@ -247,8 +240,11 @@ public class Sam2CramRecordFactory {
 
 			switch (operator) {
 			case D:
-			case N:
 				features.add(new DeletionVariation(zeroBasedPositionInRead + 1,
+						cigarElementLength));
+				break ;
+			case N:
+				features.add(new RefSkipVariation(zeroBasedPositionInRead + 1,
 						cigarElementLength));
 				break;
 			case H:
@@ -328,7 +324,7 @@ public class Sam2CramRecordFactory {
 			ib.setPosition(zeroBasedPositionInRead + 1 + i);
 			ib.setBase(insertedBases[i]);
 			features.add(ib);
-			if (losslessQS)
+			if (losslessQS || scores == null || scores.length < bases.length)
 				continue;
 			boolean qualityMasked = (scores[i] < uncategorisedQualityScoreCutoff);
 			if (captureInsertScores || qualityMasked) {

@@ -63,6 +63,7 @@ public class BLOCK_PROTO {
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		long time1 = System.nanoTime();
+		if (records == null) records = new ArrayList<CramRecord>(c.nofRecords) ;
 		Map<String, Long> nanoMap = new TreeMap<String, Long>();
 		for (Slice s : c.slices)
 			records.addAll(getRecords(s, h, fileHeader, nanoMap));
@@ -121,13 +122,13 @@ public class BLOCK_PROTO {
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
 			inputMap.put(exId, new ByteArrayInputStream(
-					s.external.get(exId).content));
+					s.external.get(exId).getRawContent()));
 		}
 
 		long time = 0;
 		// time = System.nanoTime();
 		Reader reader = f.buildReader(new DefaultBitInputStream(
-				new ByteArrayInputStream(s.coreBlock.content)), inputMap, h);
+				new ByteArrayInputStream(s.coreBlock.getRawContent())), inputMap, h);
 		// long readerBuildTime = System.nanoTime() - time ;
 		// log.debug("Reader build time: " + readerBuildTime/1000000 + "ms.") ;
 
@@ -175,8 +176,6 @@ public class BLOCK_PROTO {
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
 		long time2 = System.nanoTime();
 
-		h.mappedQualityScoreIncluded = true;
-		h.unmappedQualityScoreIncluded = true;
 		h.readNamesIncluded = preserveReadNames;
 
 		List<Slice> slices = new ArrayList<Slice>();
@@ -256,11 +255,11 @@ public class BLOCK_PROTO {
 		}
 
 		slice.contentType = slice.alignmentSpan > -1 ? BlockContentType.MAPPED_SLICE
-				: BlockContentType.UNMAPPED_SLICE;
+				: BlockContentType.RESERVED;
 
 		bos.close();
 		slice.coreBlock = new Block();
-		slice.coreBlock.content = bitBAOS.toByteArray() ;
+		slice.coreBlock.setRawContent(bitBAOS.toByteArray()) ;
 		slice.coreBlock.contentType = BlockContentType.CORE;
 
 		slice.external = new HashMap<Integer, Block>();
@@ -272,7 +271,7 @@ public class BLOCK_PROTO {
 			externalBlock.contentId = i;
 
 			// externalBlock.content = os.getBuffer();
-			externalBlock.content = os.toByteArray();
+			externalBlock.setRawContent(os.toByteArray());
 			slice.external.put(i, externalBlock);
 		}
 
@@ -403,11 +402,9 @@ public class BLOCK_PROTO {
 		GZIPOutputStream gos = new GZIPOutputStream(baos);
 		long size = 0;
 		for (Slice s : c.slices) {
-			size += s.coreBlock.content.length;
-			gos.write(s.coreBlock.content);
+			size += s.coreBlock.getCompressedContent().length ;
 			for (Block b : s.external.values()) {
-				size += b.content.length;
-				gos.write(b.content);
+				size += b.getCompressedContent().length;
 			}
 		}
 		gos.close();
@@ -594,17 +591,13 @@ public class BLOCK_PROTO {
 			System.out.println(newRecords.get(i).toString());
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		GZIPOutputStream gos = new GZIPOutputStream(baos);
 		long size = 0;
 		for (Slice s : c.slices) {
-			size += s.coreBlock.content.length;
-			gos.write(s.coreBlock.content);
+			size += s.coreBlock.getCompressedContent().length;
 			for (Block b : s.external.values()) {
-				size += b.content.length;
-				gos.write(b.content);
+				size += b.getCompressedContent().length;
 			}
 		}
-		gos.close();
 		System.out.println("Bases: " + baseCount);
 		System.out.printf("Uncompressed container size: %d; %.2f\n", size, size
 				* 8f / baseCount);

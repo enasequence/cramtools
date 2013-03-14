@@ -88,6 +88,16 @@ public class ReadTag implements Comparable<ReadTag> {
 
 		code = SAMTagUtil.getSingleton().makeBinaryTag(this.key);
 	}
+	
+	public static int name3BytesToInt(byte[] name) {
+		int value = 0xFF & name[0];
+		value <<= 8;
+		value |= 0xFF & name[1];
+		value <<= 8;
+		value |= 0xFF & name[2];
+
+		return value;
+	}
 
 	public static int nameType3BytesToInt(String name, char type) {
 		int value = 0xFF & name.charAt(0);

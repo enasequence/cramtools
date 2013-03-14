@@ -19,8 +19,6 @@ public class DataWriterFactory {
 			CompressionHeader h) throws IllegalArgumentException,
 			IllegalAccessException {
 		Writer writer = new Writer();
-		writer.captureMappedQS = h.mappedQualityScoreIncluded;
-		writer.captureUnmappedQS = h.unmappedQualityScoreIncluded;
 		writer.captureReadNames = h.readNamesIncluded;
 
 		for (Field f : writer.getClass().getFields()) {

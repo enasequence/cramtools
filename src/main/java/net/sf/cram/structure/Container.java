@@ -1,31 +1,41 @@
 package net.sf.cram.structure;
 
 public class Container {
-	public int bytes = -1 ;
-	public int sequenceId = -1;
-	public int alignmentStart = -1;
-	public int alignmentSpan = -1;
-
-	public int nofRecords = -1;
-
-	public CompressionHeader h;
-
-	public Slice[] slices;
-	public int blockCount;
-	public int[] landmarks;
-
-	public long bases;
-	public long buildHeaderTime;
-	public long buildSlicesTime;
-	public long writeTime;
-
-	public long parseTime;
-	public long readTime;
-
+	// container header as defined in the specs:
 	/**
 	 * Byte size of the content excluding header.
 	 */
 	public int containerByteSize;
+	public int sequenceId = -1;
+	public int alignmentStart = -1;
+	public int alignmentSpan = -1;
+	public int nofRecords = -1;
+	public int globalRecordCounter = -1;
+
+	// TODO change bases from int to long:
+	public int bases;
+	public int blockCount = -1;
+	public int[] landmarks;
+	
+	/**
+	 * Container data
+	 */
+	public Block[] blocks ;
+
+	public CompressionHeader h;
+
+	// slices found in the container:
+	public Slice[] slices;
+
+	// for performance measurement:
+	public long buildHeaderTime;
+	public long buildSlicesTime;
+	public long writeTime;
+	public long parseTime;
+	public long readTime;
+
+
+	// for indexing:
 	/**
 	 * Container start in the stream.
 	 */

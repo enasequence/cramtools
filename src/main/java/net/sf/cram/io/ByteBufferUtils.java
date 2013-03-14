@@ -1,17 +1,22 @@
 package net.sf.cram.io;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class ByteBufferUtils {
 
 	public static final int readUnsignedITF8(InputStream is) throws IOException {
 		int b1 = is.read();
-		if (b1 == -1) throw new EOFException() ;
+		if (b1 == -1)
+			throw new EOFException();
 
 		if ((b1 & 128) == 0)
 			return b1;
@@ -32,40 +37,199 @@ public class ByteBufferUtils {
 		return ((b1 & 15) << 28) | is.read() << 20 | is.read() << 12
 				| is.read() << 4 | (15 & is.read());
 	}
-	
-	public static final int writeUnsignedITF8(int value, OutputStream os) throws IOException {
+
+	public static final int writeUnsignedITF8(int value, OutputStream os)
+			throws IOException {
 		if ((value >>> 7) == 0) {
 			os.write(value);
 			return 8;
 		}
 
 		if ((value >>> 14) == 0) {
-			os.write( ((value >> 8) | 128));
-			os.write( (value & 0xFF));
+			os.write(((value >> 8) | 128));
+			os.write((value & 0xFF));
 			return 16;
 		}
 
 		if ((value >>> 21) == 0) {
-			os.write( ((value >> 16) | 192));
-			os.write( ((value >> 8) & 0xFF));
-			os.write( (value & 0xFF));
+			os.write(((value >> 16) | 192));
+			os.write(((value >> 8) & 0xFF));
+			os.write((value & 0xFF));
 			return 24;
 		}
 
 		if ((value >>> 28) == 0) {
-			os.write( ((value >> 24) | 224));
-			os.write( ((value >> 16) & 0xFF));
-			os.write( ((value >> 8) & 0xFF));
-			os.write( (value & 0xFF));
-			return 32 ;
+			os.write(((value >> 24) | 224));
+			os.write(((value >> 16) & 0xFF));
+			os.write(((value >> 8) & 0xFF));
+			os.write((value & 0xFF));
+			return 32;
 		}
 
-		os.write( ((value >> 28) | 240));
-		os.write( ((value >> 20) & 0xFF));
-		os.write( ((value >> 12) & 0xFF));
-		os.write( ((value >> 4) & 0xFF));
-		os.write( (value & 0xFF));
-		return 32 ;
+		os.write(((value >> 28) | 240));
+		os.write(((value >> 20) & 0xFF));
+		os.write(((value >> 12) & 0xFF));
+		os.write(((value >> 4) & 0xFF));
+		os.write((value & 0xFF));
+		return 40;
+	}
+
+	public static final long readUnsignedLTF8(InputStream is)
+			throws IOException {
+		int b1 = is.read();
+		if (b1 == -1)
+			throw new EOFException();
+
+		if ((b1 & 128) == 0)
+			return b1;
+
+		if ((b1 & 64) == 0)
+			return ((b1 & 127) << 8) | is.read();
+
+		if ((b1 & 32) == 0) {
+			int b2 = is.read();
+			int b3 = is.read();
+			return ((b1 & 63) << 16) | b2 << 8 | b3;
+		}
+
+		if ((b1 & 16) == 0) {
+			long result = ((b1 & 31) << 24);
+			result |= is.read() << 16;
+			result |= is.read() << 8;
+			result |= is.read();
+			return result;
+		}
+
+		if ((b1 & 8) == 0) {
+			long result = ((b1 & 15) << 32);
+			result |= is.read() << 24;
+			result |= is.read() << 16;
+			result |= is.read() << 8;
+			result |= is.read();
+			return result;
+		}
+
+		if ((b1 & 4) == 0) {
+			long result = ((b1 & 7) << 40);
+			result |= is.read() << 32;
+			result |= is.read() << 24;
+			result |= is.read() << 16;
+			result |= is.read() << 8;
+			result |= is.read();
+			return result;
+		}
+
+		if ((b1 & 2) == 0) {
+			long result = ((b1 & 3) << 48);
+			result |= is.read() << 40;
+			result |= is.read() << 32;
+			result |= is.read() << 24;
+			result |= is.read() << 16;
+			result |= is.read() << 8;
+			result |= is.read();
+			return result;
+		}
+		
+		long result = is.read() << 54;
+		result |= is.read() << 48;
+		result |= is.read() << 40;
+		result |= is.read() << 32;
+		result |= is.read() << 24;
+		result |= is.read() << 16;
+		result |= is.read() << 8;
+		result |= is.read();
+		return result;
+	}
+
+	public static final int writeUnsignedLTF8(long value, OutputStream os)
+			throws IOException {
+		if ((value >>> 7) == 0) {
+			// no contol bits
+			os.write((int) value);
+			return 8;
+		}
+
+		if ((value >>> 14) == 0) {
+			// one control bit
+			os.write((int) ((value >> 8) | 0x80));
+			os.write((int) (value & 0xFF));
+			return 16;
+		}
+
+		if ((value >>> 21) == 0) {
+			// two control bits
+			os.write((int) ((value >> 16) | 0xC0));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 24;
+		}
+
+		if ((value >>> 28) == 0) {
+			// three control bits
+			os.write((int) ((value >> 24) | 0xE0));
+			os.write((int) ((value >> 16) & 0xFF));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 32;
+		}
+
+		if ((value >>> 35) == 0) {
+			// four control bits
+			os.write((int) ((value >> 32) | 0xF8));
+			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 16) & 0xFF));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 40;
+		}
+
+		if ((value >>> 42) == 0) {
+			// five control bits
+			os.write((int) ((value >> 40) | 0xFC));
+			os.write((int) ((value >> 32) & 0xFF));
+			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 16) & 0xFF));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 48;
+		}
+
+		if ((value >>> 49) == 0) {
+			// six control bits
+			os.write((int) ((value >> 48) | 0xFE));
+			os.write((int) ((value >> 40) & 0xFF));
+			os.write((int) ((value >> 32) & 0xFF));
+			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 16) & 0xFF));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 56;
+		}
+
+		if ((value >>> 56) == 0) {
+			// seven control bits
+			os.write(0xFE);
+			os.write((int) ((value >> 48) & 0xFF));
+			os.write((int) ((value >> 40) & 0xFF));
+			os.write((int) ((value >> 32) & 0xFF));
+			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 16) & 0xFF));
+			os.write((int) ((value >> 8) & 0xFF));
+			os.write((int) (value & 0xFF));
+			return 64;
+		}
+
+		// eight control bits
+		os.write((int) (0xFF));
+		os.write((int) ((value >> 56) & 0xFF));
+		os.write((int) ((value >> 48) & 0xFF));
+		os.write((int) ((value >> 40) & 0xFF));
+		os.write((int) ((value >> 32) & 0xFF));
+		os.write((int) ((value >> 28) & 0xFF));
+		os.write((int) ((value >> 16) & 0xFF));
+		os.write((int) ((value >> 8) & 0xFF));
+		os.write((int) (value & 0xFF));
+		return 72;
 	}
 
 	public static final int readUnsignedITF8(byte[] data) {
@@ -156,13 +320,13 @@ public class ByteBufferUtils {
 		System.out.println(v);
 
 		long time = System.nanoTime();
-		for (int i = Integer.MIN_VALUE; i < Integer.MIN_VALUE+10; i++) {
+		for (int i = Integer.MIN_VALUE; i < Integer.MIN_VALUE + 10; i++) {
 			buf.clear();
 			writeUnsignedITF8(i, buf);
 			buf.flip();
-			byte[] bytes = new byte[buf.limit()] ;
-			buf.get(bytes) ;
-			buf.position(0) ;
+			byte[] bytes = new byte[buf.limit()];
+			buf.get(bytes);
+			buf.position(0);
 			System.out.printf("%d=%s\n", i, toHex(bytes));
 			int value = readUnsignedITF8(buf);
 			if (i != value)
@@ -177,37 +341,141 @@ public class ByteBufferUtils {
 
 		System.out.println("Done.");
 
-		String s = "e07d027300948bfffffed66bc0c34d2405826dd9c2d7" ;
-		
-		byte[] b = new byte[s.length()/2] ;
-		for (int i=0; i<s.length(); i+=2) {
-			b[i/2] = (byte) Integer.valueOf(s.substring(i, i+2), 16).intValue() ;
+		String s = "e07d027300948bfffffed66bc0c34d2405826dd9c2d7";
+
+		byte[] b = new byte[s.length() / 2];
+		for (int i = 0; i < s.length(); i += 2) {
+			b[i / 2] = (byte) Integer.valueOf(s.substring(i, i + 2), 16)
+					.intValue();
 		}
 		System.out.println(Arrays.toString(b));
-		
-		buf = ByteBuffer.wrap(b) ;
-		int i1 = readUnsignedITF8(buf) ;
-		System.out.println(buf.get()) ;
-		System.out.println(buf.get()) ;
-		System.out.println(buf.get()) ;
-		
-		int i2 = readUnsignedITF8(buf) ;
+
+		buf = ByteBuffer.wrap(b);
+		int i1 = readUnsignedITF8(buf);
+		System.out.println(buf.get());
+		System.out.println(buf.get());
+		System.out.println(buf.get());
+
+		int i2 = readUnsignedITF8(buf);
 		System.out.printf("i1=%d, i2=%d\n", i1, i2);
-		
-		b = writeUnsignedITF8(-4757) ;
-		StringBuffer sb = new StringBuffer() ;
-		for (byte t:b) {
-			System.out.printf("byte %d, hex %s\n", t, Integer.toHexString(0xFF & t));
-			sb.append(Integer.toHexString(0xFF & t)) ;
+
+		b = writeUnsignedITF8(-4757);
+		StringBuffer sb = new StringBuffer();
+		for (byte t : b) {
+			System.out.printf("byte %d, hex %s\n", t,
+					Integer.toHexString(0xFF & t));
+			sb.append(Integer.toHexString(0xFF & t));
 		}
 		System.out.println(sb.toString());
 	}
-	
-	private static String toHex (byte[] bytes) {
-		StringBuffer sb = new StringBuffer() ;
-		for (byte t:bytes) {
-			sb.append(Integer.toHexString(0xFF & t)) ;
+
+	private static String toHex(byte[] bytes) {
+		StringBuffer sb = new StringBuffer();
+		for (byte t : bytes) {
+			sb.append(Integer.toHexString(0xFF & t));
 		}
-		return sb.toString() ;
+		return sb.toString();
+	}
+
+	/**
+	 * Unsigned little-endiann 4 byte integer
+	 * 
+	 * @param is
+	 *            input stream to read from
+	 * @return an integer value read
+	 * @throws IOException
+	 */
+	public static int int32(InputStream is) throws IOException {
+		return is.read() | is.read() << 8 | is.read() << 16 | is.read() << 24;
+	}
+
+	public static int writeInt32(int value, OutputStream os) throws IOException {
+		os.write((byte) value);
+		os.write((byte) (value >> 8));
+		os.write((byte) (value >> 16));
+		os.write((byte) (value >> 24));
+		return 4;
+	}
+
+	/**
+	 * Unsigned little-endiann 4 byte integer
+	 * 
+	 * @param is
+	 *            byte buffer to read from
+	 * @return an integer value read
+	 * @throws IOException
+	 */
+	public static int int32(ByteBuffer buf) throws IOException {
+		return buf.get() | buf.get() << 8 | buf.get() << 16 | buf.get() << 24;
+	}
+
+	public static int[] array(InputStream is) throws IOException {
+		int size = readUnsignedITF8(is);
+		int[] array = new int[size];
+		for (int i = 0; i < size; i++)
+			array[i] = readUnsignedITF8(is);
+
+		return array;
+	}
+
+	public static int write(int[] array, OutputStream os) throws IOException {
+		int len = writeUnsignedITF8(array.length, os);
+		for (int i = 0; i < array.length; i++)
+			len += writeUnsignedITF8(array[i], os);
+
+		return len;
+	}
+	
+	public static int readFully(byte[] data, InputStream is) throws IOException {
+		return readFully(data, data.length, 0, is);
+	}
+
+	public static int readFully(byte[] data, int length, int offset,
+			InputStream inputStream) throws IOException {
+		if (length < 0)
+			throw new IndexOutOfBoundsException();
+		int n = 0;
+		while (n < length) {
+			int count = inputStream.read(data, offset + n, length - n);
+			if (count < 0)
+				throw new EOFException();
+			n += count;
+		}
+		return n;
+	}
+
+	public static long copyLarge(InputStream input, OutputStream output)
+			throws IOException {
+		byte[] buffer = new byte[1024 * 4];
+		long count = 0;
+		int n = 0;
+		while (-1 != (n = input.read(buffer))) {
+			output.write(buffer, 0, n);
+			count += n;
+		}
+		return count;
+	}
+
+	public static byte[] readFully(InputStream input) throws IOException {
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		long count = copyLarge(input, output);
+		if (count > Integer.MAX_VALUE)
+			throw new RuntimeException(
+					"Failed to copy data because the size is over 2g limit. ");
+		return output.toByteArray();
+	}
+
+	public static byte[] gunzip(byte[] data) throws IOException {
+		GZIPInputStream gis = new GZIPInputStream(
+				new ByteArrayInputStream(data));
+		return readFully(gis);
+	}
+
+	public static byte[] gzip(byte[] data) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		long count = copyLarge(new ByteArrayInputStream(data),
+				new GZIPOutputStream(baos));
+
+		return baos.toByteArray();
 	}
 }

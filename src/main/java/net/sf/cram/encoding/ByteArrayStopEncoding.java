@@ -12,6 +12,7 @@ import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingParams;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class ByteArrayStopEncoding implements Encoding<byte[]> {
@@ -43,7 +44,7 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		ByteBuffer buf = ByteBuffer.allocate(1024);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 		buf.put(stopByte);
-		buf.putInt(externalId);
+		ByteBufferUtils.writeUnsignedITF8(externalId, buf) ;
 
 		buf.flip();
 		byte[] array = new byte[buf.limit()];
@@ -56,7 +57,8 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		ByteBuffer buf = ByteBuffer.wrap(data);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 		stopByte = buf.get();
-		externalId = buf.getInt();
+		externalId = ByteBufferUtils.readUnsignedITF8(buf) ;
+		System.out.printf("Stop=%d, external id=%d\n", stopByte, externalId);
 	}
 
 	@Override
@@ -65,6 +67,9 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		InputStream is = inputMap == null ? null : inputMap.get(externalId);
 		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap
 				.get(externalId);
+		if (is == null && os == null) {
+			System.out.println("Streams are null");
+		}
 		return new ByteArrayStopCodec(stopByte, is, os);
 	}
 

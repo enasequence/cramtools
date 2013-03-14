@@ -10,6 +10,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkipVariation;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 import net.sf.samtools.Cigar;
@@ -139,6 +140,10 @@ public class Cram2BamRecordFactory {
 				co = CigarOperator.DELETION;
 				rfLen = ((DeletionVariation) f).getLength();
 				break;
+			case RefSkipVariation.operator:
+				co = CigarOperator.SKIPPED_REGION;
+				rfLen = ((RefSkipVariation) f).getLength();
+				break;
 			case SubstitutionVariation.operator:
 			case ReadBase.operator:
 				co = CigarOperator.MATCH_OR_MISMATCH;
@@ -160,7 +165,7 @@ public class Cram2BamRecordFactory {
 			} else
 				lastOpLen += rfLen;
 
-			if (co == CigarOperator.DELETION)
+			if (co == CigarOperator.DELETION || co == CigarOperator.SKIPPED_REGION)
 				lastOpPos -= rfLen;
 		}
 

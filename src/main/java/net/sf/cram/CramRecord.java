@@ -20,15 +20,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javax.swing.text.MutableAttributeSet;
+
 import net.sf.cram.encoding.read_features.DeletionVariation;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
+import net.sf.cram.stats.MutableInt;
 
 public class CramRecord implements Serializable {
 
-	public Collection<ReadTag> tags;
+	public ReadTag[] tags;
 
 	public int index = 0;
 	private int alignmentStart;
@@ -81,6 +84,9 @@ public class CramRecord implements Serializable {
 	private String readName;
 	public int templateSize;
 	public long counter = 1;
+	
+	public byte[] tagIds ;
+	public MutableInt tagIdsIndex ;
 
 	public int getFlags() {
 		if (flags == null) {

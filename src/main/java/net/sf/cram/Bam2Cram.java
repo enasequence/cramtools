@@ -298,7 +298,7 @@ public class Bam2Cram {
 			os = cos.getCipherOutputStream();
 		}
 
-		CramHeader h = new CramHeader(1, 0, params.bamFile == null ? "STDIN"
+		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN"
 				: params.bamFile.getName(), samFileReader.getFileHeader());
 		long offset = ReadWrite.writeCramHeader(h, os);
 
@@ -339,9 +339,9 @@ public class Bam2Cram {
 									container.writeTime / 1000000));
 
 					for (Slice s : container.slices) {
-						coreBytes += s.coreBlock.compressedContentSize;
+						coreBytes += s.coreBlock.getCompressedContent().length;
 						for (Integer i : s.external.keySet())
-							externalBytes[i] += s.external.get(i).compressedContentSize;
+							externalBytes[i] += s.external.get(i).getCompressedContent().length;
 					}
 				}
 			}
@@ -382,9 +382,9 @@ public class Bam2Cram {
 								container.writeTime / 1000000));
 
 				for (Slice s : container.slices) {
-					coreBytes += s.coreBlock.compressedContentSize;
+					coreBytes += s.coreBlock.getCompressedContent().length;
 					for (Integer i : s.external.keySet())
-						externalBytes[i] += s.external.get(i).compressedContentSize;
+						externalBytes[i] += s.external.get(i).getCompressedContent().length;
 				}
 			}
 		}

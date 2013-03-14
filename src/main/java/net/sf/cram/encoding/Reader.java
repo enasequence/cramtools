@@ -2,8 +2,6 @@ package net.sf.cram.encoding;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -18,14 +16,14 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkipVariation;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
-	public boolean captureMappedQS = false;
-	public boolean captureUnmappedQS = false;
 	public boolean captureReadNames = false;
+	public byte[][][] tagIdDictionary ;
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataReader<Integer> bitFlagsC;
@@ -71,7 +69,7 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE)
 	public DataReader<Byte> qc;
-	
+
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> qcArray;
 
@@ -106,17 +104,27 @@ public class Reader {
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataReader<Integer> testC;
 	
+	@DataSeries(key = EncodingKey.TL_TagIdList, type = DataSeriesType.INT)
+	public DataReader<Integer> tagIdListCodec;
+	
+	@DataSeries(key = EncodingKey.RI_RefId, type = DataSeriesType.INT)
+	public DataReader<Integer> refIdCodec;
+	
+	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
+	public DataReader<Integer> refSkipCodec;
+
 	public void read(CramRecord r) throws IOException {
 		try {
-//			int mark = testC.readData();
-//			if (Writer.TEST_MARK != mark) {
-//				System.err.println("Record counter=" + recordCount);
-//				System.err.println(r.toString());
-//				throw new RuntimeException("Test mark not found.");
-//			}
-			
+			// int mark = testC.readData();
+			// if (Writer.TEST_MARK != mark) {
+			// System.err.println("Record counter=" + recordCount);
+			// System.err.println(r.toString());
+			// throw new RuntimeException("Test mark not found.");
+			// }
+
 			r.setFlags(bitFlagsC.readData());
 			r.setCompressionFlags(compBitFlagsC.readData());
+			r.sequenceId = refIdCodec.readData();
 
 			r.setReadLength(readLengthC.readData());
 			r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
@@ -139,18 +147,18 @@ public class Reader {
 			} else if (r.hasMateDownStream)
 				r.setRecordsToNextFragment(distanceC.readData());
 
-			// tag records:
-			int tagCount = 0xFF & tagCountC.readData();
-			if (tagCount > 0) {
-				r.tags = new LinkedList<ReadTag>();
-				for (int i = 0; i < tagCount; i++) {
-					int id = tagNameAndTypeC.readData();
+			Integer tagIdList = tagIdListCodec.readData() ;
+			byte[][] ids = tagIdDictionary[tagIdList] ;
+			if (ids.length > 0) {
+				int tagCount = ids.length;
+				r.tags = new ReadTag[tagCount] ;
+				for (int i = 0; i < ids.length; i++) {
+					int id = ReadTag.name3BytesToInt(ids[i]) ;
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
 					byte[] data = dataReader.readData();
 					ReadTag tag = new ReadTag(id, data);
-					r.tags.add(tag);
+					r.tags[i] = tag;
 				}
-
 			}
 
 			if (!r.segmentUnmapped) {
@@ -192,6 +200,11 @@ public class Reader {
 								dlc.readData());
 						rf.add(dv);
 						break;
+					case RefSkipVariation.operator:
+						RefSkipVariation rsv = new RefSkipVariation(pos,
+								refSkipCodec.readData());
+						rf.add(rsv);
+						break;
 					case InsertBase.operator:
 						InsertBase ib = new InsertBase(pos, bc.readData());
 						rf.add(ib);
@@ -210,10 +223,10 @@ public class Reader {
 				// mapping quality:
 				r.setMappingQuality(mqc.readData());
 				if (r.forcePreserveQualityScores) {
-//					byte[] qs = new byte[r.getReadLength()];
-//					for (int i = 0; i < qs.length; i++)
-//						qs[i] = qc.readData();
-					byte[] qs = qcArray.readDataArray(r.getReadLength()) ;
+					// byte[] qs = new byte[r.getReadLength()];
+					// for (int i = 0; i < qs.length; i++)
+					// qs[i] = qc.readData();
+					byte[] qs = qcArray.readDataArray(r.getReadLength());
 					r.setQualityScores(qs);
 				}
 			} else {
@@ -223,10 +236,10 @@ public class Reader {
 				r.setReadBases(bases);
 
 				if (r.forcePreserveQualityScores) {
-//					byte[] qs = new byte[r.getReadLength()];
-//					for (int i = 0; i < qs.length; i++)
-//						qs[i] = qc.readData();
-					byte[] qs = qcArray.readDataArray(r.getReadLength()) ;
+					// byte[] qs = new byte[r.getReadLength()];
+					// for (int i = 0; i < qs.length; i++)
+					// qs[i] = qc.readData();
+					byte[] qs = qcArray.readDataArray(r.getReadLength());
 					r.setQualityScores(qs);
 				}
 			}

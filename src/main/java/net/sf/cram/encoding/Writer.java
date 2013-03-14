@@ -14,6 +14,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.InsertionVariation;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkipVariation;
 import net.sf.cram.encoding.read_features.SoftClipVariation;
 import net.sf.cram.encoding.read_features.SubstitutionVariation;
 
@@ -21,8 +22,6 @@ public class Writer {
 
 	public static final int TEST_MARK = 0xA0B0C0D0;
 	public Charset charset = Charset.forName("UTF8");
-	public boolean captureMappedQS = false;
-	public boolean captureUnmappedQS = false;
 	public boolean captureReadNames = false;
 	
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
@@ -101,6 +100,15 @@ public class Writer {
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataWriter<Integer> testC;
 	
+	@DataSeries(key = EncodingKey.TL_TagIdList, type = DataSeriesType.INT)
+	public DataWriter<Integer> tagIdListCodec;
+	
+	@DataSeries(key = EncodingKey.RI_RefId, type = DataSeriesType.INT)
+	public DataWriter<Integer> refIdCodec;
+	
+	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
+	public DataWriter<Integer> refSkipCodec;
+	
 	public static int detachedCount = 0 ;
 
 	public void write(CramRecord r) throws IOException {
@@ -132,13 +140,11 @@ public class Writer {
 			distanceC.writeData(r.recordsToNextFragment);
 
 		// tag records:
-		tagCountC.writeData(r.tags == null ? 0 : (byte) r.tags.size());
+		tagIdListCodec.writeData(r.tagIdsIndex.value) ;
 		if (r.tags != null) {
-			for (ReadTag tag : r.tags) {
-				tagNameAndTypeC.writeData(tag.keyType3BytesAsInt);
-
-				DataWriter<byte[]> writer = tagValueCodecs.get(tag.keyType3BytesAsInt);
-				writer.writeData(tag.getValueAsByteArray());
+			for (int i=0; i<r.tags.length; i++) {
+				DataWriter<byte[]> writer = tagValueCodecs.get(r.tags[i].keyType3BytesAsInt);
+				writer.writeData(r.tags[i].getValueAsByteArray());
 			}
 		}
 
@@ -180,6 +186,10 @@ public class Writer {
 				case DeletionVariation.operator:
 					DeletionVariation dv = (DeletionVariation) f;
 					dlc.writeData(dv.getLength());
+					break;
+				case RefSkipVariation.operator:
+					RefSkipVariation rsv = (RefSkipVariation) f;
+					refSkipCodec.writeData(rsv.getLength());
 					break;
 				case InsertBase.operator:
 					InsertBase ib = (InsertBase) f;
