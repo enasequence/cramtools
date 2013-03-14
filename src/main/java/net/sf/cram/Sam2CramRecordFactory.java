@@ -328,7 +328,7 @@ public class Sam2CramRecordFactory {
 			ib.setPosition(zeroBasedPositionInRead + 1 + i);
 			ib.setBase(insertedBases[i]);
 			features.add(ib);
-			if (losslessQS)
+			if (losslessQS || scores == null || scores.length < bases.length)
 				continue;
 			boolean qualityMasked = (scores[i] < uncategorisedQualityScoreCutoff);
 			if (captureInsertScores || qualityMasked) {
