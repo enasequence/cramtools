@@ -27,9 +27,9 @@ import net.sf.cram.encoding.HuffmanByteEncoding;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.huffman.HuffmanCode;
 import net.sf.cram.huffman.HuffmanTree;
 import net.sf.cram.structure.CompressionHeader;
@@ -203,16 +203,24 @@ public class CompressionHeaderFactory {
 
 			Map<byte[], MutableInt> map = new TreeMap<byte[], MutableInt>(
 					baComparator);
+			MutableInt noTagCounter = new MutableInt() ;
+			map.put(new byte[0], noTagCounter) ;
 			for (CramRecord r : records) {
-				if (r.tags == null)
+				if (r.tags == null) {
+					noTagCounter.value++ ;
+					r.tagIdsIndex = noTagCounter ;
 					continue;
+				}
+				
 				Arrays.sort(r.tags, comparator);
 				r.tagIds = new byte[r.tags.length * 3];
 
 				int tagIndex = 0;
-				for (int i = 0; i < r.tagIds.length; i++) {
-					r.tagIds[i] = (byte) r.tags[tagIndex].keyType3Bytes
-							.charAt(i % 3);
+				for (int i = 0; i < r.tags.length; i++) {
+					r.tagIds[i*3] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(0);
+					r.tagIds[i*3+1] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(1);
+					r.tagIds[i*3+2] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(2);
+					tagIndex++ ;
 				}
 
 				MutableInt count = map.get(r.tagIds);
@@ -227,18 +235,21 @@ public class CompressionHeaderFactory {
 			byte[][][] dic = new byte[map.size()][][];
 			int i = 0;
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (byte[] list : map.keySet()) {
-				dic[i] = new byte[list.length / 3][];
-				for (int j = 0; j < list.length; j++) {
-					dic[i][j] = new byte[3];
-					dic[i][j / 3][0] = list[j++];
-					dic[i][j / 3][1] = list[j++];
-					dic[i][j / 3][2] = list[j++];
+			for (byte[] idsAsBytes : map.keySet()) {
+				int nofIds = idsAsBytes.length / 3 ;
+				dic[i] = new byte[nofIds][];
+				for (int j = 0; j < idsAsBytes.length; ) {
+					int idIndex = j/3 ;
+					dic[i][idIndex] = new byte[3];
+					dic[i][idIndex][0] = idsAsBytes[j++];
+					dic[i][idIndex][1] = idsAsBytes[j++];
+					dic[i][idIndex][2] = idsAsBytes[j++];
 				}
-				calculator.add(i, map.get(list).value);
-				map.get(list).value = i++;
+				calculator.add(i, map.get(idsAsBytes).value);
+				map.get(idsAsBytes).value = i++;
 			}
 
+			calculator.calculate() ;
 			h.eMap.put(EncodingKey.TL_TagIdList, HuffmanIntegerEncoding
 					.toParam(calculator.values(), calculator.bitLens()));
 			h.dictionary = dic;
@@ -393,8 +404,8 @@ public class CompressionHeaderFactory {
 					continue;
 				else
 					for (ReadFeature rf : r.getReadFeatures())
-						if (rf.getOperator() == SubstitutionVariation.operator)
-							calculator.add(((SubstitutionVariation) rf)
+						if (rf.getOperator() == Substitution.operator)
+							calculator.add(((Substitution) rf)
 									.getBaseChange().getChange());
 			calculator.calculate();
 
@@ -439,9 +450,9 @@ public class CompressionHeaderFactory {
 					continue;
 				else
 					for (ReadFeature rf : r.getReadFeatures())
-						if (rf.getOperator() == DeletionVariation.operator)
+						if (rf.getOperator() == Deletion.operator)
 							calculator
-									.add(((DeletionVariation) rf).getLength());
+									.add(((Deletion) rf).getLength());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding

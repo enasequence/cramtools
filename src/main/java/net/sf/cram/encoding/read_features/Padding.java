@@ -4,16 +4,16 @@ import java.io.Serializable;
 
 import net.sf.samtools.CigarOperator;
 
-public class DeletionVariation implements Serializable, ReadFeature{
+public class Padding implements Serializable, ReadFeature{
 
 	private int position;
 	private int length;
-	public static final byte operator = 'D';
+	public static final byte operator = 'P';
 
-	public DeletionVariation() {
+	public Padding() {
 	}
 
-	public DeletionVariation(int position, int length) {
+	public Padding(int position, int length) {
 		this.position = position;
 		this.length = length;
 	}
@@ -42,10 +42,10 @@ public class DeletionVariation implements Serializable, ReadFeature{
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof DeletionVariation))
+		if (!(obj instanceof Padding))
 			return false;
 
-		DeletionVariation v = (DeletionVariation) obj;
+		Padding v = (Padding) obj;
 
 		if (position != v.position)
 			return false;

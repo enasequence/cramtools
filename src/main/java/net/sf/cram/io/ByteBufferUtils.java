@@ -129,7 +129,7 @@ public class ByteBufferUtils {
 			result |= is.read();
 			return result;
 		}
-		
+
 		long result = is.read() << 54;
 		result |= is.read() << 48;
 		result |= is.read() << 40;
@@ -175,7 +175,7 @@ public class ByteBufferUtils {
 
 		if ((value >>> 35) == 0) {
 			// four control bits
-			os.write((int) ((value >> 32) | 0xF8));
+			os.write((int) ((value >> 32) | 0xF0));
 			os.write((int) ((value >> 28) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
 			os.write((int) ((value >> 8) & 0xFF));
@@ -185,7 +185,7 @@ public class ByteBufferUtils {
 
 		if ((value >>> 42) == 0) {
 			// five control bits
-			os.write((int) ((value >> 40) | 0xFC));
+			os.write((int) ((value >> 40) | 0xF8));
 			os.write((int) ((value >> 32) & 0xFF));
 			os.write((int) ((value >> 28) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
@@ -196,7 +196,7 @@ public class ByteBufferUtils {
 
 		if ((value >>> 49) == 0) {
 			// six control bits
-			os.write((int) ((value >> 48) | 0xFE));
+			os.write((int) ((value >> 48) | 0xFC));
 			os.write((int) ((value >> 40) & 0xFF));
 			os.write((int) ((value >> 32) & 0xFF));
 			os.write((int) ((value >> 28) & 0xFF));
@@ -209,7 +209,7 @@ public class ByteBufferUtils {
 		if ((value >>> 56) == 0) {
 			// seven control bits
 			os.write(0xFE);
-			os.write((int) ((value >> 48) & 0xFF));
+			os.write((int) ((value >> 48) & 0xFE));
 			os.write((int) ((value >> 40) & 0xFF));
 			os.write((int) ((value >> 32) & 0xFF));
 			os.write((int) ((value >> 28) & 0xFF));
@@ -310,63 +310,111 @@ public class ByteBufferUtils {
 		buf.put((byte) (value & 0xFF));
 	}
 
-	public static void main(String[] args) {
-		ByteBuffer buf = ByteBuffer.allocate(5);
+	private static ExposedByteArrayOutputStream ltf8TestBAOS = new ExposedByteArrayOutputStream();
+	private static ByteArrayInputStream ltf8TestBAIS = new ByteArrayInputStream(
+			ltf8TestBAOS.getBuffer());
 
-		// Read 192 but expecting 16384
-		writeUnsignedITF8(16384, buf);
-		buf.flip();
-		int v = readUnsignedITF8(buf);
-		System.out.println(v);
+	private static boolean testLTF8(long value) throws IOException {
+		ltf8TestBAOS.reset();
+		int len = writeUnsignedLTF8(value, ltf8TestBAOS);
+		
+		if (len > 8 *9) {
+			System.out.println("Written length is too big: "+ len);
+			return false ;
+		}
 
-		long time = System.nanoTime();
-		for (int i = Integer.MIN_VALUE; i < Integer.MIN_VALUE + 10; i++) {
-			buf.clear();
-			writeUnsignedITF8(i, buf);
-			buf.flip();
-			byte[] bytes = new byte[buf.limit()];
-			buf.get(bytes);
-			buf.position(0);
-			System.out.printf("%d=%s\n", i, toHex(bytes));
-			int value = readUnsignedITF8(buf);
-			if (i != value)
-				throw new RuntimeException("Read " + value + " but expecting "
-						+ i);
+		ltf8TestBAIS.reset();
+		long result = readUnsignedLTF8(ltf8TestBAIS);
 
-			if (System.nanoTime() - time > 1000 * 1000 * 1000) {
-				time = System.nanoTime();
-				System.out.println("i=" + i);
+		if (value != result) {
+			System.out.printf("Value=%d, result=%d\n", value, result);
+			return false;
+		}
+		return true;
+	}
+
+	public static void main(String[] args) throws IOException {
+
+		{
+			// test LTF8
+			
+			if (!testLTF8(268435456L)) return  ;
+			
+			testLTF8(0);
+			testLTF8(0);
+			testLTF8(1);
+			testLTF8(127);
+			testLTF8(128);
+			testLTF8(255);
+			testLTF8(256);
+			for (int i = 0; i <= 64; i++) {
+				testLTF8((1L << i) - 2);
+				testLTF8((1L << i) - 1);
+				testLTF8(1L << i);
+				testLTF8((1L << i) + 1);
+				testLTF8((1L << i) + 1);
 			}
 		}
 
-		System.out.println("Done.");
+		{
+			// test ITF8
+			ByteBuffer buf = ByteBuffer.allocate(5);
 
-		String s = "e07d027300948bfffffed66bc0c34d2405826dd9c2d7";
+			// Read 192 but expecting 16384
+			writeUnsignedITF8(16384, buf);
+			buf.flip();
+			int v = readUnsignedITF8(buf);
+			System.out.println(v);
 
-		byte[] b = new byte[s.length() / 2];
-		for (int i = 0; i < s.length(); i += 2) {
-			b[i / 2] = (byte) Integer.valueOf(s.substring(i, i + 2), 16)
-					.intValue();
+			long time = System.nanoTime();
+			for (int i = Integer.MIN_VALUE; i < Integer.MIN_VALUE + 10; i++) {
+				buf.clear();
+				writeUnsignedITF8(i, buf);
+				buf.flip();
+				byte[] bytes = new byte[buf.limit()];
+				buf.get(bytes);
+				buf.position(0);
+				System.out.printf("%d=%s\n", i, toHex(bytes));
+				int value = readUnsignedITF8(buf);
+				if (i != value)
+					throw new RuntimeException("Read " + value
+							+ " but expecting " + i);
+
+				if (System.nanoTime() - time > 1000 * 1000 * 1000) {
+					time = System.nanoTime();
+					System.out.println("i=" + i);
+				}
+			}
+
+			System.out.println("Done.");
+
+			String s = "e07d027300948bfffffed66bc0c34d2405826dd9c2d7";
+
+			byte[] b = new byte[s.length() / 2];
+			for (int i = 0; i < s.length(); i += 2) {
+				b[i / 2] = (byte) Integer.valueOf(s.substring(i, i + 2), 16)
+						.intValue();
+			}
+			System.out.println(Arrays.toString(b));
+
+			buf = ByteBuffer.wrap(b);
+			int i1 = readUnsignedITF8(buf);
+			System.out.println(buf.get());
+			System.out.println(buf.get());
+			System.out.println(buf.get());
+
+			int i2 = readUnsignedITF8(buf);
+			System.out.printf("i1=%d, i2=%d\n", i1, i2);
+
+			b = writeUnsignedITF8(-4757);
+			StringBuffer sb = new StringBuffer();
+			for (byte t : b) {
+				System.out.printf("byte %d, hex %s\n", t,
+						Integer.toHexString(0xFF & t));
+				sb.append(Integer.toHexString(0xFF & t));
+			}
+			System.out.println(sb.toString());
 		}
-		System.out.println(Arrays.toString(b));
-
-		buf = ByteBuffer.wrap(b);
-		int i1 = readUnsignedITF8(buf);
-		System.out.println(buf.get());
-		System.out.println(buf.get());
-		System.out.println(buf.get());
-
-		int i2 = readUnsignedITF8(buf);
-		System.out.printf("i1=%d, i2=%d\n", i1, i2);
-
-		b = writeUnsignedITF8(-4757);
-		StringBuffer sb = new StringBuffer();
-		for (byte t : b) {
-			System.out.printf("byte %d, hex %s\n", t,
-					Integer.toHexString(0xFF & t));
-			sb.append(Integer.toHexString(0xFF & t));
-		}
-		System.out.println(sb.toString());
 	}
 
 	private static String toHex(byte[] bytes) {
@@ -425,7 +473,7 @@ public class ByteBufferUtils {
 
 		return len;
 	}
-	
+
 	public static int readFully(byte[] data, InputStream is) throws IOException {
 		return readFully(data, data.length, 0, is);
 	}
@@ -473,9 +521,11 @@ public class ByteBufferUtils {
 
 	public static byte[] gzip(byte[] data) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		long count = copyLarge(new ByteArrayInputStream(data),
-				new GZIPOutputStream(baos));
+		GZIPOutputStream gos = new GZIPOutputStream(baos);
+		long count = copyLarge(new ByteArrayInputStream(data), gos);
+		gos.close();
 
 		return baos.toByteArray();
 	}
+
 }

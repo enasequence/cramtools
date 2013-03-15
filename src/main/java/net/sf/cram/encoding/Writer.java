@@ -9,14 +9,14 @@ import net.sf.cram.DataSeriesType;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.RefSkipVariation;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.RefSkip;
+import net.sf.cram.encoding.read_features.SoftClip;
+import net.sf.cram.encoding.read_features.Substitution;
 
 public class Writer {
 
@@ -155,7 +155,7 @@ public class Writer {
 			for (ReadFeature f : r.getReadFeatures()) {
 				fc.writeData(f.getOperator());
 				switch (f.getOperator()) {
-				case SubstitutionVariation.operator:
+				case Substitution.operator:
 					break;
 
 				default:
@@ -171,24 +171,24 @@ public class Writer {
 					bc.writeData(rb.getBase());
 					qc.writeData(rb.getQualityScore());
 					break;
-				case SubstitutionVariation.operator:
-					SubstitutionVariation sv = (SubstitutionVariation) f;
+				case Substitution.operator:
+					Substitution sv = (Substitution) f;
 					bsc.writeData((byte) sv.getBaseChange().getChange());
 					break;
-				case InsertionVariation.operator:
-					InsertionVariation iv = (InsertionVariation) f;
+				case Insertion.operator:
+					Insertion iv = (Insertion) f;
 					inc.writeData(iv.getSequence());
 					break;
-				case SoftClipVariation.operator:
-					SoftClipVariation fv = (SoftClipVariation) f;
+				case SoftClip.operator:
+					SoftClip fv = (SoftClip) f;
 					inc.writeData(fv.getSequence());
 					break;
-				case DeletionVariation.operator:
-					DeletionVariation dv = (DeletionVariation) f;
+				case Deletion.operator:
+					Deletion dv = (Deletion) f;
 					dlc.writeData(dv.getLength());
 					break;
-				case RefSkipVariation.operator:
-					RefSkipVariation rsv = (RefSkipVariation) f;
+				case RefSkip.operator:
+					RefSkip rsv = (RefSkip) f;
 					refSkipCodec.writeData(rsv.getLength());
 					break;
 				case InsertBase.operator:

@@ -28,7 +28,7 @@ public class CompressionHeader {
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;
 
-	private byte[] substitutionMatrix;
+	private byte[] substitutionMatrix = new byte[5];
 
 	public List<Integer> externalIds;
 
@@ -67,6 +67,25 @@ public class CompressionHeader {
 		}
 
 		return array;
+	}
+
+	private byte[] dictionaryToByteArray() {
+		int size = 0;
+		for (int i = 0; i < dictionary.length; i++) {
+			for (int j = 0; j < dictionary[i].length; j++)
+				size += dictionary[i][j].length;
+			size++;
+		}
+
+		byte[] bytes = new byte[size];
+		ByteBuffer buf = ByteBuffer.wrap(bytes);
+		for (int i = 0; i < dictionary.length; i++) {
+			for (int j = 0; j < dictionary[i].length; j++)
+				buf.put(dictionary[i][j]);
+			buf.put((byte) 0);
+		}
+
+		return bytes;
 	}
 
 	public byte[][] getTagIds(int id) {
@@ -185,13 +204,19 @@ public class CompressionHeader {
 
 			mapBuf.put("TD".getBytes());
 			{
-				for (int i = 0; i < dictionary.length; i++) {
-					byte[][] list = dictionary[i];
-					for (int j = 0; j < list.length; j++) {
-						mapBuf.put(list[j]);
-					}
-					mapBuf.put((byte) 0);
-				}
+				
+				byte[] dBytes =dictionaryToByteArray() ;  
+				ByteBufferUtils.writeUnsignedITF8(dBytes.length, mapBuf) ;
+				mapBuf.put(dBytes) ;
+//				ByteBufferUtils.writeUnsignedITF8(dictionary.length);
+//				for (int i = 0; i < dictionary.length; i++) {
+//					byte[][] list = dictionary[i];
+//					for (int j = 0; j < list.length; j++) {
+//						mapBuf.put(list[j]);
+//					}
+//					mapBuf.put((byte) 0);
+//				}
+//				mapBuf.put((byte) 0);
 			}
 
 			mapBuf.flip();

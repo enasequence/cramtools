@@ -27,4 +27,7 @@ public class Slice {
 	public long containerOffset = -1 ;
 	public int size = -1;
 	public int index = -1;
+	
+	// to pass this to the container:
+	public long bases ;
 }

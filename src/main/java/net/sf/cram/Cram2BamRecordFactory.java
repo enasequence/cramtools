@@ -5,14 +5,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
+import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.RefSkipVariation;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.RefSkip;
+import net.sf.cram.encoding.read_features.SoftClip;
+import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -124,27 +126,35 @@ public class Cram2BamRecordFactory {
 			}
 
 			switch (f.getOperator()) {
-			case InsertionVariation.operator:
+			case Insertion.operator:
 				co = CigarOperator.INSERTION;
-				rfLen = ((InsertionVariation) f).getSequence().length;
+				rfLen = ((Insertion) f).getSequence().length;
 				break;
-			case SoftClipVariation.operator:
+			case SoftClip.operator:
 				co = CigarOperator.SOFT_CLIP;
-				rfLen = ((SoftClipVariation) f).getSequence().length;
+				rfLen = ((SoftClip) f).getSequence().length;
+				break;
+			case HardClip.operator:
+				co = CigarOperator.HARD_CLIP ;
+				rfLen = ((HardClip) f).getSequence().length;
 				break;
 			case InsertBase.operator:
 				co = CigarOperator.INSERTION;
 				rfLen = 1;
 				break;
-			case DeletionVariation.operator:
+			case Deletion.operator:
 				co = CigarOperator.DELETION;
-				rfLen = ((DeletionVariation) f).getLength();
+				rfLen = ((Deletion) f).getLength();
 				break;
-			case RefSkipVariation.operator:
+			case RefSkip.operator:
 				co = CigarOperator.SKIPPED_REGION;
-				rfLen = ((RefSkipVariation) f).getLength();
+				rfLen = ((RefSkip) f).getLength();
 				break;
-			case SubstitutionVariation.operator:
+			case Padding.operator:
+				co = CigarOperator.PADDING ;
+				rfLen = ((Padding) f).getLength();
+				break;
+			case Substitution.operator:
 			case ReadBase.operator:
 				co = CigarOperator.MATCH_OR_MISMATCH;
 				rfLen = 1;
@@ -165,7 +175,7 @@ public class Cram2BamRecordFactory {
 			} else
 				lastOpLen += rfLen;
 
-			if (co == CigarOperator.DELETION || co == CigarOperator.SKIPPED_REGION)
+			if (!co.consumesReadBases())
 				lastOpPos -= rfLen;
 		}
 

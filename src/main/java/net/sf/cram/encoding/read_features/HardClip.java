@@ -3,19 +3,28 @@ package net.sf.cram.encoding.read_features;
 import java.io.Serializable;
 import java.util.Arrays;
 
-public class InsertionVariation implements Serializable, ReadFeature {
+public class HardClip implements Serializable, ReadFeature {
 
 	private int position;
 	private byte[] sequence;
-	public static final byte operator = 'I';
 
-	public InsertionVariation() {
+	public byte[] getSequence() {
+		return sequence;
 	}
 
-	public InsertionVariation(int position, byte[] sequence) {
+	public void setSequence(byte[] sequence) {
+		this.sequence = sequence;
+	}
+
+	public HardClip() {
+	}
+
+	public HardClip(int position, byte[] sequence) {
 		this.position = position;
 		this.sequence = sequence;
 	}
+
+	public static final byte operator = 'H';
 
 	@Override
 	public byte getOperator() {
@@ -30,31 +39,26 @@ public class InsertionVariation implements Serializable, ReadFeature {
 		this.position = position;
 	}
 
-	public byte[] getSequence() {
-		return sequence;
-	}
-
-	public void setSequence(byte[] sequence) {
-		this.sequence = sequence;
-	}
-
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof InsertionVariation))
+		if (!(obj instanceof HardClip))
 			return false;
 
-		InsertionVariation v = (InsertionVariation) obj;
+		HardClip v = (HardClip) obj;
 
 		if (position != v.position)
 			return false;
-		return Arrays.equals(sequence, v.sequence);
+		if (Arrays.equals(sequence, v.sequence))
+			return false;
+
+		return true;
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
 		sb.append("position=").append(position);
-		sb.append("; sequence=").append(new String(sequence));
+		sb.append("; bases=").append(new String(sequence));
 		sb.append("] ");
 		return sb.toString();
 	}

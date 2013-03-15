@@ -4,16 +4,16 @@ import java.io.Serializable;
 
 import net.sf.samtools.CigarOperator;
 
-public class RefSkipVariation implements Serializable, ReadFeature{
+public class Deletion implements Serializable, ReadFeature{
 
 	private int position;
 	private int length;
-	public static final byte operator = 'N';
+	public static final byte operator = 'D';
 
-	public RefSkipVariation() {
+	public Deletion() {
 	}
 
-	public RefSkipVariation(int position, int length) {
+	public Deletion(int position, int length) {
 		this.position = position;
 		this.length = length;
 	}
@@ -42,10 +42,10 @@ public class RefSkipVariation implements Serializable, ReadFeature{
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof RefSkipVariation))
+		if (!(obj instanceof Deletion))
 			return false;
 
-		RefSkipVariation v = (RefSkipVariation) obj;
+		Deletion v = (Deletion) obj;
 
 		if (position != v.position)
 			return false;

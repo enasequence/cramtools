@@ -54,7 +54,7 @@ public class ReadTag implements Comparable<ReadTag> {
 	private byte index;
 
 	public ReadTag(int id, byte[] dataAsByteArray) {
-		char type = (char) (0xFF & id);
+		this.type = (char) (0xFF & id);
 		key = new String(new char[] { (char) ((id >> 16) & 0xFF),
 				(char) ((id >> 8) & 0xFF) });
 		value = restoreValueFromByteArray(type, dataAsByteArray);

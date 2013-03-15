@@ -10,10 +10,9 @@ public class Container {
 	public int alignmentStart = -1;
 	public int alignmentSpan = -1;
 	public int nofRecords = -1;
-	public int globalRecordCounter = -1;
+	public long globalRecordCounter = -1;
 
-	// TODO change bases from int to long:
-	public int bases;
+	public long bases = 0;
 	public int blockCount = -1;
 	public int[] landmarks;
 	

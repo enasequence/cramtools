@@ -3,7 +3,7 @@ package net.sf.cram.encoding.read_features;
 import java.io.Serializable;
 import java.util.Arrays;
 
-public class SoftClipVariation implements Serializable, ReadFeature {
+public class SoftClip implements Serializable, ReadFeature {
 
 	private int position;
 	private byte[] sequence;
@@ -16,10 +16,10 @@ public class SoftClipVariation implements Serializable, ReadFeature {
 		this.sequence = sequence;
 	}
 
-	public SoftClipVariation() {
+	public SoftClip() {
 	}
 
-	public SoftClipVariation(int position, byte[] sequence) {
+	public SoftClip(int position, byte[] sequence) {
 		this.position = position;
 		this.sequence = sequence;
 	}
@@ -41,10 +41,10 @@ public class SoftClipVariation implements Serializable, ReadFeature {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof SoftClipVariation))
+		if (!(obj instanceof SoftClip))
 			return false;
 
-		SoftClipVariation v = (SoftClipVariation) obj;
+		SoftClip v = (SoftClip) obj;
 
 		if (position != v.position)
 			return false;

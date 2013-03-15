@@ -26,8 +26,10 @@ public class Block {
 		this.method = method;
 		this.contentType = contentType;
 		this.contentId = contentId;
-		setRawContent(rawContent);
-		setCompressedContent(compressedContent);
+		if (rawContent != null)
+			setRawContent(rawContent);
+		if (compressedContent != null)
+			setCompressedContent(compressedContent);
 	}
 
 	public Block(InputStream is, boolean readContent, boolean uncompress)
@@ -107,9 +109,9 @@ public class Block {
 
 		switch (m) {
 		case RAW:
-			compressedContent = rawContent ;
-			compressedContentSize = rawContentSize ;
-			break ;
+			compressedContent = rawContent;
+			compressedContentSize = rawContentSize;
+			break;
 		case GZIP:
 			try {
 				compressedContent = ByteBufferUtils.gzip(rawContent);
@@ -117,7 +119,7 @@ public class Block {
 				throw new RuntimeException("This should have never happned.", e);
 			}
 			compressedContentSize = compressedContent.length;
-			break ;
+			break;
 		default:
 			break;
 		}
@@ -131,33 +133,35 @@ public class Block {
 
 		switch (m) {
 		case RAW:
-			rawContent = compressedContent ;
-			rawContentSize = compressedContentSize ;
-			break ;
+			rawContent = compressedContent;
+			rawContentSize = compressedContentSize;
+			break;
 		case GZIP:
 			try {
 				rawContent = ByteBufferUtils.gunzip(compressedContent);
 			} catch (IOException e) {
 				throw new RuntimeException("This should have never happned.", e);
 			}
-			break ;
+			break;
 		default:
-			throw new RuntimeException("Unknown block compression method: " + m.name()) ;
+			throw new RuntimeException("Unknown block compression method: "
+					+ m.name());
 		}
 	}
-	
-	public void write (OutputStream os) throws IOException {
-		if (!isCompressed()) compress();
-		if (!isUncompressed()) uncompress() ;
-		
-		
-		os.write (method) ;
-		os.write (contentType.ordinal()) ;
-		os.write (contentId) ;
-		
-		ByteBufferUtils.writeUnsignedITF8(compressedContentSize);
-		ByteBufferUtils.writeUnsignedITF8(rawContentSize);
-		
-		os.write(getCompressedContent()) ;
+
+	public void write(OutputStream os) throws IOException {
+		if (!isCompressed())
+			compress();
+		if (!isUncompressed())
+			uncompress();
+
+		os.write(method);
+		os.write(contentType.ordinal());
+		os.write(contentId);
+
+		ByteBufferUtils.writeUnsignedITF8(compressedContentSize, os);
+		ByteBufferUtils.writeUnsignedITF8(rawContentSize, os);
+
+		os.write(getCompressedContent());
 	}
 }

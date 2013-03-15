@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 
 import net.sf.cram.io.ByteBufferUtils;
@@ -12,19 +13,20 @@ public class SliceIO {
 
 	public void readSliceHeadBlock(Slice s, InputStream is) throws IOException {
 		s.headerBlock = new Block(is, true, true);
-		parseSliceHeaderBlock(s) ;
+		parseSliceHeaderBlock(s);
 	}
 
 	public void parseSliceHeaderBlock(Slice s) throws IOException {
-		ByteArrayInputStream is = new ByteArrayInputStream(
-				s.headerBlock.getRawContent());
+		InputStream is = new ByteArrayInputStream(s.headerBlock.getRawContent());
+		// is = new DebuggingInputStream (is) ;
 
 		s.sequenceId = ByteBufferUtils.readUnsignedITF8(is);
 		s.alignmentStart = ByteBufferUtils.readUnsignedITF8(is);
 		s.alignmentSpan = ByteBufferUtils.readUnsignedITF8(is);
 		s.nofRecords = ByteBufferUtils.readUnsignedITF8(is);
-		s.globalRecordCounter = ByteBufferUtils.readUnsignedITF8(is);
+		s.globalRecordCounter = ByteBufferUtils.readUnsignedLTF8(is);
 		s.nofBlocks = ByteBufferUtils.readUnsignedITF8(is);
+
 		s.contentIDs = ByteBufferUtils.array(is);
 		s.embeddedRefBlockContentID = ByteBufferUtils.readUnsignedITF8(is);
 		s.refMD5 = new byte[16];
@@ -39,6 +41,11 @@ public class SliceIO {
 		ByteBufferUtils.writeUnsignedITF8(s.nofRecords, baos);
 		ByteBufferUtils.writeUnsignedLTF8(s.globalRecordCounter, baos);
 		ByteBufferUtils.writeUnsignedITF8(s.nofBlocks, baos);
+
+		s.contentIDs = new int[s.external.size()];
+		int i = 0;
+		for (int id : s.external.keySet())
+			s.contentIDs[i++] = id;
 		ByteBufferUtils.write(s.contentIDs, baos);
 		ByteBufferUtils.writeUnsignedITF8(s.embeddedRefBlockContentID, baos);
 		baos.write(s.refMD5);
@@ -64,13 +71,11 @@ public class SliceIO {
 			switch (b1.contentType) {
 			case CORE:
 				s.coreBlock = b1;
-				s.external.put(b1.contentId, b1);
 				break;
 			case EXTERNAL:
 				if (s.embeddedRefBlockContentID == b1.contentId)
 					s.embeddedRefBlock = b1;
-				else
-					s.external.put(b1.contentId, b1);
+				s.external.put(b1.contentId, b1);
 				break;
 
 			default:
@@ -79,5 +84,30 @@ public class SliceIO {
 								+ b1.contentType.name());
 			}
 		}
+	}
+
+	public void write(Slice s, OutputStream os) throws IOException {
+
+		s.nofBlocks = 1 + s.external.size() + (s.embeddedRefBlock == null ? 0
+				: 1);
+
+		{
+			s.contentIDs = new int[s.external.size()];
+			int i = 0;
+			for (int id : s.external.keySet())
+				s.contentIDs[i] = id;
+		}
+
+		createSliceHeaderBlock(s);
+
+		s.headerBlock.write(os);
+		s.coreBlock.write(os);
+		for (Block e : s.external.values())
+			e.write(os);
+	}
+
+	public void read(Slice s, InputStream is) throws IOException {
+		readSliceHeadBlock(s, is);
+		readSliceBlocks(s, true, is);
 	}
 }

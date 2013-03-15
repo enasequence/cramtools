@@ -5,13 +5,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.SoftClip;
+import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -157,11 +157,11 @@ public class CramNormalizer {
 		long len = record.getReadLength();
 		for (ReadFeature rf : record.getReadFeatures()) {
 			switch (rf.getOperator()) {
-			case DeletionVariation.operator:
-				len += ((DeletionVariation) rf).getLength();
+			case Deletion.operator:
+				len += ((Deletion) rf).getLength();
 				break;
-			case InsertionVariation.operator:
-				len -= ((InsertionVariation) rf).getSequence().length;
+			case Insertion.operator:
+				len -= ((Insertion) rf).getSequence().length;
 				break;
 			default:
 				break;
@@ -195,8 +195,8 @@ public class CramNormalizer {
 				bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
 			switch (v.getOperator()) {
-			case SubstitutionVariation.operator:
-				SubstitutionVariation sv = (SubstitutionVariation) v;
+			case Substitution.operator:
+				Substitution sv = (Substitution) v;
 				byte refBase = ref[alignmentStart + posInSeq];
 				byte base = sv.getBaseChange().getBaseForReference(refBase);
 				sv.setBase(base);
@@ -204,18 +204,18 @@ public class CramNormalizer {
 				bases[posInRead++ - 1] = sv.getBase();
 				posInSeq++;
 				break;
-			case InsertionVariation.operator:
-				InsertionVariation iv = (InsertionVariation) v;
+			case Insertion.operator:
+				Insertion iv = (Insertion) v;
 				for (int i = 0; i < iv.getSequence().length; i++)
 					bases[posInRead++ - 1] = iv.getSequence()[i];
 				break;
-			case SoftClipVariation.operator:
-				SoftClipVariation sc = (SoftClipVariation) v;
+			case SoftClip.operator:
+				SoftClip sc = (SoftClip) v;
 				for (int i = 0; i < sc.getSequence().length; i++)
 					bases[posInRead++ - 1] = sc.getSequence()[i];
 				break;
-			case DeletionVariation.operator:
-				DeletionVariation dv = (DeletionVariation) v;
+			case Deletion.operator:
+				Deletion dv = (Deletion) v;
 				posInSeq += dv.getLength();
 				break;
 			case InsertBase.operator:

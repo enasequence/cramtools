@@ -17,7 +17,7 @@ package net.sf.cram.encoding.read_features;
 
 import java.io.Serializable;
 
-public class SubstitutionVariation implements Serializable, ReadFeature {
+public class Substitution implements Serializable, ReadFeature {
 
 	private int position;
 	private byte base;
@@ -57,10 +57,10 @@ public class SubstitutionVariation implements Serializable, ReadFeature {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof SubstitutionVariation))
+		if (!(obj instanceof Substitution))
 			return false;
 
-		SubstitutionVariation v = (SubstitutionVariation) obj;
+		Substitution v = (Substitution) obj;
 
 		if (position != v.position)
 			return false;

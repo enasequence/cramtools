@@ -26,12 +26,12 @@ import net.sf.cram.encoding.Reader;
 import net.sf.cram.encoding.Writer;
 import net.sf.cram.encoding.read_features.BaseChange;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
@@ -63,7 +63,8 @@ public class BLOCK_PROTO {
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		long time1 = System.nanoTime();
-		if (records == null) records = new ArrayList<CramRecord>(c.nofRecords) ;
+		if (records == null)
+			records = new ArrayList<CramRecord>(c.nofRecords);
 		Map<String, Long> nanoMap = new TreeMap<String, Long>();
 		for (Slice s : c.slices)
 			records.addAll(getRecords(s, h, fileHeader, nanoMap));
@@ -121,14 +122,15 @@ public class BLOCK_PROTO {
 		DataReaderFactory f = new DataReaderFactory();
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
-			inputMap.put(exId, new ByteArrayInputStream(
-					s.external.get(exId).getRawContent()));
+			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId)
+					.getRawContent()));
 		}
 
 		long time = 0;
 		// time = System.nanoTime();
 		Reader reader = f.buildReader(new DefaultBitInputStream(
-				new ByteArrayInputStream(s.coreBlock.getRawContent())), inputMap, h);
+				new ByteArrayInputStream(s.coreBlock.getRawContent())),
+				inputMap, h);
 		// long readerBuildTime = System.nanoTime() - time ;
 		// log.debug("Reader build time: " + readerBuildTime/1000000 + "ms.") ;
 
@@ -167,8 +169,8 @@ public class BLOCK_PROTO {
 		return records;
 	}
 
-	static Container buildContainer(List<CramRecord> records,
-			SAMFileHeader fileHeader, boolean preserveReadNames)
+	public static Container buildContainer(List<CramRecord> records,
+			SAMFileHeader fileHeader, boolean preserveReadNames, long globalRecordCounter)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		// get stats, create compression header and slices
@@ -183,6 +185,7 @@ public class BLOCK_PROTO {
 		Container c = new Container();
 		c.h = h;
 		c.nofRecords = records.size();
+		c.globalRecordCounter = globalRecordCounter ;
 
 		long time3 = System.nanoTime();
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
@@ -191,36 +194,39 @@ public class BLOCK_PROTO {
 			for (CramRecord r : sliceRecords)
 				c.bases += r.getReadLength();
 			Slice slice = buildSlice(sliceRecords, h, fileHeader);
+			slice.globalRecordCounter = c.globalRecordCounter ;
+			c.globalRecordCounter += slice.nofRecords ;
+			c.bases += slice.bases ;
 			slices.add(slice);
 
 			// assuming one sequence per container max:
-			if (c.sequenceId == -1 && slice.sequenceId != -1) 
+			if (c.sequenceId == -1 && slice.sequenceId != -1)
 				c.sequenceId = slice.sequenceId;
 		}
-		
+
 		long time4 = System.nanoTime();
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
-		calculateAlignmentBoundaries(c) ;
+		calculateAlignmentBoundaries(c);
 
 		c.buildHeaderTime = time2 - time1;
 		c.buildSlicesTime = time4 - time3;
 		return c;
 	}
-	
+
 	public static void calculateAlignmentBoundaries(Container c) {
-		int start = Integer.MAX_VALUE ;
-		int end = Integer.MIN_VALUE ;
-		for (Slice s:c.slices) {
-			if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX){
+		int start = Integer.MAX_VALUE;
+		int end = Integer.MIN_VALUE;
+		for (Slice s : c.slices) {
+			if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				start = Math.min(start, s.alignmentStart);
-				end = Math.max(end, s.alignmentStart+s.alignmentSpan) ;
+				end = Math.max(end, s.alignmentStart + s.alignmentSpan);
 			}
 		}
-		
+
 		if (start < Integer.MAX_VALUE) {
-			c.alignmentStart = start ;
-			c.alignmentSpan = end-start ;
+			c.alignmentStart = start;
+			c.alignmentSpan = end - start;
 		}
 	}
 
@@ -240,11 +246,45 @@ public class BLOCK_PROTO {
 
 		Slice slice = new Slice();
 		slice.nofRecords = records.size();
+
+		int[] seqIds = new int[fileHeader.getSequenceDictionary().size()];
+		int minAlStart = SAMRecord.NO_ALIGNMENT_START;
+		int maxAlEnd = Integer.MIN_VALUE;
+		for (CramRecord r : records) {
+			if (r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+				seqIds[r.sequenceId]++;
+
+			minAlStart = Math.min(r.getAlignmentStart(), minAlStart);
+			maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+			slice.bases += r.getReadLength();
+		}
+
+		int seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+		boolean singleSeqId = true;
+		for (int i = 0; i < seqIds.length && singleSeqId; i++) {
+			if (seqIds[i] > 0) {
+				seqId = i++;
+				for (; i < seqIds.length && singleSeqId; i++) {
+					if (seqIds[i] > 0)
+						singleSeqId = false;
+				}
+			}
+		}
+
+		if (!singleSeqId)
+			throw new RuntimeException("Multiref slices are not supported.");
+
+		slice.sequenceId = seqId;
+		if (minAlStart == SAMRecord.NO_ALIGNMENT_START) {
+			slice.alignmentStart = SAMRecord.NO_ALIGNMENT_START;
+			slice.alignmentSpan = 0;
+		} else {
+			slice.alignmentStart = minAlStart;
+			slice.alignmentSpan = maxAlEnd - minAlStart;
+		}
+
 		for (CramRecord r : records) {
 			writer.write(r);
-
-			// if (!r.isReadMapped())
-			// continue;
 
 			if (slice.alignmentStart == -1) {
 				slice.alignmentStart = r.getAlignmentStart();
@@ -259,7 +299,7 @@ public class BLOCK_PROTO {
 
 		bos.close();
 		slice.coreBlock = new Block();
-		slice.coreBlock.setRawContent(bitBAOS.toByteArray()) ;
+		slice.coreBlock.setRawContent(bitBAOS.toByteArray());
 		slice.coreBlock.contentType = BlockContentType.CORE;
 
 		slice.external = new HashMap<Integer, Block>();
@@ -270,7 +310,6 @@ public class BLOCK_PROTO {
 			externalBlock.contentType = BlockContentType.EXTERNAL;
 			externalBlock.contentId = i;
 
-			// externalBlock.content = os.getBuffer();
 			externalBlock.setRawContent(os.toByteArray());
 			slice.external.put(i, externalBlock);
 		}
@@ -316,10 +355,10 @@ public class BLOCK_PROTO {
 			record.setMappingQuality((byte) random.nextInt(40));
 
 			if (record.isReadMapped()) {
-				byte[] ops = new byte[] { SubstitutionVariation.operator,
-						DeletionVariation.operator,
-						InsertionVariation.operator, ReadBase.operator,
-						BaseQualityScore.operator, InsertBase.operator };
+				byte[] ops = new byte[] { Substitution.operator,
+						Deletion.operator, Insertion.operator,
+						ReadBase.operator, BaseQualityScore.operator,
+						InsertBase.operator };
 				int prevPos = 0;
 				do {
 					int newPos = prevPos + random.nextInt(30);
@@ -329,20 +368,20 @@ public class BLOCK_PROTO {
 
 					byte op = ops[random.nextInt(ops.length)];
 					switch (op) {
-					case SubstitutionVariation.operator:
-						SubstitutionVariation sv = new SubstitutionVariation();
+					case Substitution.operator:
+						Substitution sv = new Substitution();
 						sv.setPosition(newPos);
 						sv.setBaseChange(new BaseChange(random.nextInt(4)));
 						record.getReadFeatures().add(sv);
 						break;
-					case DeletionVariation.operator:
-						DeletionVariation dv = new DeletionVariation();
+					case Deletion.operator:
+						Deletion dv = new Deletion();
 						dv.setPosition(newPos);
 						dv.setLength(random.nextInt(10));
 						record.getReadFeatures().add(dv);
 						break;
-					case InsertionVariation.operator:
-						InsertionVariation iv = new InsertionVariation();
+					case Insertion.operator:
+						Insertion iv = new Insertion();
 						iv.setPosition(newPos);
 						byte[] seq = new byte[random.nextInt(10) + 1];
 						for (int p = 0; p < seq.length; p++)
@@ -381,7 +420,7 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = buildContainer(records, samFileHeader, true);
+		Container c = buildContainer(records, samFileHeader, true, 0);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -402,7 +441,7 @@ public class BLOCK_PROTO {
 		GZIPOutputStream gos = new GZIPOutputStream(baos);
 		long size = 0;
 		for (Slice s : c.slices) {
-			size += s.coreBlock.getCompressedContent().length ;
+			size += s.coreBlock.getCompressedContent().length;
 			for (Block b : s.external.values()) {
 				size += b.getCompressedContent().length;
 			}
@@ -545,7 +584,7 @@ public class BLOCK_PROTO {
 
 		long time1 = System.nanoTime();
 		Container c = buildContainer(cramRecords,
-				samFileReader.getFileHeader(), preserveReadNames);
+				samFileReader.getFileHeader(), preserveReadNames, 0);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");

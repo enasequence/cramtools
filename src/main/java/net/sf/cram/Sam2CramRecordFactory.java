@@ -26,12 +26,14 @@ import java.util.TreeSet;
 
 import net.sf.cram.encoding.read_features.BaseChange;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
+import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.RefSkipVariation;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.RefSkip;
+import net.sf.cram.encoding.read_features.SoftClip;
+import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.mask.RefMaskUtils;
 import net.sf.picard.util.Log;
 import net.sf.samtools.CigarElement;
@@ -170,7 +172,6 @@ public class Sam2CramRecordFactory {
 		if (captureAllTags) {
 			List<SAMTagAndValue> attributes = record.getAttributes();
 			cramRecord.tags = new ReadTag[attributes.size()];
-			List<ReadTag> tags = new LinkedList<ReadTag>();
 			int i=0; 
 			for (SAMTagAndValue tv : attributes) {
 				if (ignoreTags.contains(tv.tag))
@@ -182,7 +183,6 @@ public class Sam2CramRecordFactory {
 			if (!captureTags.isEmpty()) {
 				List<SAMTagAndValue> attributes = record.getAttributes();
 				cramRecord.tags = new ReadTag[attributes.size()];
-				List<ReadTag> tags = new LinkedList<ReadTag>();
 				int i=0; 
 				for (SAMTagAndValue tv : attributes) {
 					if (captureTags.contains(tv.tag)) {
@@ -240,39 +240,25 @@ public class Sam2CramRecordFactory {
 
 			switch (operator) {
 			case D:
-				features.add(new DeletionVariation(zeroBasedPositionInRead + 1,
+				features.add(new Deletion(zeroBasedPositionInRead + 1,
 						cigarElementLength));
 				break ;
 			case N:
-				features.add(new RefSkipVariation(zeroBasedPositionInRead + 1,
+				features.add(new RefSkip(zeroBasedPositionInRead + 1,
+						cigarElementLength));
+				break;
+			case P:
+				features.add(new Padding(zeroBasedPositionInRead + 1,
 						cigarElementLength));
 				break;
 			case H:
-				break;
+				addHardClip(features, zeroBasedPositionInRead,
+						cigarElementLength, bases, qualityScore);
+				break ;
 			case S:
-				switch (treatSoftClipsAs) {
-				// case ALIGNMENT:
-				// addSubstitutionsAndMaskedBases(cramRecord, features,
-				// zeroBasedPositionInRead, alignmentStartOffset,
-				// cigarElementLength, bases, qualityScore);
-				// break;
-				case IGNORE:
-					// zeroBasedPositionInRead += cigarElementLength;
-					break;
-				case INSERTION:
-					addInsertion(features, zeroBasedPositionInRead,
-							cigarElementLength, bases, qualityScore);
-					break;
-				case SOFT_CLIP:
-					addSoftClip(features, zeroBasedPositionInRead,
-							cigarElementLength, bases, qualityScore);
-					break;
-				default:
-					throw new IllegalArgumentException(
-							"Not sure how to treat soft clips: "
-									+ treatSoftClipsAs);
-				}
-				break;
+				addSoftClip(features, zeroBasedPositionInRead,
+						cigarElementLength, bases, qualityScore);
+				break ;
 			case I:
 				addInsertion(features, zeroBasedPositionInRead,
 						cigarElementLength, bases, qualityScore);
@@ -306,7 +292,19 @@ public class Sam2CramRecordFactory {
 				zeroBasedPositionInRead, zeroBasedPositionInRead
 						+ cigarElementLength);
 
-		SoftClipVariation v = new SoftClipVariation(
+		SoftClip v = new SoftClip(
+				zeroBasedPositionInRead + 1, insertedBases);
+		features.add(v);
+	}
+	
+	private void addHardClip(List<ReadFeature> features,
+			int zeroBasedPositionInRead, int cigarElementLength, byte[] bases,
+			byte[] scores) {
+		byte[] insertedBases = Arrays.copyOfRange(bases,
+				zeroBasedPositionInRead, zeroBasedPositionInRead
+						+ cigarElementLength);
+
+		HardClip v = new HardClip(
 				zeroBasedPositionInRead + 1, insertedBases);
 		features.add(v);
 	}
@@ -360,7 +358,7 @@ public class Sam2CramRecordFactory {
 				refBase = refBases[refCoord];
 
 			if (bases[i + fromPosInRead] != refBase) {
-				SubstitutionVariation sv = new SubstitutionVariation();
+				Substitution sv = new Substitution();
 				sv.setPosition(oneBasedPositionInRead);
 				sv.setBase(bases[i + fromPosInRead]);
 				sv.setRefernceBase(refBase);

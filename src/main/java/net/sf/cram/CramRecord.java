@@ -22,11 +22,11 @@ import java.util.List;
 
 import javax.swing.text.MutableAttributeSet;
 
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
+import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.stats.MutableInt;
 
 public class CramRecord implements Serializable {
@@ -420,14 +420,14 @@ public class CramRecord implements Serializable {
 			case InsertBase.operator:
 				len--;
 				break;
-			case InsertionVariation.operator:
-				len -= ((InsertionVariation) f).getSequence().length;
+			case Insertion.operator:
+				len -= ((Insertion) f).getSequence().length;
 				break;
-			case SoftClipVariation.operator:
-				len -= ((SoftClipVariation) f).getSequence().length;
+			case SoftClip.operator:
+				len -= ((SoftClip) f).getSequence().length;
 				break;
-			case DeletionVariation.operator:
-				len += ((DeletionVariation) f).getLength();
+			case Deletion.operator:
+				len += ((Deletion) f).getLength();
 				break;
 
 			default:

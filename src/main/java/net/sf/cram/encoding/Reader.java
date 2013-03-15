@@ -1,5 +1,6 @@
 package net.sf.cram.encoding;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
@@ -11,14 +12,14 @@ import net.sf.cram.EncodingKey;
 import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.read_features.BaseChange;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.DeletionVariation;
+import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.InsertionVariation;
+import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.RefSkipVariation;
-import net.sf.cram.encoding.read_features.SoftClipVariation;
-import net.sf.cram.encoding.read_features.SubstitutionVariation;
+import net.sf.cram.encoding.read_features.RefSkip;
+import net.sf.cram.encoding.read_features.SoftClip;
+import net.sf.cram.encoding.read_features.Substitution;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
@@ -155,7 +156,12 @@ public class Reader {
 				for (int i = 0; i < ids.length; i++) {
 					int id = ReadTag.name3BytesToInt(ids[i]) ;
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
-					byte[] data = dataReader.readData();
+					byte[] data = null ;
+					try {
+						data = dataReader.readData();
+					} catch (EOFException e) {
+						throw e ;
+					}
 					ReadTag tag = new ReadTag(id, data);
 					r.tags[i] = tag;
 				}
@@ -179,29 +185,29 @@ public class Reader {
 								qc.readData());
 						rf.add(rb);
 						break;
-					case SubstitutionVariation.operator:
-						SubstitutionVariation sv = new SubstitutionVariation();
+					case Substitution.operator:
+						Substitution sv = new Substitution();
 						sv.setPosition(pos);
 						sv.setBaseChange(new BaseChange(bsc.readData()));
 						rf.add(sv);
 						break;
-					case InsertionVariation.operator:
-						InsertionVariation iv = new InsertionVariation(pos,
+					case Insertion.operator:
+						Insertion iv = new Insertion(pos,
 								inc.readData());
 						rf.add(iv);
 						break;
-					case SoftClipVariation.operator:
-						SoftClipVariation fv = new SoftClipVariation(pos,
+					case SoftClip.operator:
+						SoftClip fv = new SoftClip(pos,
 								inc.readData());
 						rf.add(fv);
 						break;
-					case DeletionVariation.operator:
-						DeletionVariation dv = new DeletionVariation(pos,
+					case Deletion.operator:
+						Deletion dv = new Deletion(pos,
 								dlc.readData());
 						rf.add(dv);
 						break;
-					case RefSkipVariation.operator:
-						RefSkipVariation rsv = new RefSkipVariation(pos,
+					case RefSkip.operator:
+						RefSkip rsv = new RefSkip(pos,
 								refSkipCodec.readData());
 						rf.add(rsv);
 						break;

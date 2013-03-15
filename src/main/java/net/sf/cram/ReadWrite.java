@@ -1,6 +1,7 @@
 package net.sf.cram;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +13,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;
+import net.sf.cram.structure.BlockCompressionMethod;
+import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeaderBLock;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.ContainerHeaderIO;
@@ -113,23 +117,7 @@ public class ReadWrite {
 		for (int i = 0; i < c.slices.length; i++) {
 			Slice s = c.slices[i];
 			landmarks.add(baos.size());
-
-			sio.createSliceHeaderBlock(s);
-			Block sliceBlock = s.headerBlock;
-			sliceBlock.write(baos);
-
-			s.coreBlock.write(baos);
-
-			if (s.embeddedRefBlock != null) {
-				s.embeddedRefBlock.write(baos);
-				c.blockCount++;
-			}
-
-			for (Integer contentId : s.external.keySet()) {
-				Block b = s.external.get(contentId);
-				b.write(baos);
-			}
-			c.blockCount += 2 + s.external.size();
+			sio.write(s, baos);
 		}
 		c.landmarks = new int[landmarks.size()];
 		for (int i = 0; i < c.landmarks.length; i++)
@@ -208,30 +196,70 @@ public class ReadWrite {
 		lastSlice.offset = c.landmarks[c.landmarks.length - 1];
 		lastSlice.size = c.containerByteSize - lastSlice.offset;
 	}
-
-	private static long writeContainer(SAMFileHeader samFileHeader,
-			OutputStream os) throws IOException {
-		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
-		OutputStreamWriter w = new OutputStreamWriter(baos);
+	
+	private static byte[] toByteArray (SAMFileHeader samFileHeader) {
+		ExposedByteArrayOutputStream headerBodyOS = new ExposedByteArrayOutputStream();
+		OutputStreamWriter w = new OutputStreamWriter(headerBodyOS);
 		new SAMTextHeaderCodec().encode(w, samFileHeader);
-		w.close();
+		try {
+			w.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e) ;
+		}
 
 		ByteBuffer buf = ByteBuffer.allocate(4);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
-		buf.putInt(baos.size());
+		buf.putInt(headerBodyOS.size());
 		buf.flip();
 		byte[] bytes = new byte[buf.limit()];
 		buf.get(bytes);
 
-		os.write(bytes);
-		os.write(baos.getBuffer(), 0, baos.size());
+		ByteArrayOutputStream headerOS = new ExposedByteArrayOutputStream();
+		try {
+			headerOS.write(bytes);
+			headerOS.write(headerBodyOS.getBuffer(), 0, headerBodyOS.size());
+		} catch (IOException e) {
+			throw new RuntimeException(e) ;
+		}
+		
+		return headerOS.toByteArray() ;
+	}
 
-		return bytes.length + baos.size();
+	private static long writeContainer(SAMFileHeader samFileHeader,
+			OutputStream os) throws IOException {
+		Block block = new Block() ;
+		block.setRawContent(toByteArray(samFileHeader)) ;
+		block.method = BlockCompressionMethod.RAW.ordinal() ;
+		block.contentId = 0 ;
+		block.contentType = BlockContentType.FILE_HEADER ;
+		block.compress() ;
+
+		Container c = new Container() ;
+		c.blockCount = 1 ;
+		c.blocks = new Block[]{block} ;
+		c.landmarks = new int[0] ;
+		c.slices = new Slice[0] ;
+		c.alignmentSpan = 0 ;
+		c.alignmentStart = 0 ;
+		c.bases = 0 ;
+		c.globalRecordCounter = 0 ;
+		c.nofRecords = 0 ;
+		c.sequenceId= 0 ;
+		
+		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream() ;
+		block.write(baos) ;
+		c.containerByteSize = baos.size() ;
+		
+		ContainerHeaderIO chio = new ContainerHeaderIO() ;
+		int len = chio.writeContainerHeader(c, os) ;
+		os.write(baos.getBuffer(), 0, baos.size()) ;
+		
+		return len + baos.size();
 	}
 
 	private static SAMFileHeader readSAMFileHeader(String id, InputStream is)
 			throws IOException {
-		readContainerHeader(is) ;
+		Container readContainerHeader = readContainerHeader(is) ;
 		Block b = new Block(is, true, true) ;
 		
 		is = new ByteArrayInputStream(b.getRawContent()) ;
