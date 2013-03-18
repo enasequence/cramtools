@@ -93,7 +93,7 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 16) == 0) {
-			long result = ((b1 & 31) << 24);
+			long result = ((long)(b1 & 31) << 24);
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
@@ -101,18 +101,18 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 8) == 0) {
-			long result = ((b1 & 15) << 32);
-			result |= is.read() << 24;
-			result |= is.read() << 16;
-			result |= is.read() << 8;
-			result |= is.read();
-			return result;
+			long value = ((long)(b1 & 15) << 32);
+			value |= ((0xFF & ((long)is.read())) << 24);
+			value |= (is.read() << 16);
+			value |= (is.read() << 8);
+			value |= is.read();
+			return value;
 		}
 
 		if ((b1 & 4) == 0) {
-			long result = ((b1 & 7) << 40);
-			result |= is.read() << 32;
-			result |= is.read() << 24;
+			long result = ((long)(b1 & 7) << 40);
+			result |= (0xFF & ((long)is.read())) << 32;
+			result |= (0xFF & ((long)is.read())) << 24;
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
@@ -120,21 +120,32 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 2) == 0) {
-			long result = ((b1 & 3) << 48);
-			result |= is.read() << 40;
-			result |= is.read() << 32;
-			result |= is.read() << 24;
+			long result = ((long)(b1 & 3) << 48);
+			result |= (0xFF & ((long)is.read())) << 40;
+			result |= (0xFF & ((long)is.read())) << 32;
+			result |= (0xFF & ((long)is.read())) << 24;
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
 			return result;
 		}
-
-		long result = is.read() << 54;
-		result |= is.read() << 48;
-		result |= is.read() << 40;
-		result |= is.read() << 32;
-		result |= is.read() << 24;
+		
+		if ((b1 & 1) == 0) {
+			long result = (0xFF & ((long)is.read())) << 48;
+			result |= (0xFF & ((long)is.read())) << 40;
+			result |= (0xFF & ((long)is.read())) << 32;
+			result |= (0xFF & ((long)is.read())) << 24;
+			result |= is.read() << 16;
+			result |= is.read() << 8;
+			result |= is.read();
+			return result;
+		}
+		
+		long result = (0xFF & ((long)is.read())) << 56;
+		result |= (0xFF & ((long)is.read())) << 48;
+		result |= (0xFF & ((long)is.read())) << 40;
+		result |= (0xFF & ((long)is.read())) << 32;
+		result |= (0xFF & ((long)is.read())) << 24;
 		result |= is.read() << 16;
 		result |= is.read() << 8;
 		result |= is.read();
@@ -176,7 +187,7 @@ public class ByteBufferUtils {
 		if ((value >>> 35) == 0) {
 			// four control bits
 			os.write((int) ((value >> 32) | 0xF0));
-			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 24) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
 			os.write((int) ((value >> 8) & 0xFF));
 			os.write((int) (value & 0xFF));
@@ -187,7 +198,7 @@ public class ByteBufferUtils {
 			// five control bits
 			os.write((int) ((value >> 40) | 0xF8));
 			os.write((int) ((value >> 32) & 0xFF));
-			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 24) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
 			os.write((int) ((value >> 8) & 0xFF));
 			os.write((int) (value & 0xFF));
@@ -199,7 +210,7 @@ public class ByteBufferUtils {
 			os.write((int) ((value >> 48) | 0xFC));
 			os.write((int) ((value >> 40) & 0xFF));
 			os.write((int) ((value >> 32) & 0xFF));
-			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 24) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
 			os.write((int) ((value >> 8) & 0xFF));
 			os.write((int) (value & 0xFF));
@@ -209,10 +220,10 @@ public class ByteBufferUtils {
 		if ((value >>> 56) == 0) {
 			// seven control bits
 			os.write(0xFE);
-			os.write((int) ((value >> 48) & 0xFE));
+			os.write((int) ((value >> 48) & 0xFF));
 			os.write((int) ((value >> 40) & 0xFF));
 			os.write((int) ((value >> 32) & 0xFF));
-			os.write((int) ((value >> 28) & 0xFF));
+			os.write((int) ((value >> 24) & 0xFF));
 			os.write((int) ((value >> 16) & 0xFF));
 			os.write((int) ((value >> 8) & 0xFF));
 			os.write((int) (value & 0xFF));
@@ -338,7 +349,12 @@ public class ByteBufferUtils {
 		{
 			// test LTF8
 			
+			if (!testLTF8(1125899906842622l)) return  ;
+			if (!testLTF8(562949953421312l)) return  ;
+			if (!testLTF8(4294967296l)) return  ;
+			if (!testLTF8(-1l)) return  ;
 			if (!testLTF8(268435456L)) return  ;
+			if (!testLTF8(2147483648L)) return  ;
 			
 			testLTF8(0);
 			testLTF8(0);
@@ -354,6 +370,8 @@ public class ByteBufferUtils {
 				testLTF8((1L << i) + 1);
 				testLTF8((1L << i) + 1);
 			}
+			
+			System.out.println("===========  LTF8 tests ok ================");
 		}
 
 		{

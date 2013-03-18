@@ -110,7 +110,7 @@ public class BLOCK_PROTO {
 		}
 	}
 
-	private static List<CramRecord> getRecords(Slice s, CompressionHeader h,
+	public static List<CramRecord> getRecords(Slice s, CompressionHeader h,
 			SAMFileHeader fileHeader, Map<String, Long> nanoMap)
 			throws IllegalArgumentException, IllegalAccessException,
 			IOException {
@@ -137,11 +137,12 @@ public class BLOCK_PROTO {
 		List<CramRecord> records = new ArrayList<CramRecord>();
 
 		long readNanos = 0;
+		int prevStart = s.alignmentStart;
 		for (int i = 0; i < s.nofRecords; i++) {
 			CramRecord r = new CramRecord();
 			r.setSequenceName(seqName);
 			r.sequenceId = s.sequenceId;
-
+			
 			try {
 				time = System.nanoTime();
 				reader.read(r);
@@ -151,7 +152,14 @@ public class BLOCK_PROTO {
 				throw e;
 			}
 			records.add(r);
-
+			
+//			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+//				r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+//			else {
+				prevStart += r.alignmentStartOffsetFromPreviousRecord ;
+				r.setAlignmentStart(prevStart);
+//			}
+			System.out.println(r.getReadName() + "\t\t\t" + r.getAlignmentStart());
 		}
 		log.debug("Slice records read time: " + readNanos / 1000000);
 
@@ -170,9 +178,9 @@ public class BLOCK_PROTO {
 	}
 
 	public static Container buildContainer(List<CramRecord> records,
-			SAMFileHeader fileHeader, boolean preserveReadNames, long globalRecordCounter)
-			throws IllegalArgumentException, IllegalAccessException,
-			IOException {
+			SAMFileHeader fileHeader, boolean preserveReadNames,
+			long globalRecordCounter) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
 		CompressionHeader h = new CompressionHeaderFactory().build(records);
@@ -185,18 +193,19 @@ public class BLOCK_PROTO {
 		Container c = new Container();
 		c.h = h;
 		c.nofRecords = records.size();
-		c.globalRecordCounter = globalRecordCounter ;
+		c.globalRecordCounter = globalRecordCounter;
+		c.bases = 0 ;
+		c.blockCount = 0 ;
 
 		long time3 = System.nanoTime();
+		long lastGlobalRecordCounter = c.globalRecordCounter ;
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
 					Math.min(records.size(), i + recordsPerSlice));
-			for (CramRecord r : sliceRecords)
-				c.bases += r.getReadLength();
 			Slice slice = buildSlice(sliceRecords, h, fileHeader);
-			slice.globalRecordCounter = c.globalRecordCounter ;
-			c.globalRecordCounter += slice.nofRecords ;
-			c.bases += slice.bases ;
+			slice.globalRecordCounter = lastGlobalRecordCounter;
+			lastGlobalRecordCounter += slice.nofRecords;
+			c.bases += slice.bases;
 			slices.add(slice);
 
 			// assuming one sequence per container max:
@@ -248,14 +257,17 @@ public class BLOCK_PROTO {
 		slice.nofRecords = records.size();
 
 		int[] seqIds = new int[fileHeader.getSequenceDictionary().size()];
-		int minAlStart = SAMRecord.NO_ALIGNMENT_START;
-		int maxAlEnd = Integer.MIN_VALUE;
+		int minAlStart = Integer.MAX_VALUE;
+		int maxAlEnd = SAMRecord.NO_ALIGNMENT_START;
 		for (CramRecord r : records) {
 			if (r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 				seqIds[r.sequenceId]++;
 
-			minAlStart = Math.min(r.getAlignmentStart(), minAlStart);
-			maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+			int alStart = r.getAlignmentStart();
+			if (alStart != SAMRecord.NO_ALIGNMENT_START) {
+				minAlStart = Math.min(alStart, minAlStart);
+				maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+			}
 			slice.bases += r.getReadLength();
 		}
 
@@ -275,7 +287,7 @@ public class BLOCK_PROTO {
 			throw new RuntimeException("Multiref slices are not supported.");
 
 		slice.sequenceId = seqId;
-		if (minAlStart == SAMRecord.NO_ALIGNMENT_START) {
+		if (minAlStart == Integer.MAX_VALUE) {
 			slice.alignmentStart = SAMRecord.NO_ALIGNMENT_START;
 			slice.alignmentSpan = 0;
 		} else {
@@ -286,12 +298,13 @@ public class BLOCK_PROTO {
 		for (CramRecord r : records) {
 			writer.write(r);
 
-			if (slice.alignmentStart == -1) {
-				slice.alignmentStart = r.getAlignmentStart();
-				slice.sequenceId = r.sequenceId;
-			}
-
-			slice.alignmentSpan = r.getAlignmentStart() - slice.alignmentStart;
+			// if (slice.alignmentStart == -1) {
+			// slice.alignmentStart = r.getAlignmentStart();
+			// slice.sequenceId = r.sequenceId;
+			// }
+			//
+			// slice.alignmentSpan = r.calcualteAlignmentEnd() -
+			// slice.alignmentStart;
 		}
 
 		slice.contentType = slice.alignmentSpan > -1 ? BlockContentType.MAPPED_SLICE

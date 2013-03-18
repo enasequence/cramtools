@@ -434,7 +434,7 @@ public class CramRecord implements Serializable {
 				break;
 			}
 		}
-		return alignmentStart + len - 1;
+		return alignmentStart + len;
 	}
 
 }

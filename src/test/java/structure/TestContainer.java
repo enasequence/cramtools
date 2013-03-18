@@ -8,12 +8,20 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+import java.util.TreeMap;
+
+import javax.tools.FileObject;
 
 import net.sf.cram.BLOCK_PROTO;
 import net.sf.cram.CramRecord;
@@ -95,6 +103,48 @@ public class TestContainer {
 		}
 	}
 
+	private void testALignmentSpan(Container container, CramHeader cramHeader,
+			List<CramRecord> records) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
+		{
+			for (int i = 0; i < container.slices.length; i++) {
+				Slice s = container.slices[i];
+				List<CramRecord> list = BLOCK_PROTO.getRecords(s, container.h,
+						cramHeader.samFileHeader, new TreeMap<String, Long>());
+
+				CramRecord first = list.get(0);
+				CramRecord last = list.get(list.size() - 1);
+				assertEquals(s.alignmentStart, first.getAlignmentStart());
+				int end = last.calcualteAlignmentEnd();
+				System.out.println(end);
+				if (s.alignmentSpan != last.calcualteAlignmentEnd()
+						- first.getAlignmentStart())
+					fail(String
+							.format("Slice %d alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
+									i, s.alignmentStart, s.alignmentSpan,
+									first.getAlignmentStart(),
+									last.getAlignmentStart(),
+									last.calcualteAlignmentEnd(),
+									first.getReadName(), last.getReadName()));
+
+			}
+		}
+
+		CramRecord firstRecord1 = records.get(0);
+		CramRecord lastRecord1 = records.get(records.size() - 1);
+		assertEquals(container.alignmentStart, firstRecord1.getAlignmentStart());
+		if (container.alignmentSpan != lastRecord1.calcualteAlignmentEnd()
+				- firstRecord1.getAlignmentStart())
+			fail(String
+					.format("Container alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
+							container.alignmentStart, container.alignmentSpan,
+							firstRecord1.getAlignmentStart(),
+							lastRecord1.getAlignmentStart(),
+							lastRecord1.calcualteAlignmentEnd(),
+							firstRecord1.getReadName(),
+							lastRecord1.getReadName()));
+	}
+
 	@Test
 	public void test() throws IOException, IllegalArgumentException,
 			IllegalAccessException {
@@ -104,6 +154,22 @@ public class TestContainer {
 
 		if (stream == null)
 			fail("CRAM file not found: " + cramPath);
+
+		String refPath = "/data/set1/small.fa";
+		InputStream refIS = getClass().getResourceAsStream(cramPath);
+
+		if (refIS == null)
+			fail("Ref file not found: " + cramPath);
+
+		Scanner scanner = new Scanner(refIS);
+		String refName = scanner.nextLine();
+		ByteArrayOutputStream refBAOS = new ByteArrayOutputStream();
+		while (scanner.hasNext()) {
+			String line = scanner.nextLine();
+			refBAOS.write(line.getBytes(), 0, line.length());
+		}
+		byte[] ref = refBAOS.toByteArray();
+		refBAOS.close();
 
 		CramHeader cramHeader = ReadWrite.readCramHeader(stream);
 		assertNotNull(cramHeader);
@@ -138,10 +204,11 @@ public class TestContainer {
 		BLOCK_PROTO.getRecords(container.h, container,
 				cramHeader.samFileHeader, records);
 
+		testALignmentSpan(container, cramHeader, records);
+
 		for (int i = 0; i < records.size(); i++) {
-			System.out.println(records.get(i).toString());
-			if (i > 10)
-				break;
+			if (i < 10)
+				System.out.println(records.get(i).toString());
 		}
 
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream(
@@ -157,8 +224,9 @@ public class TestContainer {
 
 		Container container2 = BLOCK_PROTO.buildContainer(records,
 				cramHeader.samFileHeader, true, 0);
-		for (int i = 0; i < container.slices.length; i++)
+		for (int i = 0; i < container.slices.length; i++) {
 			container2.slices[i].refMD5 = container.slices[i].refMD5;
+		}
 
 		ReadWrite.writeContainer(container2, baos);
 
@@ -195,30 +263,36 @@ public class TestContainer {
 				container3.nofRecords);
 		BLOCK_PROTO.getRecords(container3.h, container3,
 				cramHeader.samFileHeader, records3);
+		testALignmentSpan(container3, cramHeader, records3);
 
 		for (int i = 0; i < records3.size(); i++) {
 			System.out.println(records3.get(i).toString());
 			if (i > 10)
 				break;
 		}
-		
-		assertEquals(container.alignmentSpan, container3.alignmentSpan) ;
-		assertEquals(container.alignmentStart, container3.alignmentStart) ;
-		assertEquals(container.bases, container3.bases) ;
-		assertEquals(container.blockCount, container3.blockCount) ;
-		assertEquals(container.containerByteSize, container3.containerByteSize) ;
-		assertEquals(container.globalRecordCounter, container3.globalRecordCounter) ;
-		assertArrayEquals(container.landmarks, container3.landmarks) ;
-		assertEquals(container.nofRecords, container3.nofRecords) ;
-		assertEquals(container.sequenceId, container3.sequenceId) ;
+
+		assertEquals(container.alignmentStart, container3.alignmentStart);
+		assertEquals(container.alignmentSpan, container3.alignmentSpan);
+		assertEquals(container.bases, container3.bases);
+		assertEquals(container.globalRecordCounter,
+				container3.globalRecordCounter);
+		assertEquals(container.landmarks.length, container3.landmarks.length);
+		assertEquals(container.nofRecords, container3.nofRecords);
+		assertEquals(container.sequenceId, container3.sequenceId);
 
 		assertEquals(records.size(), records3.size());
 		for (int i = 0; i < records.size(); i++) {
 			CramRecord r1 = records.get(i);
 			CramRecord r3 = records3.get(i);
 
-			assertTrue(compare(r1, r3));
+			assertTrue(
+					"Mismatch at " + i + ":\n" + r1.toString() + "\n"
+							+ r3.toString(), compare(r1, r3));
 		}
+		
+		FileOutputStream fos = new FileOutputStream(new File("./src/test/resources/data/set1/small.cram2")) ;
+		fos.write(baos.getBuffer(), 0, baos.size()) ;
+		fos.close() ;
 	}
 
 	private boolean compare(CramRecord r1, CramRecord r2) {
@@ -263,8 +337,8 @@ public class TestContainer {
 			for (int i = 0; i < l1; i++)
 				if (!compare(Array.get(o1, i), Array.get(o2, i)))
 					return false;
-			
-			return true ;
+
+			return true;
 		}
 
 		return o1.equals(o2);
