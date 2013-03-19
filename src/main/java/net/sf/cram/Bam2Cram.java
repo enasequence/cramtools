@@ -306,6 +306,7 @@ public class Bam2Cram {
 		long coreBytes = 0;
 		long[] externalBytes = new long[10];
 		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
+		long globalRecordCounter= 0;
 
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
@@ -326,7 +327,8 @@ public class Bam2Cram {
 
 					Container container = BLOCK_PROTO.buildContainer(records,
 							samFileReader.getFileHeader(),
-							params.preserveReadNames);
+							params.preserveReadNames, globalRecordCounter);
+					globalRecordCounter += records.size() ;
 					records.clear();
 					long len = ReadWrite.writeContainer(container, os);
 					container.offset = offset;
@@ -372,7 +374,7 @@ public class Bam2Cram {
 				samRecords.clear();
 				Container container = BLOCK_PROTO
 						.buildContainer(records, samFileReader.getFileHeader(),
-								params.preserveReadNames);
+								params.preserveReadNames, globalRecordCounter);
 				records.clear();
 				ReadWrite.writeContainer(container, os);
 				log.info(String

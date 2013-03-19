@@ -362,8 +362,9 @@ public class Sam2CramRecordFactory {
 				sv.setPosition(oneBasedPositionInRead);
 				sv.setBase(bases[i + fromPosInRead]);
 				sv.setRefernceBase(refBase);
-				sv.setBaseChange(new BaseChange(sv.getRefernceBase(), sv
-						.getBase()));
+//				sv.setBaseChange(new BaseChange(sv.getRefernceBase(), sv
+//						.getBase()));
+				sv.setBaseChange(null) ;
 
 				features.add(sv);
 

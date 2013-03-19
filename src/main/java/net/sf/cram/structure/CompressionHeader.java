@@ -28,7 +28,7 @@ public class CompressionHeader {
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;
 
-	private byte[] substitutionMatrix = new byte[5];
+	public SubstitutionMatrix substitutionMatrix ;
 
 	public List<Integer> externalIds;
 
@@ -122,8 +122,9 @@ public class CompressionHeader {
 					dictionary = parseDictionary(dictionaryBytes);
 				} else if ("SM".equals(key)) {
 					// parse subs matrix here:
-					substitutionMatrix = new byte[5];
-					buf.get(substitutionMatrix);
+					byte[] matrixBytes = new byte[5] ;
+					buf.get(matrixBytes);
+					substitutionMatrix = new SubstitutionMatrix(matrixBytes) ;
 				} else
 					throw new RuntimeException("Unknown preservation map key: "
 							+ key);
@@ -200,23 +201,14 @@ public class CompressionHeader {
 			mapBuf.put((byte) (AP_seriesDelta ? 1 : 0));
 
 			mapBuf.put("SM".getBytes());
-			mapBuf.put(substitutionMatrix);
+			mapBuf.put(substitutionMatrix.getEncodedMatrix());
 
 			mapBuf.put("TD".getBytes());
 			{
-				
-				byte[] dBytes =dictionaryToByteArray() ;  
-				ByteBufferUtils.writeUnsignedITF8(dBytes.length, mapBuf) ;
-				mapBuf.put(dBytes) ;
-//				ByteBufferUtils.writeUnsignedITF8(dictionary.length);
-//				for (int i = 0; i < dictionary.length; i++) {
-//					byte[][] list = dictionary[i];
-//					for (int j = 0; j < list.length; j++) {
-//						mapBuf.put(list[j]);
-//					}
-//					mapBuf.put((byte) 0);
-//				}
-//				mapBuf.put((byte) 0);
+
+				byte[] dBytes = dictionaryToByteArray();
+				ByteBufferUtils.writeUnsignedITF8(dBytes.length, mapBuf);
+				mapBuf.put(dBytes);
 			}
 
 			mapBuf.flip();
@@ -228,9 +220,18 @@ public class CompressionHeader {
 		}
 
 		{ // encoding map:
-			ByteBuffer mapBuf = ByteBuffer.allocate(1024 * 100);
-			ByteBufferUtils.writeUnsignedITF8(eMap.size(), mapBuf);
+			int size = 0;
 			for (EncodingKey eKey : eMap.keySet()) {
+				if (eMap.get(eKey).id != EncodingID.NULL)
+					size++;
+			}
+
+			ByteBuffer mapBuf = ByteBuffer.allocate(1024 * 100);
+			ByteBufferUtils.writeUnsignedITF8(size, mapBuf);
+			for (EncodingKey eKey : eMap.keySet()) {
+				if (eMap.get(eKey).id == EncodingID.NULL)
+					continue;
+
 				mapBuf.put((byte) eKey.name().charAt(0));
 				mapBuf.put((byte) eKey.name().charAt(1));
 

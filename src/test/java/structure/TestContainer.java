@@ -149,7 +149,7 @@ public class TestContainer {
 	public void test() throws IOException, IllegalArgumentException,
 			IllegalAccessException {
 
-		String cramPath = "/data/set1/small.cram";
+		String cramPath = "/data/set2/small.cram";
 		InputStream stream = getClass().getResourceAsStream(cramPath);
 
 		if (stream == null)
@@ -174,8 +174,8 @@ public class TestContainer {
 		CramHeader cramHeader = ReadWrite.readCramHeader(stream);
 		assertNotNull(cramHeader);
 		assertNotNull(cramHeader.samFileHeader);
-		assertEquals(cramHeader.majorVersion, 1);
-		assertEquals(cramHeader.minorVersion, 1);
+		assertEquals(2, cramHeader.majorVersion);
+		assertEquals(0, cramHeader.minorVersion);
 
 		Container container = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
@@ -235,8 +235,8 @@ public class TestContainer {
 		cramHeader2 = ReadWrite.readCramHeader(bais);
 		assertNotNull(cramHeader);
 		assertNotNull(cramHeader.samFileHeader);
-		assertEquals(cramHeader.majorVersion, 1);
-		assertEquals(cramHeader.minorVersion, 1);
+		assertEquals(2, cramHeader.majorVersion);
+		assertEquals(0, cramHeader.minorVersion);
 
 		Container container3 = new Container();
 		chio.readContainerHeader(container3, bais);

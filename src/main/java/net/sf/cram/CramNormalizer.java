@@ -12,6 +12,7 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -23,6 +24,7 @@ public class CramNormalizer {
 	private byte defaultQualityScore = '?' - '!';
 
 	private static Log log = Log.getInstance(CramNormalizer.class);
+	private static SubstitutionMatrix substitutionMatrix;
 
 	public CramNormalizer(SAMFileHeader header) {
 		this.header = header;
@@ -198,7 +200,8 @@ public class CramNormalizer {
 			case Substitution.operator:
 				Substitution sv = (Substitution) v;
 				byte refBase = ref[alignmentStart + posInSeq];
-				byte base = sv.getBaseChange().getBaseForReference(refBase);
+				byte base = substitutionMatrix.base(refBase, sv.getCode()) ;
+//				byte base = sv.getBaseChange().getBaseForReference(refBase);
 				sv.setBase(base);
 				sv.setRefernceBase(refBase);
 				bases[posInRead++ - 1] = sv.getBase();

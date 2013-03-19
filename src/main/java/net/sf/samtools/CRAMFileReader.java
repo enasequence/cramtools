@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
+import net.sf.cram.CountingInputStream;
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
@@ -234,13 +235,16 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 		Container c = null;
 		for (int i = 0; i < filePointers.length; i += 2) {
-			long offset = filePointers[i] >>> 16;
-			int sliceOffset = (int) ((filePointers[i] << 48) >>> 48);
+			long containerOffset = filePointers[i] >>> 16;
+			int sliceIndex = (int) ((filePointers[i] << 48) >>> 48);
 			try {
-				s.seek(offset);
-				c = ReadWrite.readContainerHeader(s);
+				s.seek(containerOffset);
+				CountingInputStream cis = new CountingInputStream(s) ;
+				c = ReadWrite.readContainerHeader(cis);
+				long headerSize = cis.getCount() ;
+				int sliceOffset = c.landmarks[sliceIndex] ;
 				if (c.alignmentStart + c.alignmentSpan > start) {
-					s.seek(offset);
+					s.seek(containerOffset + headerSize + sliceOffset);
 					return si;
 				}
 			} catch (IOException e) {

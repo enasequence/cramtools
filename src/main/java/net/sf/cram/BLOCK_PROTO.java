@@ -130,7 +130,7 @@ public class BLOCK_PROTO {
 		// time = System.nanoTime();
 		Reader reader = f.buildReader(new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.getRawContent())),
-				inputMap, h);
+				inputMap, h, s.sequenceId);
 		// long readerBuildTime = System.nanoTime() - time ;
 		// log.debug("Reader build time: " + readerBuildTime/1000000 + "ms.") ;
 
@@ -251,7 +251,6 @@ public class BLOCK_PROTO {
 		DataWriterFactory f = new DataWriterFactory();
 		ExposedByteArrayOutputStream bitBAOS = new ExposedByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(bitBAOS);
-		Writer writer = f.buildWriter(bos, map, h);
 
 		Slice slice = new Slice();
 		slice.nofRecords = records.size();
@@ -295,6 +294,7 @@ public class BLOCK_PROTO {
 			slice.alignmentSpan = maxAlEnd - minAlStart;
 		}
 
+		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);
 		for (CramRecord r : records) {
 			writer.write(r);
 

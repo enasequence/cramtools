@@ -17,6 +17,7 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.structure.SubstitutionMatrix;
 
 public class Writer {
 
@@ -77,6 +78,9 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.IN_Insertion, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> inc;
+	
+	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
+	public DataWriter<byte[]> softClipCodec;
 
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> dlc;
@@ -109,6 +113,9 @@ public class Writer {
 	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
 	public DataWriter<Integer> refSkipCodec;
 	
+	public int refId;
+	public SubstitutionMatrix substitutionMatrix ;
+	
 	public static int detachedCount = 0 ;
 
 	public void write(CramRecord r) throws IOException {
@@ -116,6 +123,7 @@ public class Writer {
 		
 		bitFlagsC.writeData(r.getFlags());
 		compBitFlagsC.writeData(r.getCompressionFlags()) ;
+		if (refId == -2) refIdCodec.writeData(r.sequenceId) ;
 		
 		readLengthC.writeData(r.getReadLength());
 		alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
@@ -173,7 +181,8 @@ public class Writer {
 					break;
 				case Substitution.operator:
 					Substitution sv = (Substitution) f;
-					bsc.writeData((byte) sv.getBaseChange().getChange());
+					bsc.writeData(substitutionMatrix.code(sv.getRefernceBase(), sv.getBase()));
+//					bsc.writeData((byte) sv.getBaseChange().getChange());
 					break;
 				case Insertion.operator:
 					Insertion iv = (Insertion) f;
@@ -181,7 +190,7 @@ public class Writer {
 					break;
 				case SoftClip.operator:
 					SoftClip fv = (SoftClip) f;
-					inc.writeData(fv.getSequence());
+					softClipCodec.writeData(fv.getSequence());
 					break;
 				case Deletion.operator:
 					Deletion dv = (Deletion) f;

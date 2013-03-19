@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.sf.cram.DataSeriesType;
+import net.sf.cram.EncodingID;
 import net.sf.cram.EncodingKey;
 import net.sf.cram.EncodingParams;
 import net.sf.cram.io.BitOutputStream;
@@ -16,16 +17,19 @@ public class DataWriterFactory {
 
 	public Writer buildWriter(BitOutputStream bos,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap,
-			CompressionHeader h) throws IllegalArgumentException,
+			CompressionHeader h, int refId) throws IllegalArgumentException,
 			IllegalAccessException {
 		Writer writer = new Writer();
 		writer.captureReadNames = h.readNamesIncluded;
+		writer.refId = refId ;
+		writer.substitutionMatrix = h.substitutionMatrix ;
 
 		for (Field f : writer.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
+				
 				f.set(writer,
 						createWriter(type, h.eMap.get(key), bos, outputMap));
 			}
@@ -46,7 +50,7 @@ public class DataWriterFactory {
 				}
 			}
 		}
-
+		
 		return writer;
 	}
 

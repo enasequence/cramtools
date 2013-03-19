@@ -33,6 +33,7 @@ import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.huffman.HuffmanCode;
 import net.sf.cram.huffman.HuffmanTree;
 import net.sf.cram.structure.CompressionHeader;
+import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.util.Log;
 
 public class CompressionHeaderFactory {
@@ -89,6 +90,15 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 			h.eMap.put(EncodingKey.CF_CompressionBitFlags, HuffmanByteEncoding
 					.toParam(calculator.valuesAsBytes(), calculator.bitLens()));
+		}
+
+		{ // ref id:
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				calculator.add(r.sequenceId);
+			calculator.calculate();
+			h.eMap.put(EncodingKey.RI_RefId, HuffmanIntegerEncoding.toParam(
+					calculator.values(), calculator.bitLens()));
 		}
 
 		{ // read length encoding:
@@ -203,24 +213,27 @@ public class CompressionHeaderFactory {
 
 			Map<byte[], MutableInt> map = new TreeMap<byte[], MutableInt>(
 					baComparator);
-			MutableInt noTagCounter = new MutableInt() ;
-			map.put(new byte[0], noTagCounter) ;
+			MutableInt noTagCounter = new MutableInt();
+			map.put(new byte[0], noTagCounter);
 			for (CramRecord r : records) {
 				if (r.tags == null) {
-					noTagCounter.value++ ;
-					r.tagIdsIndex = noTagCounter ;
+					noTagCounter.value++;
+					r.tagIdsIndex = noTagCounter;
 					continue;
 				}
-				
+
 				Arrays.sort(r.tags, comparator);
 				r.tagIds = new byte[r.tags.length * 3];
 
 				int tagIndex = 0;
 				for (int i = 0; i < r.tags.length; i++) {
-					r.tagIds[i*3] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(0);
-					r.tagIds[i*3+1] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(1);
-					r.tagIds[i*3+2] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(2);
-					tagIndex++ ;
+					r.tagIds[i * 3] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(0);
+					r.tagIds[i * 3 + 1] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(1);
+					r.tagIds[i * 3 + 2] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(2);
+					tagIndex++;
 				}
 
 				MutableInt count = map.get(r.tagIds);
@@ -236,10 +249,10 @@ public class CompressionHeaderFactory {
 			int i = 0;
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (byte[] idsAsBytes : map.keySet()) {
-				int nofIds = idsAsBytes.length / 3 ;
+				int nofIds = idsAsBytes.length / 3;
 				dic[i] = new byte[nofIds][];
-				for (int j = 0; j < idsAsBytes.length; ) {
-					int idIndex = j/3 ;
+				for (int j = 0; j < idsAsBytes.length;) {
+					int idIndex = j / 3;
 					dic[i][idIndex] = new byte[3];
 					dic[i][idIndex][0] = idsAsBytes[j++];
 					dic[i][idIndex][1] = idsAsBytes[j++];
@@ -249,7 +262,7 @@ public class CompressionHeaderFactory {
 				map.get(idsAsBytes).value = i++;
 			}
 
-			calculator.calculate() ;
+			calculator.calculate();
 			h.eMap.put(EncodingKey.TL_TagIdList, HuffmanIntegerEncoding
 					.toParam(calculator.values(), calculator.bitLens()));
 			h.dictionary = dic;
@@ -398,15 +411,37 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // base substitution code
+
+			long[][] freqs = new long[200][200];
+			for (CramRecord r : records) {
+				if (r.getReadFeatures() == null)
+					continue;
+				else
+					for (ReadFeature rf : r.getReadFeatures())
+						if (rf.getOperator() == Substitution.operator) {
+							Substitution s = ((Substitution) rf);
+							byte refBase = s.getRefernceBase();
+							byte base = s.getBase();
+							freqs[refBase][base]++;
+						}
+			}
+
+			h.substitutionMatrix = new SubstitutionMatrix(freqs);
+
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
 				if (r.getReadFeatures() == null)
 					continue;
 				else
-					for (ReadFeature rf : r.getReadFeatures())
-						if (rf.getOperator() == Substitution.operator)
-							calculator.add(((Substitution) rf)
-									.getBaseChange().getChange());
+					for (ReadFeature rf : r.getReadFeatures()) {
+						if (rf.getOperator() == Substitution.operator) {
+							Substitution s = ((Substitution) rf);
+							byte refBase = s.getRefernceBase();
+							byte base = s.getBase();
+
+							calculator.add(h.substitutionMatrix.code(refBase, base));
+						}
+					}
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.BS_BaseSubstitutionCode,
@@ -415,31 +450,12 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // insertion bases
-			// HuffmanParamsCalculator calculator = new
-			// HuffmanParamsCalculator();
-			// for (CramRecord r : records)
-			// calculator.add(r.getReadName().length());
-			// for (CramRecord r : records)
-			// if (r.getReadFeatures() == null)
-			// continue;
-			// else
-			// for (ReadFeature rf : r.getReadFeatures()) {
-			// if (rf.getOperator() == InsertionVariation.operator)
-			// calculator.add(((InsertionVariation) rf)
-			// .getSequence().length);
-			// if (rf.getOperator() == SoftClipVariation.operator)
-			// calculator.add(((SoftClipVariation) rf)
-			// .getSequence().length);
-			// }
-			//
-			// calculator.calculate();
-			//
-			// h.eMap.put(EncodingKey.IN_Insertion,
-			// ByteArrayLenEncoding.toParam(
-			// HuffmanIntegerEncoding.toParam(calculator.values(),
-			// calculator.bitLens()), ExternalByteArrayEncoding
-			// .toParam(baseID)));
 			h.eMap.put(EncodingKey.IN_Insertion,
+					ByteArrayStopEncoding.toParam((byte) 0, baseID));
+		}
+		
+		{ // insertion bases
+			h.eMap.put(EncodingKey.SC_SoftClip,
 					ByteArrayStopEncoding.toParam((byte) 0, baseID));
 		}
 
@@ -451,8 +467,7 @@ public class CompressionHeaderFactory {
 				else
 					for (ReadFeature rf : r.getReadFeatures())
 						if (rf.getOperator() == Deletion.operator)
-							calculator
-									.add(((Deletion) rf).getLength());
+							calculator.add(((Deletion) rf).getLength());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
@@ -481,9 +496,22 @@ public class CompressionHeaderFactory {
 					.toParam(calculator.values, calculator.bitLens));
 		}
 
-		{ // next fragment ref id
+		{ // next fragment ref id:
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				if (r.detached)
+					calculator.add(r.mateSequnceID);
+			calculator.calculate();
+
+			if (calculator.values.length == 0)
+				h.eMap.put(EncodingKey.NS_NextFragmentReferenceSequenceID,
+						NullEncoding.toParam());
+
 			h.eMap.put(EncodingKey.NS_NextFragmentReferenceSequenceID,
-					ExternalIntegerEncoding.toParam(mateInfoID));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens()));
+			log.debug("NS: "
+					+ h.eMap.get(EncodingKey.NS_NextFragmentReferenceSequenceID));
 		}
 
 		{ // next fragment alignment start

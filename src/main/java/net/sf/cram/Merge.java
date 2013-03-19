@@ -13,6 +13,7 @@ import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.index.BAMQueryFilteringIterator;
+import net.sf.cram.index.CramIndex;
 import net.sf.picard.io.IoUtil;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -182,16 +183,16 @@ public class Merge {
 						GZIPInputStream gis = new GZIPInputStream(
 								new BufferedInputStream(fis));
 						BufferedInputStream bis = new BufferedInputStream(gis);
-						List<Index.Entry> full = Index.readIndex(gis);
+						List<CramIndex.Entry> full = CramIndex.readIndex(gis);
 
-						List<Index.Entry> entries = new LinkedList<Index.Entry>();
+						List<CramIndex.Entry> entries = new LinkedList<CramIndex.Entry>();
 						SAMSequenceRecord sequence = reader.getFileHeader()
 								.getSequence(query.sequence);
 						if (sequence == null)
 							throw new RuntimeException("Sequence not found: "
 									+ query.sequence);
 
-						entries.addAll(Index.find(full,
+						entries.addAll(CramIndex.find(full,
 								sequence.getSequenceIndex(), query.start,
 								query.end - query.start));
 

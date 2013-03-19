@@ -20,10 +20,11 @@ public class DataReaderFactory {
 	private boolean collectStats = false;
 
 	public Reader buildReader(BitInputStream bis,
-			Map<Integer, InputStream> inputMap, CompressionHeader h)
+			Map<Integer, InputStream> inputMap, CompressionHeader h, int refId)
 			throws IllegalArgumentException, IllegalAccessException {
 		Reader reader = new Reader();
 		reader.captureReadNames = h.readNamesIncluded;
+		reader.refId = refId ;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {

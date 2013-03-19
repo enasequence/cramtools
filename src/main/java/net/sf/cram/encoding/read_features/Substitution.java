@@ -23,6 +23,15 @@ public class Substitution implements Serializable, ReadFeature {
 	private byte base;
 	private byte refernceBase;
 	private BaseChange baseChange;
+	private byte code ;
+
+	public byte getCode() {
+		return code;
+	}
+
+	public void setCode(byte code) {
+		this.code = code;
+	}
 
 	public static final byte operator = 'X';
 

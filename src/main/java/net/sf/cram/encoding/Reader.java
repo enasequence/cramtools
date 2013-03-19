@@ -20,11 +20,12 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.structure.SubstitutionMatrix;
 
 public class Reader {
 	public Charset charset = Charset.forName("UTF8");
 	public boolean captureReadNames = false;
-	public byte[][][] tagIdDictionary ;
+	public byte[][][] tagIdDictionary;
 
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataReader<Integer> bitFlagsC;
@@ -79,6 +80,9 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.IN_Insertion, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> inc;
+	
+	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
+	public DataReader<byte[]> softClipCodec;
 
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataReader<Integer> dlc;
@@ -104,15 +108,18 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataReader<Integer> testC;
-	
+
 	@DataSeries(key = EncodingKey.TL_TagIdList, type = DataSeriesType.INT)
 	public DataReader<Integer> tagIdListCodec;
-	
+
 	@DataSeries(key = EncodingKey.RI_RefId, type = DataSeriesType.INT)
 	public DataReader<Integer> refIdCodec;
-	
+
 	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
 	public DataReader<Integer> refSkipCodec;
+
+	public int refId;
+	public SubstitutionMatrix substitutionMatrix ;
 
 	public void read(CramRecord r) throws IOException {
 		try {
@@ -125,7 +132,8 @@ public class Reader {
 
 			r.setFlags(bitFlagsC.readData());
 			r.setCompressionFlags(compBitFlagsC.readData());
-			r.sequenceId = refIdCodec.readData();
+			if (refId == -2)
+				r.sequenceId = refIdCodec.readData();
 
 			r.setReadLength(readLengthC.readData());
 			r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
@@ -148,19 +156,19 @@ public class Reader {
 			} else if (r.hasMateDownStream)
 				r.setRecordsToNextFragment(distanceC.readData());
 
-			Integer tagIdList = tagIdListCodec.readData() ;
-			byte[][] ids = tagIdDictionary[tagIdList] ;
+			Integer tagIdList = tagIdListCodec.readData();
+			byte[][] ids = tagIdDictionary[tagIdList];
 			if (ids.length > 0) {
 				int tagCount = ids.length;
-				r.tags = new ReadTag[tagCount] ;
+				r.tags = new ReadTag[tagCount];
 				for (int i = 0; i < ids.length; i++) {
-					int id = ReadTag.name3BytesToInt(ids[i]) ;
+					int id = ReadTag.name3BytesToInt(ids[i]);
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
-					byte[] data = null ;
+					byte[] data = null;
 					try {
 						data = dataReader.readData();
 					} catch (EOFException e) {
-						throw e ;
+						throw e;
 					}
 					ReadTag tag = new ReadTag(id, data);
 					r.tags[i] = tag;
@@ -188,27 +196,25 @@ public class Reader {
 					case Substitution.operator:
 						Substitution sv = new Substitution();
 						sv.setPosition(pos);
-						sv.setBaseChange(new BaseChange(bsc.readData()));
+						byte code = bsc.readData() ;
+						sv.setCode(code) ;
+//						sv.setBaseChange(new BaseChange(bsc.readData()));
 						rf.add(sv);
 						break;
 					case Insertion.operator:
-						Insertion iv = new Insertion(pos,
-								inc.readData());
+						Insertion iv = new Insertion(pos, inc.readData());
 						rf.add(iv);
 						break;
 					case SoftClip.operator:
-						SoftClip fv = new SoftClip(pos,
-								inc.readData());
+						SoftClip fv = new SoftClip(pos, softClipCodec.readData());
 						rf.add(fv);
 						break;
 					case Deletion.operator:
-						Deletion dv = new Deletion(pos,
-								dlc.readData());
+						Deletion dv = new Deletion(pos, dlc.readData());
 						rf.add(dv);
 						break;
 					case RefSkip.operator:
-						RefSkip rsv = new RefSkip(pos,
-								refSkipCodec.readData());
+						RefSkip rsv = new RefSkip(pos, refSkipCodec.readData());
 						rf.add(rsv);
 						break;
 					case InsertBase.operator:

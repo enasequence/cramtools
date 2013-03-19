@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CountingInputStream;
-import net.sf.cram.Index;
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.structure.Container;
@@ -22,7 +21,7 @@ class CraiIndexer {
 
 	private CountingInputStream is;
 	private SAMFileHeader samFileHeader;
-	private Index index;
+	private CramIndex index;
 
 	public CraiIndexer(InputStream is, File output)
 			throws FileNotFoundException, IOException {
@@ -30,7 +29,7 @@ class CraiIndexer {
 		CramHeader cramHeader = ReadWrite.readCramHeader(this.is);
 		samFileHeader = cramHeader.samFileHeader ;
 		
-		index = new Index(new GZIPOutputStream(new BufferedOutputStream(
+		index = new CramIndex(new GZIPOutputStream(new BufferedOutputStream(
 				new FileOutputStream(output))));
 		
 	}

@@ -1,4 +1,4 @@
-package net.sf.cram;
+package net.sf.cram.index;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,35 +11,40 @@ import java.util.Scanner;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.Slice;
 
-public class Index {
+public class CramIndex {
 	private OutputStream os;
 
-	public Index(OutputStream os) {
+	public CramIndex(OutputStream os) {
 		this.os = os;
 	}
 
 	public void addContainer(Container c) throws IOException {
-		int i = 0;
-		for (Slice s : c.slices) {
+		for (int i = 0; i < c.slices.length; i++) {
+			Slice s = c.slices[i];
 			Entry e = new Entry();
 			e.sequenceId = c.sequenceId;
 			e.alignmentStart = s.alignmentStart;
-			e.nofRecords = s.nofRecords;
-			e.offset = c.offset;
-			e.slice = i++;
+			e.alignmentStart = s.alignmentSpan;
+			e.containerStartOffset = c.offset;
+			e.sliceOffset = c.landmarks[i];
+			e.sliceSize = s.size;
+			
+			e.sliceIndex = i ;
 
 			String string = e.toString();
 			os.write(string.getBytes());
-			os.write ('\n') ;
+			os.write('\n');
 		}
 	}
 
 	public static class Entry implements Comparable<Entry>, Cloneable {
 		public int sequenceId;
 		public int alignmentStart;
-		public int nofRecords;
-		public long offset;
-		public long slice;
+		public int alignmentSpan;
+		public long containerStartOffset;
+		public int sliceOffset;
+		public int sliceSize;
+		public int sliceIndex ;
 
 		public Entry() {
 		}
@@ -51,15 +56,17 @@ public class Index {
 
 			sequenceId = Integer.valueOf(chunks[0]);
 			alignmentStart = Integer.valueOf(chunks[1]);
-			nofRecords = Integer.valueOf(chunks[2]);
-			offset = Integer.valueOf(chunks[3]);
-			slice = Integer.valueOf(chunks[4]);
+			alignmentSpan = Integer.valueOf(chunks[2]);
+			containerStartOffset = Long.valueOf(chunks[3]);
+			sliceOffset = Integer.valueOf(chunks[4]);
+			sliceSize = Integer.valueOf(chunks[5]);
 		}
 
 		@Override
 		public String toString() {
-			return String.format("%d\t%d\t%d\t%d\t%d", sequenceId,
-					alignmentStart, nofRecords, offset, slice);
+			return String.format("%d\t%d\t%d\t%d\t%d\t%d", sequenceId,
+					alignmentStart, alignmentSpan, containerStartOffset,
+					sliceOffset, sliceSize);
 		}
 
 		@Override
@@ -76,15 +83,16 @@ public class Index {
 			Entry entry = new Entry();
 			entry.sequenceId = sequenceId;
 			entry.alignmentStart = alignmentStart;
-			entry.nofRecords = nofRecords;
-			entry.offset = offset;
-			entry.slice = slice;
+			entry.alignmentSpan = alignmentSpan;
+			entry.containerStartOffset = containerStartOffset;
+			entry.sliceOffset = sliceOffset;
+			entry.sliceSize = sliceSize;
 			return entry;
 		}
 	}
 
 	public static List<Entry> readIndex(InputStream is) {
-		List<Entry> list = new LinkedList<Index.Entry>();
+		List<Entry> list = new LinkedList<CramIndex.Entry>();
 		Scanner scanner = new Scanner(is);
 
 		try {
@@ -108,12 +116,16 @@ public class Index {
 		Entry query = new Entry();
 		query.sequenceId = seqId;
 		query.alignmentStart = start;
-		query.offset = Long.MAX_VALUE;
-		query.slice = Integer.MAX_VALUE;
+		query.alignmentSpan = span;
+		query.containerStartOffset = Long.MAX_VALUE;
+		query.sliceOffset = Integer.MAX_VALUE;
+		query.sliceSize = Integer.MAX_VALUE;
+		
 		int index = Collections.binarySearch(list, query);
 		if (index < 0)
 			index = -index - 1;
-		if (list.get(index).sequenceId != seqId) return Collections.EMPTY_LIST;
+		if (list.get(index).sequenceId != seqId)
+			return Collections.EMPTY_LIST;
 
 		query.alignmentStart = start + span;
 		int index2 = Collections.binarySearch(list, query);
@@ -121,7 +133,7 @@ public class Index {
 			index2 = -index2 - 1;
 
 		if (index2 <= index)
-			index2 = index+1;
+			index2 = index + 1;
 
 		return list.subList(index, index2);
 	}
