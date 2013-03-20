@@ -199,7 +199,7 @@ public class Merge {
 						bis.close();
 
 						SAMIterator it = new SAMIterator(is, refFile);
-						is.seek(entries.get(0).offset);
+						is.seek(entries.get(0).containerStartOffset);
 						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(
 								it, query.sequence, query.start, query.end,
 								BAMQueryFilteringIterator.QueryType.CONTAINED,

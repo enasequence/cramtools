@@ -28,8 +28,8 @@ public class CramIndex {
 			e.containerStartOffset = c.offset;
 			e.sliceOffset = c.landmarks[i];
 			e.sliceSize = s.size;
-			
-			e.sliceIndex = i ;
+
+			e.sliceIndex = i;
 
 			String string = e.toString();
 			os.write(string.getBytes());
@@ -44,7 +44,7 @@ public class CramIndex {
 		public long containerStartOffset;
 		public int sliceOffset;
 		public int sliceSize;
-		public int sliceIndex ;
+		public int sliceIndex;
 
 		public Entry() {
 		}
@@ -79,7 +79,7 @@ public class CramIndex {
 		}
 
 		@Override
-		protected Entry clone() throws CloneNotSupportedException {
+		public Entry clone() throws CloneNotSupportedException {
 			Entry entry = new Entry();
 			entry.sequenceId = sequenceId;
 			entry.alignmentStart = alignmentStart;
@@ -120,7 +120,7 @@ public class CramIndex {
 		query.containerStartOffset = Long.MAX_VALUE;
 		query.sliceOffset = Integer.MAX_VALUE;
 		query.sliceSize = Integer.MAX_VALUE;
-		
+
 		int index = Collections.binarySearch(list, query);
 		if (index < 0)
 			index = -index - 1;
@@ -140,6 +140,19 @@ public class CramIndex {
 
 	public void close() throws IOException {
 		os.close();
+	}
+
+	public static Entry getLeftmost(List<Entry> list) {
+		if (list == null || list.isEmpty())
+			return null;
+		Entry left = list.get(0);
+
+		for (Entry e : list)
+			if (e.alignmentStart < left.alignmentStart)
+				left = e;
+
+		return left;
+
 	}
 
 }

@@ -454,6 +454,11 @@ public class ByteBufferUtils {
 	public static int int32(InputStream is) throws IOException {
 		return is.read() | is.read() << 8 | is.read() << 16 | is.read() << 24;
 	}
+	
+	public static int int32(byte[] data) throws IOException {
+		if (data.length != 4) throw new IllegalArgumentException("Expecting a 4-byte integer. ") ;
+		return (0xFF&data[0]) | ((0xFF&data[1]) << 8) | ((0xFF&data[2]) << 16) | ((0xFF&data[3]) << 24);
+	}
 
 	public static int writeInt32(int value, OutputStream os) throws IOException {
 		os.write((byte) value);

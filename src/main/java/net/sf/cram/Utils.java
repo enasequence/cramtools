@@ -540,11 +540,16 @@ public class Utils {
 		}
 	}
 
+	
 	public static String calculateMD5(byte[] data)
+			throws NoSuchAlgorithmException {
+		return calculateMD5(data, 0, data.length) ;
+	}
+	public static String calculateMD5(byte[] data, int offset, int len)
 			throws NoSuchAlgorithmException {
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 		md5_MessageDigest.reset();
-		md5_MessageDigest.update(data);
+		md5_MessageDigest.update(data, offset, len);
 		return String.format("%032x",
 				new BigInteger(1, md5_MessageDigest.digest()));
 
@@ -560,7 +565,7 @@ public class Utils {
 		// return String.format( String.format( "%%0%dx",
 		// md5_MessageDigest.digest().length << 1 ), value );
 	}
-
+	
 	public static void main(String[] args) throws NoSuchAlgorithmException {
 		System.out.println(calculateMD5("363".getBytes()));
 		System.out.println(calculateMD5("a".getBytes()));

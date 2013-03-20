@@ -16,6 +16,7 @@
 package net.sf.cram;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import net.sf.cram.encoding.read_features.BaseChange;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
@@ -93,6 +93,8 @@ public class Sam2CramRecordFactory {
 	}
 
 	public boolean losslessQS = false;
+
+	private List<ReadTag> readTagList = new ArrayList<ReadTag>();
 
 	public Sam2CramRecordFactory(byte[] refBases, SAMFileHeader samFileHeader) {
 		this.refBases = refBases;
@@ -169,29 +171,28 @@ public class Sam2CramRecordFactory {
 		cramRecord.setQualityScores(record.getBaseQualities());
 		landedTotalScores += cramRecord.getReadLength();
 
+		readTagList.clear();
 		if (captureAllTags) {
 			List<SAMTagAndValue> attributes = record.getAttributes();
-			cramRecord.tags = new ReadTag[attributes.size()];
-			int i=0; 
 			for (SAMTagAndValue tv : attributes) {
 				if (ignoreTags.contains(tv.tag))
 					continue;
-
-				cramRecord.tags[i++] = ReadTag.deriveTypeFromValue(tv.tag, tv.value);
+				readTagList.add(ReadTag.deriveTypeFromValue(tv.tag, tv.value));
 			}
 		} else {
 			if (!captureTags.isEmpty()) {
 				List<SAMTagAndValue> attributes = record.getAttributes();
 				cramRecord.tags = new ReadTag[attributes.size()];
-				int i=0; 
+				int i = 0;
 				for (SAMTagAndValue tv : attributes) {
 					if (captureTags.contains(tv.tag)) {
-						cramRecord.tags[i++] = ReadTag.deriveTypeFromValue(tv.tag,
-								tv.value);
+						readTagList.add(ReadTag.deriveTypeFromValue(tv.tag, tv.value));
 					}
 				}
 			}
 		}
+		cramRecord.tags = (ReadTag[]) readTagList
+				.toArray(new ReadTag[readTagList.size()]);
 
 		cramRecord.vendorFiltered = record.getReadFailsVendorQualityCheckFlag();
 
@@ -242,7 +243,7 @@ public class Sam2CramRecordFactory {
 			case D:
 				features.add(new Deletion(zeroBasedPositionInRead + 1,
 						cigarElementLength));
-				break ;
+				break;
 			case N:
 				features.add(new RefSkip(zeroBasedPositionInRead + 1,
 						cigarElementLength));
@@ -254,11 +255,11 @@ public class Sam2CramRecordFactory {
 			case H:
 				addHardClip(features, zeroBasedPositionInRead,
 						cigarElementLength, bases, qualityScore);
-				break ;
+				break;
 			case S:
 				addSoftClip(features, zeroBasedPositionInRead,
 						cigarElementLength, bases, qualityScore);
-				break ;
+				break;
 			case I:
 				addInsertion(features, zeroBasedPositionInRead,
 						cigarElementLength, bases, qualityScore);
@@ -292,11 +293,10 @@ public class Sam2CramRecordFactory {
 				zeroBasedPositionInRead, zeroBasedPositionInRead
 						+ cigarElementLength);
 
-		SoftClip v = new SoftClip(
-				zeroBasedPositionInRead + 1, insertedBases);
+		SoftClip v = new SoftClip(zeroBasedPositionInRead + 1, insertedBases);
 		features.add(v);
 	}
-	
+
 	private void addHardClip(List<ReadFeature> features,
 			int zeroBasedPositionInRead, int cigarElementLength, byte[] bases,
 			byte[] scores) {
@@ -304,8 +304,7 @@ public class Sam2CramRecordFactory {
 				zeroBasedPositionInRead, zeroBasedPositionInRead
 						+ cigarElementLength);
 
-		HardClip v = new HardClip(
-				zeroBasedPositionInRead + 1, insertedBases);
+		HardClip v = new HardClip(zeroBasedPositionInRead + 1, insertedBases);
 		features.add(v);
 	}
 
@@ -362,9 +361,9 @@ public class Sam2CramRecordFactory {
 				sv.setPosition(oneBasedPositionInRead);
 				sv.setBase(bases[i + fromPosInRead]);
 				sv.setRefernceBase(refBase);
-//				sv.setBaseChange(new BaseChange(sv.getRefernceBase(), sv
-//						.getBase()));
-				sv.setBaseChange(null) ;
+				// sv.setBaseChange(new BaseChange(sv.getRefernceBase(), sv
+				// .getBase()));
+				sv.setBaseChange(null);
 
 				features.add(sv);
 

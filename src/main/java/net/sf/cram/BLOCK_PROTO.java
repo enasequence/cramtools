@@ -38,10 +38,12 @@ import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.stats.CompressionHeaderFactory;
 import net.sf.cram.structure.Block;
+import net.sf.cram.structure.BlockCompressionMethod;
 import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.Slice;
+import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -159,7 +161,6 @@ public class BLOCK_PROTO {
 				prevStart += r.alignmentStartOffsetFromPreviousRecord ;
 				r.setAlignmentStart(prevStart);
 //			}
-			System.out.println(r.getReadName() + "\t\t\t" + r.getAlignmentStart());
 		}
 		log.debug("Slice records read time: " + readNanos / 1000000);
 
@@ -179,11 +180,11 @@ public class BLOCK_PROTO {
 
 	public static Container buildContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader, boolean preserveReadNames,
-			long globalRecordCounter) throws IllegalArgumentException,
+			long globalRecordCounter, SubstitutionMatrix substitutionMatrix) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
-		CompressionHeader h = new CompressionHeaderFactory().build(records);
+		CompressionHeader h = new CompressionHeaderFactory().build(records, substitutionMatrix);
 		long time2 = System.nanoTime();
 
 		h.readNamesIncluded = preserveReadNames;
@@ -312,6 +313,7 @@ public class BLOCK_PROTO {
 
 		bos.close();
 		slice.coreBlock = new Block();
+		slice.coreBlock.method = BlockCompressionMethod.RAW.ordinal();
 		slice.coreBlock.setRawContent(bitBAOS.toByteArray());
 		slice.coreBlock.contentType = BlockContentType.CORE;
 
@@ -321,6 +323,7 @@ public class BLOCK_PROTO {
 
 			Block externalBlock = new Block();
 			externalBlock.contentType = BlockContentType.EXTERNAL;
+			externalBlock.method = BlockCompressionMethod.GZIP.ordinal();
 			externalBlock.contentId = i;
 
 			externalBlock.setRawContent(os.toByteArray());
@@ -433,7 +436,7 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = buildContainer(records, samFileHeader, true, 0);
+		Container c = buildContainer(records, samFileHeader, true, 0, null);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -597,7 +600,7 @@ public class BLOCK_PROTO {
 
 		long time1 = System.nanoTime();
 		Container c = buildContainer(cramRecords,
-				samFileReader.getFileHeader(), preserveReadNames, 0);
+				samFileReader.getFileHeader(), preserveReadNames, 0, null);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");

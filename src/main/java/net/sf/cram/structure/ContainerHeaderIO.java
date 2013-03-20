@@ -1,16 +1,25 @@
 package net.sf.cram.structure;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.samtools.util.IOUtil;
 
 public class ContainerHeaderIO {
 
-	public void readContainerHeader(Container c, InputStream is)
+	public boolean readContainerHeader(Container c, InputStream is)
 			throws IOException {
-		c.containerByteSize = ByteBufferUtils.int32(is);
+		byte[] peek = new byte[4] ;
+		try {
+			ByteBufferUtils.readFully(peek, is) ;
+		} catch (EOFException e) {
+			return false ;
+		}
+		
+		c.containerByteSize = ByteBufferUtils.int32(peek);
 		c.sequenceId = ByteBufferUtils.readUnsignedITF8(is);
 		c.alignmentStart = ByteBufferUtils.readUnsignedITF8(is);
 		c.alignmentSpan = ByteBufferUtils.readUnsignedITF8(is);
@@ -19,11 +28,14 @@ public class ContainerHeaderIO {
 		c.bases = ByteBufferUtils.readUnsignedLTF8(is);
 		c.blockCount = ByteBufferUtils.readUnsignedITF8(is);
 		c.landmarks = ByteBufferUtils.array(is);
+		
+		return true ;
 	}
 	
 	public int writeContainerHeader(Container c, OutputStream os)
 			throws IOException {
 		int len = ByteBufferUtils.writeInt32(c.containerByteSize, os);
+		System.out.println("Container size:" +c.containerByteSize);
 		len += ByteBufferUtils.writeUnsignedITF8(c.sequenceId, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.alignmentStart, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.alignmentSpan, os);

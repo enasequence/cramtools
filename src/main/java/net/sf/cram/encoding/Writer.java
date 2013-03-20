@@ -24,10 +24,10 @@ public class Writer {
 	public static final int TEST_MARK = 0xA0B0C0D0;
 	public Charset charset = Charset.forName("UTF8");
 	public boolean captureReadNames = false;
-	
+
 	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
 	public DataWriter<Integer> bitFlagsC;
-	
+
 	@DataSeries(key = EncodingKey.CF_CompressionBitFlags, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> compBitFlagsC;
 
@@ -69,7 +69,7 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE)
 	public DataWriter<Byte> qc;
-	
+
 	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> qcArray;
 
@@ -78,7 +78,7 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.IN_Insertion, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> inc;
-	
+
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> softClipCodec;
 
@@ -99,32 +99,32 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
 	public DataWriter<Integer> tsc;
-	
 
 	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
 	public DataWriter<Integer> testC;
-	
+
 	@DataSeries(key = EncodingKey.TL_TagIdList, type = DataSeriesType.INT)
 	public DataWriter<Integer> tagIdListCodec;
-	
+
 	@DataSeries(key = EncodingKey.RI_RefId, type = DataSeriesType.INT)
 	public DataWriter<Integer> refIdCodec;
-	
+
 	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
 	public DataWriter<Integer> refSkipCodec;
-	
+
 	public int refId;
-	public SubstitutionMatrix substitutionMatrix ;
-	
-	public static int detachedCount = 0 ;
+	public SubstitutionMatrix substitutionMatrix;
+
+	public static int detachedCount = 0;
 
 	public void write(CramRecord r) throws IOException {
-//		testC.writeData(TEST_MARK) ;
-		
+		// testC.writeData(TEST_MARK) ;
+
 		bitFlagsC.writeData(r.getFlags());
-		compBitFlagsC.writeData(r.getCompressionFlags()) ;
-		if (refId == -2) refIdCodec.writeData(r.sequenceId) ;
-		
+		compBitFlagsC.writeData(r.getCompressionFlags());
+		if (refId == -2)
+			refIdCodec.writeData(r.sequenceId);
+
 		readLengthC.writeData(r.getReadLength());
 		alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
 		readGroupC.writeData(r.getReadGroupID());
@@ -142,16 +142,17 @@ public class Writer {
 			mrc.writeData(r.mateSequnceID);
 			malsc.writeData(r.mateAlignmentStart);
 			tsc.writeData(r.templateSize);
-			
-			detachedCount++ ;
-		} else if (r.hasMateDownStream) 
+
+			detachedCount++;
+		} else if (r.hasMateDownStream)
 			distanceC.writeData(r.recordsToNextFragment);
 
 		// tag records:
-		tagIdListCodec.writeData(r.tagIdsIndex.value) ;
+		tagIdListCodec.writeData(r.tagIdsIndex.value);
 		if (r.tags != null) {
-			for (int i=0; i<r.tags.length; i++) {
-				DataWriter<byte[]> writer = tagValueCodecs.get(r.tags[i].keyType3BytesAsInt);
+			for (int i = 0; i < r.tags.length; i++) {
+				DataWriter<byte[]> writer = tagValueCodecs
+						.get(r.tags[i].keyType3BytesAsInt);
 				writer.writeData(r.tags[i].getValueAsByteArray());
 			}
 		}
@@ -181,8 +182,12 @@ public class Writer {
 					break;
 				case Substitution.operator:
 					Substitution sv = (Substitution) f;
-					bsc.writeData(substitutionMatrix.code(sv.getRefernceBase(), sv.getBase()));
-//					bsc.writeData((byte) sv.getBaseChange().getChange());
+					if (sv.getCode() < 0)
+						bsc.writeData(substitutionMatrix.code(
+								sv.getRefernceBase(), sv.getBase()));
+					else
+						bsc.writeData(sv.getCode());
+					// bsc.writeData((byte) sv.getBaseChange().getChange());
 					break;
 				case Insertion.operator:
 					Insertion iv = (Insertion) f;
@@ -218,13 +223,13 @@ public class Writer {
 			// mapping quality:
 			mqc.writeData(r.getMappingQuality());
 			if (r.forcePreserveQualityScores) {
-				qcArray.writeData(r.getQualityScores()) ;
+				qcArray.writeData(r.getQualityScores());
 			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
 			if (r.forcePreserveQualityScores) {
-				qcArray.writeData(r.getQualityScores()) ;
+				qcArray.writeData(r.getQualityScores());
 			}
 		}
 	}

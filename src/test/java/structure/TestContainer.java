@@ -149,7 +149,7 @@ public class TestContainer {
 	public void test() throws IOException, IllegalArgumentException,
 			IllegalAccessException {
 
-		String cramPath = "/data/set2/small.cram";
+		String cramPath = "/data/set1/small.cram";
 		InputStream stream = getClass().getResourceAsStream(cramPath);
 
 		if (stream == null)
@@ -203,7 +203,7 @@ public class TestContainer {
 				container.nofRecords);
 		BLOCK_PROTO.getRecords(container.h, container,
 				cramHeader.samFileHeader, records);
-
+		
 		testALignmentSpan(container, cramHeader, records);
 
 		for (int i = 0; i < records.size(); i++) {
@@ -223,7 +223,7 @@ public class TestContainer {
 		BLOCK_PROTO.recordsPerSlice = container.slices[0].nofRecords;
 
 		Container container2 = BLOCK_PROTO.buildContainer(records,
-				cramHeader.samFileHeader, true, 0);
+				cramHeader.samFileHeader, true, 0, container.h.substitutionMatrix);
 		for (int i = 0; i < container.slices.length; i++) {
 			container2.slices[i].refMD5 = container.slices[i].refMD5;
 		}
@@ -339,6 +339,13 @@ public class TestContainer {
 					return false;
 
 			return true;
+		}
+		
+		if (o1 instanceof List && o2 instanceof List) {
+			List l1 = (List) o1 ;
+			List l2 = (List) o2 ;
+
+			if (!l1.equals(l2)) return false ;
 		}
 
 		return o1.equals(o2);

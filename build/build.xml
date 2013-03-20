@@ -10,7 +10,7 @@
 	<property name="target.dir" value="${basedir}/target" />
 	<property name="classes" value="${target.dir}/classes" />
 	<property name="crammerClasses" value="target/classes" />
-	<property name="jar.file.name" value="cramtools-1.0.jar" />
+	<property name="jar.file.name" value="cramtools-2.0.jar" />
 
 	<path id="classpath">
 		<fileset dir="${lib.home}" includes="*.jar" />

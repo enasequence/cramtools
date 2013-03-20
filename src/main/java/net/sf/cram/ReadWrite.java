@@ -153,7 +153,7 @@ public class ReadWrite {
 			throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		chio.readContainerHeader(c, is);
+		if (!chio.readContainerHeader(c, is)) return null ;
 		return c;
 	}
 
@@ -163,6 +163,7 @@ public class ReadWrite {
 
 		long time1 = System.nanoTime();
 		Container c = readContainerHeader(is);
+		if (c == null) return null ;
 
 		CompressionHeaderBLock chb = new CompressionHeaderBLock(is);
 		c.h = chb.getCompressionHeader();
@@ -177,6 +178,7 @@ public class ReadWrite {
 			Slice slice = new Slice();
 			sio.readSliceHeadBlock(slice, is);
 			sio.readSliceBlocks(slice, true, is);
+			slices.add(slice) ;
 		}
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);

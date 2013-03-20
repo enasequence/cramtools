@@ -99,7 +99,7 @@ public class SAMIterator implements SAMRecordIterator {
 
 		long time1 = System.nanoTime();
 
-		normalizer.normalize(cramRecords, true, refs, container.alignmentStart);
+		normalizer.normalize(cramRecords, true, refs, container.alignmentStart, container.h.substitutionMatrix);
 		long time2 = System.nanoTime();
 
 		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(

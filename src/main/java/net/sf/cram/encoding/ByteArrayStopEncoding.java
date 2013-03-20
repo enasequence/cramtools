@@ -58,7 +58,6 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 		stopByte = buf.get();
 		externalId = ByteBufferUtils.readUnsignedITF8(buf) ;
-		System.out.printf("Stop=%d, external id=%d\n", stopByte, externalId);
 	}
 
 	@Override
@@ -67,9 +66,6 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		InputStream is = inputMap == null ? null : inputMap.get(externalId);
 		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap
 				.get(externalId);
-		if (is == null && os == null) {
-			System.out.println("Streams are null");
-		}
 		return new ByteArrayStopCodec(stopByte, is, os);
 	}
 

@@ -42,7 +42,7 @@ public class CompressionHeaderFactory {
 	private static final int oqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 	private static final int bqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 
-	public CompressionHeader build(List<CramRecord> records) {
+	public CompressionHeader build(List<CramRecord> records, SubstitutionMatrix substitutionMatrix) {
 		CompressionHeader h = new CompressionHeader();
 		h.externalIds = new ArrayList<Integer>();
 		int exCounter = 0;
@@ -411,22 +411,23 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // base substitution code
+			if (substitutionMatrix == null) {
+				long[][] freqs = new long[200][200];
+				for (CramRecord r : records) {
+					if (r.getReadFeatures() == null)
+						continue;
+					else
+						for (ReadFeature rf : r.getReadFeatures())
+							if (rf.getOperator() == Substitution.operator) {
+								Substitution s = ((Substitution) rf);
+								byte refBase = s.getRefernceBase();
+								byte base = s.getBase();
+								freqs[refBase][base]++;
+							}
+				}
 
-			long[][] freqs = new long[200][200];
-			for (CramRecord r : records) {
-				if (r.getReadFeatures() == null)
-					continue;
-				else
-					for (ReadFeature rf : r.getReadFeatures())
-						if (rf.getOperator() == Substitution.operator) {
-							Substitution s = ((Substitution) rf);
-							byte refBase = s.getRefernceBase();
-							byte base = s.getBase();
-							freqs[refBase][base]++;
-						}
-			}
-
-			h.substitutionMatrix = new SubstitutionMatrix(freqs);
+				h.substitutionMatrix = new SubstitutionMatrix(freqs);
+			} else h.substitutionMatrix = substitutionMatrix ;
 
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
@@ -436,10 +437,13 @@ public class CompressionHeaderFactory {
 					for (ReadFeature rf : r.getReadFeatures()) {
 						if (rf.getOperator() == Substitution.operator) {
 							Substitution s = ((Substitution) rf);
-							byte refBase = s.getRefernceBase();
-							byte base = s.getBase();
-
-							calculator.add(h.substitutionMatrix.code(refBase, base));
+							if (s.getCode() == -1) {
+								byte refBase = s.getRefernceBase();
+								byte base = s.getBase();
+								s.setCode(h.substitutionMatrix.code(refBase,
+										base));
+							}
+							calculator.add(s.getCode());
 						}
 					}
 			calculator.calculate();
@@ -453,7 +457,7 @@ public class CompressionHeaderFactory {
 			h.eMap.put(EncodingKey.IN_Insertion,
 					ByteArrayStopEncoding.toParam((byte) 0, baseID));
 		}
-		
+
 		{ // insertion bases
 			h.eMap.put(EncodingKey.SC_SoftClip,
 					ByteArrayStopEncoding.toParam((byte) 0, baseID));

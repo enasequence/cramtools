@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -194,7 +197,8 @@ public class Bam2Cram {
 	}
 
 	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
+			IllegalArgumentException, IllegalAccessException,
+			NoSuchAlgorithmException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
@@ -271,8 +275,9 @@ public class Bam2Cram {
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
 				sequence = null;
 			else
-				sequence = Utils.trySequenceNameVariants(referenceSequenceFile, seqName) ;
-			
+				sequence = Utils.trySequenceNameVariants(referenceSequenceFile,
+						seqName);
+
 		}
 
 		QualityScorePreservation preservation;
@@ -282,6 +287,22 @@ public class Bam2Cram {
 			preservation = new QualityScorePreservation(params.qsSpec);
 
 		byte[] ref = sequence == null ? new byte[0] : sequence.getBases();
+
+		{
+			// hack:
+			int newLines = 0;
+			for (byte b : ref)
+				if (b == 10)
+					newLines++;
+			byte[] ref2 = new byte[ref.length - newLines];
+			int j = 0;
+			for (int i = 0; i < ref.length; i++)
+				if (ref[i] == 10)
+					continue;
+				else
+					ref2[j++] = ref[i];
+			ref = ref2;
+		}
 
 		OutputStream os;
 		if (params.outputCramFile != null) {
@@ -306,7 +327,8 @@ public class Bam2Cram {
 		long coreBytes = 0;
 		long[] externalBytes = new long[10];
 		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
-		long globalRecordCounter= 0;
+		long globalRecordCounter = 0;
+		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
@@ -325,10 +347,23 @@ public class Bam2Cram {
 							params.ignoreTags);
 					samRecords.clear();
 
-					Container container = BLOCK_PROTO.buildContainer(records,
-							samFileReader.getFileHeader(),
-							params.preserveReadNames, globalRecordCounter);
-					globalRecordCounter += records.size() ;
+					Container container = BLOCK_PROTO
+							.buildContainer(records,
+									samFileReader.getFileHeader(),
+									params.preserveReadNames,
+									globalRecordCounter, null);
+					for (Slice s : container.slices) {
+						md5_MessageDigest.reset();
+						md5_MessageDigest.update(ref, s.alignmentStart-1,
+								s.alignmentSpan);
+						String sliceRef = new String (ref, s.alignmentStart-1,
+								s.alignmentSpan);
+						s.refMD5 = md5_MessageDigest.digest();
+						System.out.println("Slice ref: " + sliceRef);
+						System.out.println((String.format("%032x",
+								new BigInteger(1, s.refMD5))));
+					}
+					globalRecordCounter += records.size();
 					records.clear();
 					long len = ReadWrite.writeContainer(container, os);
 					container.offset = offset;
@@ -343,16 +378,33 @@ public class Bam2Cram {
 					for (Slice s : container.slices) {
 						coreBytes += s.coreBlock.getCompressedContent().length;
 						for (Integer i : s.external.keySet())
-							externalBytes[i] += s.external.get(i).getCompressedContent().length;
+							externalBytes[i] += s.external.get(i)
+									.getCompressedContent().length;
 					}
 				}
 			}
 
 			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					sequence =Utils.trySequenceNameVariants(referenceSequenceFile, samRecord
-							.getReferenceName());
+					sequence = Utils
+							.trySequenceNameVariants(referenceSequenceFile,
+									samRecord.getReferenceName());
 					ref = sequence.getBases();
+					{
+						// hack:
+						int newLines = 0;
+						for (byte b : ref)
+							if (b == 10)
+								newLines++;
+						byte[] ref2 = new byte[ref.length - newLines];
+						int j = 0;
+						for (int i = 0; i < ref.length; i++)
+							if (ref[i] == 10)
+								continue;
+							else
+								ref2[j++] = ref[i];
+						ref = ref2;
+					}
 				} else
 					ref = new byte[] {};
 				prevSeqId = samRecord.getReferenceIndex();
@@ -372,9 +424,20 @@ public class Bam2Cram {
 						params.captureAllTags, params.captureTags,
 						params.ignoreTags);
 				samRecords.clear();
-				Container container = BLOCK_PROTO
-						.buildContainer(records, samFileReader.getFileHeader(),
-								params.preserveReadNames, globalRecordCounter);
+				Container container = BLOCK_PROTO.buildContainer(records,
+						samFileReader.getFileHeader(),
+						params.preserveReadNames, globalRecordCounter, null);
+				for (Slice s : container.slices) {
+					md5_MessageDigest.reset();
+					md5_MessageDigest.update(ref, s.alignmentStart-1,
+							s.alignmentSpan);
+					String sliceRef = new String (ref, s.alignmentStart-1,
+							s.alignmentSpan);
+					s.refMD5 = md5_MessageDigest.digest();
+					System.out.println("Slice ref: " + sliceRef);
+					System.out.println((String.format("%032x",
+							new BigInteger(1, s.refMD5))));
+				}
 				records.clear();
 				ReadWrite.writeContainer(container, os);
 				log.info(String
@@ -386,7 +449,8 @@ public class Bam2Cram {
 				for (Slice s : container.slices) {
 					coreBytes += s.coreBlock.getCompressedContent().length;
 					for (Integer i : s.external.keySet())
-						externalBytes[i] += s.external.get(i).getCompressedContent().length;
+						externalBytes[i] += s.external.get(i)
+								.getCompressedContent().length;
 				}
 			}
 		}

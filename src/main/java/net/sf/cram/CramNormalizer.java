@@ -24,14 +24,14 @@ public class CramNormalizer {
 	private byte defaultQualityScore = '?' - '!';
 
 	private static Log log = Log.getInstance(CramNormalizer.class);
-	private static SubstitutionMatrix substitutionMatrix;
 
 	public CramNormalizer(SAMFileHeader header) {
 		this.header = header;
 	}
 
 	public void normalize(ArrayList<CramRecord> records, boolean resetPairing,
-			byte[] ref, int alignmentStart) {
+			byte[] ref, int alignmentStart, SubstitutionMatrix substitutionMatrix) {
+		
 		int startCounter = readCounter;
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
@@ -105,7 +105,8 @@ public class CramNormalizer {
 		for (CramRecord r : records) {
 			if (r.segmentUnmapped)
 				continue;
-			byte[] bases = restoreReadBases(r, ref);
+			
+			byte[] bases = restoreReadBases(r, ref, substitutionMatrix);
 			r.setReadBases(bases);
 		}
 
@@ -173,7 +174,7 @@ public class CramNormalizer {
 		return len;
 	}
 
-	private static final byte[] restoreReadBases(CramRecord record, byte[] ref) {
+	private static final byte[] restoreReadBases(CramRecord record, byte[] ref, SubstitutionMatrix substitutionMatrix) {
 		int readLength = (int) record.getReadLength();
 		byte[] bases = new byte[readLength];
 
@@ -201,10 +202,20 @@ public class CramNormalizer {
 				Substitution sv = (Substitution) v;
 				byte refBase = ref[alignmentStart + posInSeq];
 				byte base = substitutionMatrix.base(refBase, sv.getCode()) ;
-//				byte base = sv.getBaseChange().getBaseForReference(refBase);
+//				switch (base) {
+//				case 'A':
+//				case 'C':
+//				case 'G':
+//				case 'T':
+//				case 'N':
+//					break;
+//
+//				default:
+//					throw new RuntimeException("Invalid base: " + base) ;
+//				}
 				sv.setBase(base);
 				sv.setRefernceBase(refBase);
-				bases[posInRead++ - 1] = sv.getBase();
+				bases[posInRead++ - 1] = base;
 				posInSeq++;
 				break;
 			case Insertion.operator:

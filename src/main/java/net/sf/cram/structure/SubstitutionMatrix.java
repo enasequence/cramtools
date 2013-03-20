@@ -5,6 +5,7 @@ import java.util.Comparator;
 
 public class SubstitutionMatrix {
 	public static final byte[] BASES = new byte[] { 'A', 'C', 'G',  'N', 'T'};
+	public static final byte[] BASES_LC = new byte[] { 'a', 'c', 'g',  'n', 't'};
 	private byte[] bytes = new byte[5];
 	private byte[][] codes = new byte[255][255];
 	private byte[][] bases = new byte[255][255];
@@ -14,10 +15,15 @@ public class SubstitutionMatrix {
 			bytes[i] = rank(BASES[i], freqs[BASES[i]]);
 		}
 		
-		for (byte r:BASES) {
+		for (int i=0; i<bases.length; i++) 
+			Arrays.fill(bases[i], (byte)'N') ;
+		
+		for (int i=0; i<BASES.length; i++) {
+			byte r = BASES[i] ;
 			for (byte b:BASES) {
 				if (r == b) continue;
 				bases[r][codes[r][b]] = b ;
+				bases[BASES_LC[i]][codes[r][b]] = b ;
 			}
 		}
 	}
@@ -35,10 +41,15 @@ public class SubstitutionMatrix {
 			}
 		}
 		
-		for (byte r:BASES) {
+		for (int i=0; i<bases.length; i++) 
+			Arrays.fill(bases[i], (byte)'N') ;
+		
+		for (int i=0; i<BASES.length; i++) {
+			byte r = BASES[i] ;
 			for (byte b:BASES) {
 				if (r == b) continue;
 				bases[r][codes[r][b]] = b ;
+				bases[BASES_LC[i]][codes[r][b]] = b ;
 			}
 		}
 	}
@@ -116,7 +127,7 @@ public class SubstitutionMatrix {
 	}
 	
 	public byte base(byte refBase, byte code) {
-		return codes[refBase][code];
+		return bases[refBase][code];
 	}
 
 	public static void main(String[] args) {
