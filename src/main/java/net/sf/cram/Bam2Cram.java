@@ -358,11 +358,11 @@ public class Bam2Cram {
 						md5_MessageDigest.update(ref, s.alignmentStart-1,
 								s.alignmentSpan);
 						String sliceRef = new String (ref, s.alignmentStart-1,
-								s.alignmentSpan);
+								Math.min(s.alignmentSpan, 30));
 						s.refMD5 = md5_MessageDigest.digest();
-//						System.out.println("Slice ref: " + sliceRef);
-//						System.out.println((String.format("%032x",
-//								new BigInteger(1, s.refMD5))));
+						log.debug("Slice ref starts with: " + sliceRef);
+						log.debug("Slice ref md5: "+(String.format("%032x",
+								new BigInteger(1, s.refMD5))));
 					}
 					globalRecordCounter += records.size();
 					records.clear();
@@ -433,11 +433,11 @@ public class Bam2Cram {
 					md5_MessageDigest.update(ref, s.alignmentStart-1,
 							s.alignmentSpan);
 					String sliceRef = new String (ref, s.alignmentStart-1,
-							s.alignmentSpan);
+							Math.min(s.alignmentSpan, 30));
 					s.refMD5 = md5_MessageDigest.digest();
-//					System.out.println("Slice ref: " + sliceRef);
-//					System.out.println((String.format("%032x",
-//							new BigInteger(1, s.refMD5))));
+					log.debug("Slice ref starts with: " + sliceRef);
+					log.debug("Slice ref md5: "+(String.format("%032x",
+							new BigInteger(1, s.refMD5))));
 				}
 				records.clear();
 				ReadWrite.writeContainer(container, os);

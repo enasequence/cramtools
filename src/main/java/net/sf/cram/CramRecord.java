@@ -100,9 +100,9 @@ public class CramRecord implements Serializable {
 			b |= lastSegment ? 1 : 0;
 			b <<= 1;
 			b |= firstSegment ? 1 : 0;
-			b <<= 1;
+			b <<= 2;
 			b |= negativeStrand ? 1 : 0;
-			b <<= 1;
+			b <<= 2;
 			b |= segmentUnmapped ? 1 : 0;
 			b <<= 1;
 			b |= properPair ? 1 : 0;
@@ -120,9 +120,9 @@ public class CramRecord implements Serializable {
 		properPair = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		segmentUnmapped = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
+		b >>>= 2;
 		negativeStrand = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
+		b >>>= 2;
 		firstSegment = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		lastSegment = ((b & 1) == 0) ? false : true;

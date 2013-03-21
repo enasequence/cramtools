@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 import net.sf.cram.io.IOUtils;
+import net.sf.picard.util.Log;
 
 public class SubstitutionMatrix {
 	public static final byte[] BASES = new byte[] { 'A', 'C', 'G', 'T', 'N' };
@@ -17,8 +18,10 @@ public class SubstitutionMatrix {
 		ORDER['G'] = 2;
 		ORDER['T'] = 3;
 		ORDER['N'] = 4;
-
 	}
+	
+	private static Log log = Log.getInstance(SubstitutionMatrix.class) ;
+	
 	private byte[] bytes = new byte[5];
 	private byte[][] codes = new byte[255][255];
 	private byte[][] bases = new byte[255][255];
@@ -44,16 +47,18 @@ public class SubstitutionMatrix {
 	}
 	
 	public void dump () {
-		System.out.println("Subs matrix: " + Arrays.toString(bytes) + ": " + IOUtils.toBitString(bytes));
+		log.debug ("Subs matrix: " + Arrays.toString(bytes) + ": " + IOUtils.toBitString(bytes));
 		
+		StringBuffer sb = new StringBuffer("Subs matrix decoded: ") ;
 		for (byte r:"ACGTN".getBytes()) {
-			System.out.print((char)r);
-			System.out.print(": ");
+			sb.append((char)r);
+			sb.append(":");
 			for (int i=0; i<4; i++) {
-				System.out.print((char)bases[r][i]);
+				sb.append((char)bases[r][i]);
 			}
-			System.out.println();
+			sb.append("\t") ;
 		}
+		log.debug(sb.toString()) ;
 	}
 
 	public SubstitutionMatrix(byte[] matrix) {

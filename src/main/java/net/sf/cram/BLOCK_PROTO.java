@@ -162,10 +162,6 @@ public class BLOCK_PROTO {
 				prevStart += r.alignmentStartOffsetFromPreviousRecord;
 				r.setAlignmentStart(prevStart);
 			}
-			if ("SRR065390.11553050".equals(r.getReadName())) {
-				System.out.println(r.getAlignmentStart() + "; "
-						+ r.alignmentStartOffsetFromPreviousRecord);
-			}
 			
 			// }
 		}
@@ -312,11 +308,6 @@ public class BLOCK_PROTO {
 			r.alignmentStartOffsetFromPreviousRecord = r.getAlignmentStart()
 					- prevAlStart;
 			prevAlStart = r.getAlignmentStart();
-			if ("SRR065390.11553050".equals(r.getReadName())) {
-				System.out.println("aqwelkjhewrlkjhqwer"
-						+ r.getAlignmentStart() + "; "
-						+ r.alignmentStartOffsetFromPreviousRecord);
-			}
 			writer.write(r);
 		}
 
