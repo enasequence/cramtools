@@ -144,7 +144,7 @@ public class BLOCK_PROTO {
 			CramRecord r = new CramRecord();
 			r.setSequenceName(seqName);
 			r.sequenceId = s.sequenceId;
-			
+
 			try {
 				time = System.nanoTime();
 				reader.read(r);
@@ -154,13 +154,20 @@ public class BLOCK_PROTO {
 				throw e;
 			}
 			records.add(r);
-			
-//			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-//				r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
-//			else {
-				prevStart += r.alignmentStartOffsetFromPreviousRecord ;
+
+			// if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+			// r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+			// else {
+			if (h.AP_seriesDelta) {
+				prevStart += r.alignmentStartOffsetFromPreviousRecord;
 				r.setAlignmentStart(prevStart);
-//			}
+			}
+			if ("SRR065390.11553050".equals(r.getReadName())) {
+				System.out.println(r.getAlignmentStart() + "; "
+						+ r.alignmentStartOffsetFromPreviousRecord);
+			}
+			
+			// }
 		}
 		log.debug("Slice records read time: " + readNanos / 1000000);
 
@@ -180,16 +187,18 @@ public class BLOCK_PROTO {
 
 	public static Container buildContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader, boolean preserveReadNames,
-			long globalRecordCounter, SubstitutionMatrix substitutionMatrix, boolean AP_delta) throws IllegalArgumentException,
+			long globalRecordCounter, SubstitutionMatrix substitutionMatrix,
+			boolean AP_delta) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
-		CompressionHeader h = new CompressionHeaderFactory().build(records, substitutionMatrix);
-		h.AP_seriesDelta = AP_delta ;
+		CompressionHeader h = new CompressionHeaderFactory().build(records,
+				substitutionMatrix);
+		h.AP_seriesDelta = AP_delta;
 		long time2 = System.nanoTime();
 
 		h.readNamesIncluded = preserveReadNames;
-		h.AP_seriesDelta = true ;
+		h.AP_seriesDelta = true;
 
 		List<Slice> slices = new ArrayList<Slice>();
 
@@ -197,11 +206,11 @@ public class BLOCK_PROTO {
 		c.h = h;
 		c.nofRecords = records.size();
 		c.globalRecordCounter = globalRecordCounter;
-		c.bases = 0 ;
-		c.blockCount = 0 ;
+		c.bases = 0;
+		c.blockCount = 0;
 
 		long time3 = System.nanoTime();
-		long lastGlobalRecordCounter = c.globalRecordCounter ;
+		long lastGlobalRecordCounter = c.globalRecordCounter;
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
 			List<CramRecord> sliceRecords = records.subList(i,
 					Math.min(records.size(), i + recordsPerSlice));
@@ -298,7 +307,16 @@ public class BLOCK_PROTO {
 		}
 
 		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);
+		int prevAlStart = slice.alignmentStart;
 		for (CramRecord r : records) {
+			r.alignmentStartOffsetFromPreviousRecord = r.getAlignmentStart()
+					- prevAlStart;
+			prevAlStart = r.getAlignmentStart();
+			if ("SRR065390.11553050".equals(r.getReadName())) {
+				System.out.println("aqwelkjhewrlkjhqwer"
+						+ r.getAlignmentStart() + "; "
+						+ r.alignmentStartOffsetFromPreviousRecord);
+			}
 			writer.write(r);
 		}
 
@@ -430,7 +448,8 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = buildContainer(records, samFileHeader, true, 0, null, true);
+		Container c = buildContainer(records, samFileHeader, true, 0, null,
+				true);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");

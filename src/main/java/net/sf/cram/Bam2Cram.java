@@ -115,6 +115,7 @@ public class Bam2Cram {
 			cramRecord.index = ++index;
 			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
 					.getAlignmentStart() - prevAlStart;
+			cramRecord.setAlignmentStart(samRecord.getAlignmentStart()) ;
 			prevAlStart = samRecord.getAlignmentStart();
 
 			cramRecords.add(cramRecord);

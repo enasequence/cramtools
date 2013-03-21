@@ -38,8 +38,8 @@ public class CramNormalizer {
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
 
-			if (AP_delta)
-				alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
+//			if (AP_delta)
+//				alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
 
 			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
@@ -47,8 +47,8 @@ public class CramNormalizer {
 			} else {
 				r.setSequenceName(header.getSequence(r.sequenceId)
 						.getSequenceName());
-				if (AP_delta)
-					r.setAlignmentStart(alignmentStart);
+//				if (AP_delta)
+//					r.setAlignmentStart(alignmentStart);
 			}
 		}
 
