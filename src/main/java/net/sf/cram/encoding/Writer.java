@@ -114,6 +114,7 @@ public class Writer {
 
 	public int refId;
 	public SubstitutionMatrix substitutionMatrix;
+	public boolean AP_delta = true;
 
 	public static int detachedCount = 0;
 
@@ -126,7 +127,12 @@ public class Writer {
 			refIdCodec.writeData(r.sequenceId);
 
 		readLengthC.writeData(r.getReadLength());
-		alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
+
+		if (AP_delta)
+			alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
+		else
+			alStartC.writeData(r.getAlignmentStart());
+
 		readGroupC.writeData(r.getReadGroupID());
 
 		if (captureReadNames) {

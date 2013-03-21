@@ -23,6 +23,7 @@ public class DataWriterFactory {
 		writer.captureReadNames = h.readNamesIncluded;
 		writer.refId = refId ;
 		writer.substitutionMatrix = h.substitutionMatrix ;
+		writer.AP_delta = h.AP_seriesDelta ;
 
 		for (Field f : writer.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {

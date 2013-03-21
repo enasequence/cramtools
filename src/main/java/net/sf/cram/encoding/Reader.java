@@ -80,7 +80,7 @@ public class Reader {
 
 	@DataSeries(key = EncodingKey.IN_Insertion, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> inc;
-	
+
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> softClipCodec;
 
@@ -119,7 +119,8 @@ public class Reader {
 	public DataReader<Integer> refSkipCodec;
 
 	public int refId;
-	public SubstitutionMatrix substitutionMatrix ;
+	public SubstitutionMatrix substitutionMatrix;
+	public boolean AP_delta = true;
 
 	public void read(CramRecord r) throws IOException {
 		try {
@@ -136,7 +137,10 @@ public class Reader {
 				r.sequenceId = refIdCodec.readData();
 
 			r.setReadLength(readLengthC.readData());
-			r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
+			if (AP_delta)
+				r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
+			else
+				r.setAlignmentStart(alStartC.readData());
 			r.setReadGroupID(readGroupC.readData());
 
 			if (captureReadNames) {
@@ -196,9 +200,9 @@ public class Reader {
 					case Substitution.operator:
 						Substitution sv = new Substitution();
 						sv.setPosition(pos);
-						byte code = bsc.readData() ;
-						sv.setCode(code) ;
-//						sv.setBaseChange(new BaseChange(bsc.readData()));
+						byte code = bsc.readData();
+						sv.setCode(code);
+						// sv.setBaseChange(new BaseChange(bsc.readData()));
 						rf.add(sv);
 						break;
 					case Insertion.operator:
@@ -206,7 +210,8 @@ public class Reader {
 						rf.add(iv);
 						break;
 					case SoftClip.operator:
-						SoftClip fv = new SoftClip(pos, softClipCodec.readData());
+						SoftClip fv = new SoftClip(pos,
+								softClipCodec.readData());
 						rf.add(fv);
 						break;
 					case Deletion.operator:

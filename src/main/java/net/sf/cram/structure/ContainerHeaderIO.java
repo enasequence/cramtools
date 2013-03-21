@@ -35,7 +35,6 @@ public class ContainerHeaderIO {
 	public int writeContainerHeader(Container c, OutputStream os)
 			throws IOException {
 		int len = ByteBufferUtils.writeInt32(c.containerByteSize, os);
-		System.out.println("Container size:" +c.containerByteSize);
 		len += ByteBufferUtils.writeUnsignedITF8(c.sequenceId, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.alignmentStart, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.alignmentSpan, os);

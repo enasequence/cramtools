@@ -351,7 +351,7 @@ public class Bam2Cram {
 							.buildContainer(records,
 									samFileReader.getFileHeader(),
 									params.preserveReadNames,
-									globalRecordCounter, null);
+									globalRecordCounter, null, true);
 					for (Slice s : container.slices) {
 						md5_MessageDigest.reset();
 						md5_MessageDigest.update(ref, s.alignmentStart-1,
@@ -359,9 +359,9 @@ public class Bam2Cram {
 						String sliceRef = new String (ref, s.alignmentStart-1,
 								s.alignmentSpan);
 						s.refMD5 = md5_MessageDigest.digest();
-						System.out.println("Slice ref: " + sliceRef);
-						System.out.println((String.format("%032x",
-								new BigInteger(1, s.refMD5))));
+//						System.out.println("Slice ref: " + sliceRef);
+//						System.out.println((String.format("%032x",
+//								new BigInteger(1, s.refMD5))));
 					}
 					globalRecordCounter += records.size();
 					records.clear();
@@ -426,7 +426,7 @@ public class Bam2Cram {
 				samRecords.clear();
 				Container container = BLOCK_PROTO.buildContainer(records,
 						samFileReader.getFileHeader(),
-						params.preserveReadNames, globalRecordCounter, null);
+						params.preserveReadNames, globalRecordCounter, null, true);
 				for (Slice s : container.slices) {
 					md5_MessageDigest.reset();
 					md5_MessageDigest.update(ref, s.alignmentStart-1,
@@ -434,9 +434,9 @@ public class Bam2Cram {
 					String sliceRef = new String (ref, s.alignmentStart-1,
 							s.alignmentSpan);
 					s.refMD5 = md5_MessageDigest.digest();
-					System.out.println("Slice ref: " + sliceRef);
-					System.out.println((String.format("%032x",
-							new BigInteger(1, s.refMD5))));
+//					System.out.println("Slice ref: " + sliceRef);
+//					System.out.println((String.format("%032x",
+//							new BigInteger(1, s.refMD5))));
 				}
 				records.clear();
 				ReadWrite.writeContainer(container, os);

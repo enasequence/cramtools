@@ -223,7 +223,7 @@ public class TestContainer {
 		BLOCK_PROTO.recordsPerSlice = container.slices[0].nofRecords;
 
 		Container container2 = BLOCK_PROTO.buildContainer(records,
-				cramHeader.samFileHeader, true, 0, container.h.substitutionMatrix);
+				cramHeader.samFileHeader, true, 0, container.h.substitutionMatrix, true);
 		for (int i = 0; i < container.slices.length; i++) {
 			container2.slices[i].refMD5 = container.slices[i].refMD5;
 		}

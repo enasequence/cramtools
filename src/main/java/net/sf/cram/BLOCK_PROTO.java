@@ -180,14 +180,16 @@ public class BLOCK_PROTO {
 
 	public static Container buildContainer(List<CramRecord> records,
 			SAMFileHeader fileHeader, boolean preserveReadNames,
-			long globalRecordCounter, SubstitutionMatrix substitutionMatrix) throws IllegalArgumentException,
+			long globalRecordCounter, SubstitutionMatrix substitutionMatrix, boolean AP_delta) throws IllegalArgumentException,
 			IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
 		CompressionHeader h = new CompressionHeaderFactory().build(records, substitutionMatrix);
+		h.AP_seriesDelta = AP_delta ;
 		long time2 = System.nanoTime();
 
 		h.readNamesIncluded = preserveReadNames;
+		h.AP_seriesDelta = true ;
 
 		List<Slice> slices = new ArrayList<Slice>();
 
@@ -298,14 +300,6 @@ public class BLOCK_PROTO {
 		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);
 		for (CramRecord r : records) {
 			writer.write(r);
-
-			// if (slice.alignmentStart == -1) {
-			// slice.alignmentStart = r.getAlignmentStart();
-			// slice.sequenceId = r.sequenceId;
-			// }
-			//
-			// slice.alignmentSpan = r.calcualteAlignmentEnd() -
-			// slice.alignmentStart;
 		}
 
 		slice.contentType = slice.alignmentSpan > -1 ? BlockContentType.MAPPED_SLICE
@@ -436,7 +430,7 @@ public class BLOCK_PROTO {
 		}
 
 		long time1 = System.nanoTime();
-		Container c = buildContainer(records, samFileHeader, true, 0, null);
+		Container c = buildContainer(records, samFileHeader, true, 0, null, true);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");
@@ -600,7 +594,7 @@ public class BLOCK_PROTO {
 
 		long time1 = System.nanoTime();
 		Container c = buildContainer(cramRecords,
-				samFileReader.getFileHeader(), preserveReadNames, 0, null);
+				samFileReader.getFileHeader(), preserveReadNames, 0, null, true);
 		long time2 = System.nanoTime();
 		System.out.println("Container written in " + (time2 - time1) / 1000000
 				+ " milli seconds");

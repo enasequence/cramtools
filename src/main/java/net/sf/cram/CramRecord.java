@@ -84,33 +84,30 @@ public class CramRecord implements Serializable {
 	private String readName;
 	public int templateSize;
 	public long counter = 1;
-	
-	public byte[] tagIds ;
-	public MutableInt tagIdsIndex ;
+
+	public byte[] tagIds;
+	public MutableInt tagIdsIndex;
 
 	public int getFlags() {
 		if (flags == null) {
 			int b = 0;
-			b |= multiFragment ? 1 : 0;
-
-			b <<= 1;
-			b |= properPair ? 1 : 0;
-			b <<= 1;
-			b |= segmentUnmapped ? 1 : 0;
-			b <<= 1;
-			b |= negativeStrand ? 1 : 0;
-
-			b <<= 1;
-			b |= firstSegment ? 1 : 0;
-			b <<= 1;
-			b |= lastSegment ? 1 : 0;
-			b <<= 1;
-			b |= secondaryALignment ? 1 : 0;
+			b |= duplicate ? 1 : 0;
 			b <<= 1;
 			b |= vendorFiltered ? 1 : 0;
 			b <<= 1;
-			b |= duplicate ? 1 : 0;
-
+			b |= secondaryALignment ? 1 : 0;
+			b <<= 1;
+			b |= lastSegment ? 1 : 0;
+			b <<= 1;
+			b |= firstSegment ? 1 : 0;
+			b <<= 1;
+			b |= negativeStrand ? 1 : 0;
+			b <<= 1;
+			b |= segmentUnmapped ? 1 : 0;
+			b <<= 1;
+			b |= properPair ? 1 : 0;
+			b <<= 1;
+			b |= multiFragment ? 1 : 0;
 			flags = new Integer(b);
 		}
 		return flags;
@@ -118,28 +115,23 @@ public class CramRecord implements Serializable {
 
 	public void setFlags(int value) {
 		int b = value;
-
-		duplicate = ((b & 1) == 0) ? false : true;
+		multiFragment = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
-		vendorFiltered = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		secondaryALignment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		lastSegment = ((b & 1) == 0) ? false : true;
-
-		b >>>= 1;
-		firstSegment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-
-		negativeStrand = ((b & 1) == 0) ? false : true;
+		properPair = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
 		segmentUnmapped = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
-		properPair = ((b & 1) == 0) ? false : true;
-
+		negativeStrand = ((b & 1) == 0) ? false : true;
 		b >>>= 1;
-		multiFragment = ((b & 1) == 0) ? false : true;
-
+		firstSegment = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		lastSegment = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		secondaryALignment = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		vendorFiltered = ((b & 1) == 0) ? false : true;
+		b >>>= 1;
+		duplicate = ((b & 1) == 0) ? false : true;
 		this.flags = value;
 	}
 

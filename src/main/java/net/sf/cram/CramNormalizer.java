@@ -30,13 +30,16 @@ public class CramNormalizer {
 	}
 
 	public void normalize(ArrayList<CramRecord> records, boolean resetPairing,
-			byte[] ref, int alignmentStart, SubstitutionMatrix substitutionMatrix) {
-		
+			byte[] ref, int alignmentStart,
+			SubstitutionMatrix substitutionMatrix, boolean AP_delta) {
+
 		int startCounter = readCounter;
+
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
 
-			alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
+			if (AP_delta)
+				alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
 
 			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
@@ -44,7 +47,8 @@ public class CramNormalizer {
 			} else {
 				r.setSequenceName(header.getSequence(r.sequenceId)
 						.getSequenceName());
-				r.setAlignmentStart(alignmentStart);
+				if (AP_delta)
+					r.setAlignmentStart(alignmentStart);
 			}
 		}
 
@@ -105,7 +109,7 @@ public class CramNormalizer {
 		for (CramRecord r : records) {
 			if (r.segmentUnmapped)
 				continue;
-			
+
 			byte[] bases = restoreReadBases(r, ref, substitutionMatrix);
 			r.setReadBases(bases);
 		}
@@ -174,7 +178,8 @@ public class CramNormalizer {
 		return len;
 	}
 
-	private static final byte[] restoreReadBases(CramRecord record, byte[] ref, SubstitutionMatrix substitutionMatrix) {
+	private static final byte[] restoreReadBases(CramRecord record, byte[] ref,
+			SubstitutionMatrix substitutionMatrix) {
 		int readLength = (int) record.getReadLength();
 		byte[] bases = new byte[readLength];
 
@@ -201,18 +206,18 @@ public class CramNormalizer {
 			case Substitution.operator:
 				Substitution sv = (Substitution) v;
 				byte refBase = ref[alignmentStart + posInSeq];
-				byte base = substitutionMatrix.base(refBase, sv.getCode()) ;
-//				switch (base) {
-//				case 'A':
-//				case 'C':
-//				case 'G':
-//				case 'T':
-//				case 'N':
-//					break;
-//
-//				default:
-//					throw new RuntimeException("Invalid base: " + base) ;
-//				}
+				byte base = substitutionMatrix.base(refBase, sv.getCode());
+				// switch (base) {
+				// case 'A':
+				// case 'C':
+				// case 'G':
+				// case 'T':
+				// case 'N':
+				// break;
+				//
+				// default:
+				// throw new RuntimeException("Invalid base: " + base) ;
+				// }
 				sv.setBase(base);
 				sv.setRefernceBase(refBase);
 				bases[posInRead++ - 1] = base;

@@ -23,7 +23,7 @@ public class CompressionHeader {
 	private static Log log = Log.getInstance(CompressionHeader.class);
 
 	public boolean readNamesIncluded;
-	public boolean AP_seriesDelta;
+	public boolean AP_seriesDelta=true;
 
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;

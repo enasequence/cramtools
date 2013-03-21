@@ -199,6 +199,13 @@ public class Sam2CramRecordFactory {
 		if (preserveReadNames)
 			cramRecord.setReadName(record.getReadName());
 
+//		for (ReadFeature rf:cramRecord.getReadFeatures()) {
+//			if (rf instanceof Substitution) {
+//				Substitution s = (Substitution) rf ;
+//				System.out.printf("pos=%d, ref=%c, base=%c, code=%d\n", s.getPosition(), s.getRefernceBase(), s.getBase(), s.getCode());
+//			}
+//		}
+
 		return cramRecord;
 	}
 

@@ -226,7 +226,7 @@ public class Cram2Bam {
 			}
 
 			long time1 = System.nanoTime();
-			n.normalize(cramRecords, true, ref, c.alignmentStart, c.h.substitutionMatrix);
+			n.normalize(cramRecords, true, ref, c.alignmentStart, c.h.substitutionMatrix, c.h.AP_seriesDelta);
 			long time2 = System.nanoTime();
 			normTime += time2 - time1;
 
