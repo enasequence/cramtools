@@ -9,9 +9,9 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-import net.sf.cram.CountingInputStream;
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.BAMFileReader.QueryType;

@@ -9,6 +9,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -115,7 +116,7 @@ public class Bam2Cram {
 			cramRecord.index = ++index;
 			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
 					.getAlignmentStart() - prevAlStart;
-			cramRecord.setAlignmentStart(samRecord.getAlignmentStart()) ;
+			cramRecord.setAlignmentStart(samRecord.getAlignmentStart());
 			prevAlStart = samRecord.getAlignmentStart();
 
 			cramRecords.add(cramRecord);
@@ -261,17 +262,17 @@ public class Bam2Cram {
 			prevSeqId = samRecord.getReferenceIndex();
 			samRecords.add(samRecord);
 
-//			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
-//					|| samFileReader.getFileHeader().getReadGroup(
-//							Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
-//				log.info("Adding default read group.");
-//				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
-//						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
-//
-//				readGroup
-//						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
-//				samFileReader.getFileHeader().addReadGroup(readGroup);
-//			}
+			// if (samFileReader.getFileHeader().getReadGroups().isEmpty()
+			// || samFileReader.getFileHeader().getReadGroup(
+			// Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
+			// log.info("Adding default read group.");
+			// SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
+			// Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
+			//
+			// readGroup
+			// .setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
+			// samFileReader.getFileHeader().addReadGroup(readGroup);
+			// }
 
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
 				sequence = null;
@@ -348,21 +349,34 @@ public class Bam2Cram {
 							params.ignoreTags);
 					samRecords.clear();
 
-					Container container = BLOCK_PROTO
-							.buildContainer(records,
-									samFileReader.getFileHeader(),
-									params.preserveReadNames,
-									globalRecordCounter, null, true);
+					Container container = BLOCK_PROTO.buildContainer(records,
+							samFileReader.getFileHeader(),
+							params.preserveReadNames, globalRecordCounter,
+							null, true);
 					for (Slice s : container.slices) {
+						if (s.alignmentStart < 1) {
+							s.refMD5 = new byte[16];
+							Arrays.fill(s.refMD5, (byte) 0);
+							continue;
+						}
+
 						md5_MessageDigest.reset();
-						md5_MessageDigest.update(ref, s.alignmentStart-1,
-								s.alignmentSpan);
-						String sliceRef = new String (ref, s.alignmentStart-1,
-								Math.min(s.alignmentSpan, 30));
+
+						int span = Math.min(s.alignmentSpan, ref.length
+								- s.alignmentStart);
+						if (s.alignmentStart == 0)
+							System.out.println("gotcha");
+
+						md5_MessageDigest.update(ref, s.alignmentStart - 1,
+								span);
+
+						String sliceRef = new String(ref, s.alignmentStart - 1,
+								Math.min(span, 30));
 						s.refMD5 = md5_MessageDigest.digest();
 						log.debug("Slice ref starts with: " + sliceRef);
-						log.debug("Slice ref md5: "+(String.format("%032x",
-								new BigInteger(1, s.refMD5))));
+						log.debug("Slice ref md5: "
+								+ (String.format("%032x", new BigInteger(1,
+										s.refMD5))));
 					}
 					globalRecordCounter += records.size();
 					records.clear();
@@ -427,17 +441,32 @@ public class Bam2Cram {
 				samRecords.clear();
 				Container container = BLOCK_PROTO.buildContainer(records,
 						samFileReader.getFileHeader(),
-						params.preserveReadNames, globalRecordCounter, null, true);
+						params.preserveReadNames, globalRecordCounter, null,
+						true);
 				for (Slice s : container.slices) {
+					if (s.alignmentStart < 1) {
+						s.refMD5 = new byte[16];
+						Arrays.fill(s.refMD5, (byte) 0);
+						continue;
+					}
+
 					md5_MessageDigest.reset();
-					md5_MessageDigest.update(ref, s.alignmentStart-1,
-							s.alignmentSpan);
-					String sliceRef = new String (ref, s.alignmentStart-1,
-							Math.min(s.alignmentSpan, 30));
+
+					int span = Math.min(s.alignmentSpan, ref.length
+							- s.alignmentStart);
+					if (s.alignmentStart == 0)
+						System.out.println("gotcha");
+
+					md5_MessageDigest.update(ref, s.alignmentStart - 1,
+							span);
+
+					String sliceRef = new String(ref, s.alignmentStart - 1,
+							Math.min(span, 30));
 					s.refMD5 = md5_MessageDigest.digest();
 					log.debug("Slice ref starts with: " + sliceRef);
-					log.debug("Slice ref md5: "+(String.format("%032x",
-							new BigInteger(1, s.refMD5))));
+					log.debug("Slice ref md5: "
+							+ (String.format("%032x", new BigInteger(1,
+									s.refMD5))));
 				}
 				records.clear();
 				ReadWrite.writeContainer(container, os);

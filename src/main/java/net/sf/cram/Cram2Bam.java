@@ -19,6 +19,7 @@ import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ReadWrite.CramHeader;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.index.CramIndex.Entry;
+import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;

@@ -538,6 +538,7 @@ public class SamRecordComparision {
 		c.compareTags = params.compareTags;
 		c.ignoreFlags = params.ignoreFalgs;
 		c.ignoreTLENDiff = params.ignoreTLENDiff;
+		c.maxValueLen = params.maxValueLength ;
 
 		if (params.ignoreTags != null) {
 			String chunks[] = params.ignoreTags.split(":");
@@ -612,7 +613,7 @@ public class SamRecordComparision {
 		int maxDiscrepancies = Integer.MAX_VALUE;
 
 		@Parameter(names = { "--max-value-len" }, description = "Trim all values to this length when reporting discrepancies.")
-		int maxValueLength = 10;
+		int maxValueLength = 20;
 
 		@Parameter(names = { "--location" }, description = "Compare reads only for this location, expected pattern: <seq name>:<from pos>-<to pos>")
 		String location;
@@ -646,6 +647,5 @@ public class SamRecordComparision {
 
 		@Parameter(names = { "--ignore-tlen-diff" }, description = "Ignore TLEN differences less of equal to this value.")
 		int ignoreTLENDiff = 0;
-
 	}
 }

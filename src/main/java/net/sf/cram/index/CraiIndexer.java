@@ -9,9 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPOutputStream;
 
-import net.sf.cram.CountingInputStream;
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.structure.Container;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;

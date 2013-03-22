@@ -1,4 +1,4 @@
-package net.sf.cram;
+package net.sf.cram.io;
 
 import java.io.IOException;
 import java.io.InputStream;
