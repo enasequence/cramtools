@@ -113,7 +113,7 @@ public class Sam2CramRecordFactory {
 			cramRecord.mateUmapped = record.getMateUnmappedFlag();
 			cramRecord.mateNegativeStrand = record.getMateNegativeStrandFlag();
 			cramRecord.mateSequnceID = record.getMateReferenceIndex();
-		}
+		} else cramRecord.mateSequnceID = -1;
 		cramRecord.sequenceId = record.getReferenceIndex();
 		cramRecord.setReadName(record.getReadName());
 		cramRecord.setAlignmentStart(record.getAlignmentStart());
@@ -140,15 +140,17 @@ public class Sam2CramRecordFactory {
 		SAMReadGroupRecord readGroup = record.getReadGroup();
 		Integer rgIndex = 0;
 		if (readGroup != null)
-			rgIndex = readGroupMap.get(readGroup.getId());
+//			rgIndex = readGroupMap.get(readGroup.getId());
+			cramRecord.setReadGroupID(readGroupMap.get(readGroup.getId()));
 		else
-			rgIndex = readGroupMap.get(UNKNOWN_READ_GROUP_ID);
+			cramRecord.setReadGroupID(-1);
+//			rgIndex = readGroupMap.get(UNKNOWN_READ_GROUP_ID);
 
-		if (rgIndex == null)
-			throw new RuntimeException("Read group index not found: "
-					+ readGroup.getId());
+//		if (rgIndex == null)
+//			throw new RuntimeException("Read group index not found: "
+//					+ readGroup.getId());
 
-		cramRecord.setReadGroupID(rgIndex);
+//		cramRecord.setReadGroupID(rgIndex);
 
 		if (!record.getReadPairedFlag())
 			cramRecord.setLastFragment(false);

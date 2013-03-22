@@ -74,7 +74,7 @@ public class CramRecord implements Serializable {
 	public boolean detached = false;
 	public boolean forcePreserveQualityScores = false;
 
-	public int mateSequnceID = 0;
+	public int mateSequnceID = -1;
 	public int mateAlignmentStart = 0;
 
 	private int mappingQuality;

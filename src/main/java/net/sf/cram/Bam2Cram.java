@@ -261,17 +261,17 @@ public class Bam2Cram {
 			prevSeqId = samRecord.getReferenceIndex();
 			samRecords.add(samRecord);
 
-			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
-					|| samFileReader.getFileHeader().getReadGroup(
-							Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
-				log.info("Adding default read group.");
-				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
-						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
-
-				readGroup
-						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
-				samFileReader.getFileHeader().addReadGroup(readGroup);
-			}
+//			if (samFileReader.getFileHeader().getReadGroups().isEmpty()
+//					|| samFileReader.getFileHeader().getReadGroup(
+//							Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
+//				log.info("Adding default read group.");
+//				SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
+//						Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
+//
+//				readGroup
+//						.setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
+//				samFileReader.getFileHeader().addReadGroup(readGroup);
+//			}
 
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
 				sequence = null;
