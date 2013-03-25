@@ -27,28 +27,28 @@ class CraiIndexer {
 			throws FileNotFoundException, IOException {
 		this.is = new CountingInputStream(is);
 		CramHeader cramHeader = ReadWrite.readCramHeader(this.is);
-		samFileHeader = cramHeader.samFileHeader ;
-		
+		samFileHeader = cramHeader.samFileHeader;
+
 		index = new CramIndex(new GZIPOutputStream(new BufferedOutputStream(
 				new FileOutputStream(output))));
-		
+
 	}
 
-	private void nextContainer() throws IOException {
+	private boolean nextContainer() throws IOException {
 		long offset = is.getCount();
 		Container c = ReadWrite.readContainer(samFileHeader, is);
+		if (c == null)
+			return false;
 		c.offset = offset;
 		index.addContainer(c);
 		log.info("INDEXED: " + c.toString());
+		return true;
 	}
 
 	private void index() throws IOException {
 		while (true) {
-			try {
-				nextContainer();
-			} catch (EOFException e) {
+			if (!nextContainer())
 				break;
-			}
 		}
 	}
 

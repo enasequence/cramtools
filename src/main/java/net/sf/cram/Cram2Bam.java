@@ -137,9 +137,6 @@ public class Cram2Bam {
 			if (params.locations.size() > 1)
 				throw new RuntimeException("Only one location is supported.");
 
-			if (true)
-				throw new RuntimeException("Random access not supported yet. ");
-
 			location = new AlignmentSliceQuery(params.locations.get(0));
 
 			c = skipToContainer(params.cramFile, cramHeader,
@@ -315,6 +312,7 @@ public class Cram2Bam {
 					Entry leftmost = CramIndex.getLeftmost(entries);
 					cramFileInputStream.seek(leftmost.containerStartOffset);
 					c = ReadWrite.readContainerHeader(cramFileInputStream);
+					if (c == null) return null ;
 					if (c.alignmentStart + c.alignmentSpan > location.start) {
 						cramFileInputStream.seek(leftmost.containerStartOffset);
 						return c;

@@ -24,7 +24,7 @@ public class CramIndex {
 			Entry e = new Entry();
 			e.sequenceId = c.sequenceId;
 			e.alignmentStart = s.alignmentStart;
-			e.alignmentStart = s.alignmentSpan;
+			e.alignmentSpan = s.alignmentSpan;
 			e.containerStartOffset = c.offset;
 			e.sliceOffset = c.landmarks[i];
 			e.sliceSize = s.size;
@@ -51,7 +51,7 @@ public class CramIndex {
 
 		public Entry(String line) {
 			String[] chunks = line.split("\t");
-			if (chunks.length != 5)
+			if (chunks.length != 6)
 				throw new RuntimeException("Invalid index format.");
 
 			sequenceId = Integer.valueOf(chunks[0]);
