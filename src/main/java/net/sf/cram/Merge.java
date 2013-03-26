@@ -12,6 +12,7 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.CramTools.ValidationStringencyConverter;
 import net.sf.cram.index.BAMQueryFilteringIterator;
 import net.sf.cram.index.CramIndex;
 import net.sf.picard.io.IoUtil;
@@ -23,6 +24,7 @@ import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMIterator;
@@ -88,7 +90,7 @@ public class Merge {
 		AlignmentSliceQuery query = params.region == null ? null
 				: new AlignmentSliceQuery(params.region);
 
-		List<RecordSource> list = readFiles(params.files, refFile, query);
+		List<RecordSource> list = readFiles(params.files, refFile, query, params.validationLevel);
 
 		StringBuffer mergeComment = new StringBuffer("Merged from:");
 		for (RecordSource source : list) {
@@ -147,11 +149,12 @@ public class Merge {
 	}
 
 	private static List<RecordSource> readFiles(List<File> files,
-			ReferenceSequenceFile refFile, AlignmentSliceQuery query)
+			ReferenceSequenceFile refFile, AlignmentSliceQuery query, ValidationStringency ValidationStringency)
 			throws IOException {
 		List<RecordSource> sources = new ArrayList<Merge.RecordSource>(
 				files.size());
 
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency) ;
 		for (File file : files) {
 			IoUtil.assertFileIsReadable(file);
 
@@ -414,6 +417,9 @@ public class Merge {
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
 		LogLevel logLevel = LogLevel.ERROR;
+
+		@Parameter(names = { "-v", "--validation-level" }, description = "Change validation stringency level: STRICT, LENIENT, SILENT.", converter = ValidationStringencyConverter.class)
+		ValidationStringency validationLevel = ValidationStringency.DEFAULT_STRINGENCY;
 
 		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
 		File reference;

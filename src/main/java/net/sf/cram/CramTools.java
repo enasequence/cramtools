@@ -18,6 +18,7 @@ package net.sf.cram;
 import net.sf.cram.index.CramIndexer;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
@@ -87,8 +88,16 @@ public class CramTools {
 
 		@Override
 		public LogLevel convert(String s) {
-			return LogLevel.valueOf(LogLevel.class, s.toUpperCase());
+			return LogLevel.valueOf(s.toUpperCase());
 		}
 
+	}
+	
+	public static class ValidationStringencyConverter implements IStringConverter<ValidationStringency> {
+
+		@Override
+		public ValidationStringency convert(String s) {
+			return ValidationStringency.valueOf(s.toUpperCase());
+		}
 	}
 }

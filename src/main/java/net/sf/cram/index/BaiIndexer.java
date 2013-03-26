@@ -21,8 +21,7 @@ class BaiIndexer {
 	public SAMFileHeader samFileHeader;
 	public CRAMIndexer indexer;
 
-	public BaiIndexer(InputStream is, SAMFileHeader samFileHeader,
-			File output) {
+	public BaiIndexer(InputStream is, SAMFileHeader samFileHeader, File output) {
 		this.is = new CountingInputStream(is);
 		this.samFileHeader = samFileHeader;
 
@@ -37,9 +36,11 @@ class BaiIndexer {
 		indexer = new CRAMIndexer(output, samFileHeader);
 	}
 
-	private void nextContainer() throws IOException {
+	private boolean nextContainer() throws IOException {
 		long offset = is.getCount();
 		Container c = ReadWrite.readContainer(samFileHeader, is);
+		if (c == null)
+			return false;
 		c.offset = offset;
 
 		int i = 0;
@@ -50,15 +51,13 @@ class BaiIndexer {
 		}
 
 		log.info("INDEXED: " + c.toString());
+		return true;
 	}
 
 	private void index() throws IOException {
 		while (true) {
-			try {
-				nextContainer();
-			} catch (EOFException e) {
+			if (!nextContainer())
 				break;
-			}
 		}
 	}
 

@@ -38,17 +38,12 @@ public class CramNormalizer {
 		for (CramRecord r : records) {
 			r.index = ++readCounter;
 
-//			if (AP_delta)
-//				alignmentStart += r.alignmentStartOffsetFromPreviousRecord;
-
 			if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
 				r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 			} else {
 				r.setSequenceName(header.getSequence(r.sequenceId)
 						.getSequenceName());
-//				if (AP_delta)
-//					r.setAlignmentStart(alignmentStart);
 			}
 		}
 
@@ -114,11 +109,6 @@ public class CramNormalizer {
 			r.setReadBases(bases);
 		}
 
-		// restore read group:
-		for (CramRecord r : records) {
-			r.setReadGroupID(r.getReadGroupID());
-		}
-
 		// restore quality scores:
 		for (CramRecord r : records) {
 			if (!r.forcePreserveQualityScores) {
@@ -148,7 +138,6 @@ public class CramNormalizer {
 					if (scores[i] == -1)
 						scores[i] = defaultQualityScore;
 			}
-
 		}
 	}
 

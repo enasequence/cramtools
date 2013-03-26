@@ -129,12 +129,9 @@ public class BLOCK_PROTO {
 		}
 
 		long time = 0;
-		// time = System.nanoTime();
 		Reader reader = f.buildReader(new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.getRawContent())),
 				inputMap, h, s.sequenceId);
-		// long readerBuildTime = System.nanoTime() - time ;
-		// log.debug("Reader build time: " + readerBuildTime/1000000 + "ms.") ;
 
 		List<CramRecord> records = new ArrayList<CramRecord>();
 
@@ -142,8 +139,7 @@ public class BLOCK_PROTO {
 		int prevStart = s.alignmentStart;
 		for (int i = 0; i < s.nofRecords; i++) {
 			CramRecord r = new CramRecord();
-			r.setSequenceName(seqName);
-			r.sequenceId = s.sequenceId;
+			r.index = i;
 
 			try {
 				time = System.nanoTime();
@@ -153,17 +149,26 @@ public class BLOCK_PROTO {
 				e.printStackTrace();
 				throw e;
 			}
+
+			if (r.sequenceId == s.sequenceId) {
+				r.setSequenceName(seqName);
+				r.sequenceId = s.sequenceId;
+			} else {
+				if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+					r.setSequenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
+				else {
+					String name = fileHeader.getSequence(r.sequenceId)
+							.getSequenceName();
+					r.setSequenceName(name);
+				}
+			}
+
 			records.add(r);
 
-			// if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-			// r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
-			// else {
 			if (h.AP_seriesDelta) {
 				prevStart += r.alignmentStartOffsetFromPreviousRecord;
 				r.setAlignmentStart(prevStart);
 			}
-			
-			// }
 		}
 		log.debug("Slice records read time: " + readNanos / 1000000);
 

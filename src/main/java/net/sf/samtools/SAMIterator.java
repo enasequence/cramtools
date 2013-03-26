@@ -41,11 +41,13 @@ public class SAMIterator implements SAMRecordIterator {
 	private Container container;
 
 	private ValidationStringency validationStringency = ValidationStringency.SILENT;
+
 	public ValidationStringency getValidationStringency() {
 		return validationStringency;
 	}
 
-	public void setValidationStringency(ValidationStringency validationStringency) {
+	public void setValidationStringency(
+			ValidationStringency validationStringency) {
 		this.validationStringency = validationStringency;
 	}
 
@@ -59,7 +61,7 @@ public class SAMIterator implements SAMRecordIterator {
 		records = new ArrayList<SAMRecord>(100000);
 		normalizer = new CramNormalizer(cramHeader.samFileHeader);
 	}
-	
+
 	public CramHeader getCramHeader() {
 		return cramHeader;
 	}
@@ -72,11 +74,9 @@ public class SAMIterator implements SAMRecordIterator {
 		recordCounter = 0;
 
 		container = null;
-		try {
-			container = ReadWrite.readContainer(cramHeader.samFileHeader, is);
-		} catch (EOFException e) {
+		container = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+		if (container == null)
 			return;
-		}
 
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		try {
@@ -92,14 +92,17 @@ public class SAMIterator implements SAMRecordIterator {
 		} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
 			SAMSequenceRecord sequence = cramHeader.samFileHeader
 					.getSequence(container.sequenceId);
-			ReferenceSequence referenceSequence = Utils.trySequenceNameVariants(referenceSequenceFile, sequence.getSequenceName());
+			ReferenceSequence referenceSequence = Utils
+					.trySequenceNameVariants(referenceSequenceFile,
+							sequence.getSequenceName());
 			refs = referenceSequence.getBases();
 			prevSeqId = container.sequenceId;
 		}
 
 		long time1 = System.nanoTime();
 
-		normalizer.normalize(cramRecords, true, refs, container.alignmentStart, container.h.substitutionMatrix, container.h.AP_seriesDelta);
+		normalizer.normalize(cramRecords, true, refs, container.alignmentStart,
+				container.h.substitutionMatrix, container.h.AP_seriesDelta);
 		long time2 = System.nanoTime();
 
 		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(

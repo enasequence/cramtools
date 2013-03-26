@@ -62,22 +62,22 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	@Override
 	void enableFileSource(SAMFileReader reader, boolean enabled) {
-//		throw new RuntimeException("Not implemented.");
+		// throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableIndexCaching(boolean enabled) {
-//		throw new RuntimeException("Not implemented.");
+		// throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableIndexMemoryMapping(boolean enabled) {
-//		throw new RuntimeException("Not implemented.");
+		// throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
 	void enableCrcChecking(boolean enabled) {
-//		throw new RuntimeException("Not implemented.");
+		// throw new RuntimeException("Not implemented.");
 	}
 
 	@Override
@@ -239,12 +239,16 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 			int sliceIndex = (int) ((filePointers[i] << 48) >>> 48);
 			try {
 				s.seek(containerOffset);
-				CountingInputStream cis = new CountingInputStream(s) ;
-				c = ReadWrite.readContainerHeader(cis);
-				long headerSize = cis.getCount() ;
-				int sliceOffset = c.landmarks[sliceIndex] ;
+				// the following is not optimal because this is container-level
+				// access, not slice:
+
+				// CountingInputStream cis = new CountingInputStream(s) ;
+				c = ReadWrite.readContainerHeader(s);
+				// long headerSize = cis.getCount() ;
+				// int sliceOffset = c.landmarks[sliceIndex] ;
 				if (c.alignmentStart + c.alignmentSpan > start) {
-					s.seek(containerOffset + headerSize + sliceOffset);
+					s.seek(containerOffset);
+					// s.seek(containerOffset + headerSize + sliceOffset);
 					return si;
 				}
 			} catch (IOException e) {
