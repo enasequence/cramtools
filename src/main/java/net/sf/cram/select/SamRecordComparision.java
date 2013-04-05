@@ -371,21 +371,21 @@ public class SamRecordComparision {
 						print(value1, maxValueLen), print(value2, maxValueLen)));
 			}
 			if (dumpRecords) {
-				ps.println("\t" + d.record1.getSAMString());
-				ps.println("\t" + d.record2.getSAMString());
+				ps.print("\t" + d.record1.getSAMString());
+				ps.print("\t" + d.record2.getSAMString());
 			}
 			break;
 		case 1:
 			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
 					d.prematureEnd));
 			if (dumpRecords)
-				ps.println("\t" + d.record2.getSAMString());
+				ps.print("\t" + d.record2.getSAMString());
 			break;
 		case 2:
 			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
 					d.prematureEnd));
 			if (dumpRecords)
-				ps.println("\t" + d.record1.getSAMString());
+				ps.print("\t" + d.record1.getSAMString());
 			break;
 
 		default:

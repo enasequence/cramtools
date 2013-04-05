@@ -86,8 +86,12 @@ public class EncodingFactory {
 
 	public Encoding<byte[]> createByteArrayEncoding(EncodingID id) {
 		switch (id) {
-		case EXTERNAL:
+		case BYTE_ARRAY_LEN:
 			return new ByteArrayLenEncoding();
+		case BYTE_ARRAY_STOP:
+			return new ByteArrayLenEncoding();
+		case EXTERNAL:
+			return new ExternalByteArrayEncoding();
 
 		default:
 			break;

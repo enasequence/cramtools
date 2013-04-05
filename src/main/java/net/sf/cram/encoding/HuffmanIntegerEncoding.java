@@ -2,6 +2,7 @@ package net.sf.cram.encoding;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Map;
 
 import net.sf.cram.EncodingID;
@@ -12,12 +13,12 @@ import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class HuffmanIntegerEncoding implements Encoding<Integer> {
 	public static final EncodingID ENCODING_ID = EncodingID.HUFFMAN;
-	private int[] bitLengths;
-	private int[] values;
+	int[] bitLengths;
+	int[] values;
 
 	public HuffmanIntegerEncoding() {
 	}
-	
+
 	@Override
 	public EncodingID id() {
 		return ENCODING_ID;
@@ -25,7 +26,7 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(1024*10);
+		ByteBuffer buf = ByteBuffer.allocate(1024 * 10);
 		ByteBufferUtils.writeUnsignedITF8(values.length, buf);
 		for (int value : values)
 			ByteBufferUtils.writeUnsignedITF8(value, buf);
@@ -68,4 +69,17 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof HuffmanIntegerEncoding) {
+			HuffmanIntegerEncoding foe = (HuffmanIntegerEncoding) obj;
+			if (!Arrays.equals(bitLengths, foe.bitLengths))
+				return false;
+			if (!Arrays.equals(values, foe.values))
+				return false;
+
+			return true;
+		}
+		return false;
+	}
 }

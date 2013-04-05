@@ -135,6 +135,8 @@ public class Reader {
 			r.setCompressionFlags(compBitFlagsC.readData());
 			if (refId == -2)
 				r.sequenceId = refIdCodec.readData();
+			else
+				r.sequenceId = refId;
 
 			r.setReadLength(readLengthC.readData());
 			if (AP_delta)

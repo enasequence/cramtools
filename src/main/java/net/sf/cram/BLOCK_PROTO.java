@@ -85,33 +85,6 @@ public class BLOCK_PROTO {
 		return records;
 	}
 
-	private static class SwapInputStream extends InputStream {
-		private InputStream delegate;
-
-		@Override
-		public int read() throws IOException {
-			return delegate.read();
-		}
-
-		@Override
-		public int read(byte[] b) throws IOException {
-			return delegate.read(b);
-		}
-
-		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
-			return delegate.read(b, off, len);
-		}
-
-		public InputStream getDelegate() {
-			return delegate;
-		}
-
-		public void setDelegate(InputStream delegate) {
-			this.delegate = delegate;
-		}
-	}
-
 	public static List<CramRecord> getRecords(Slice s, CompressionHeader h,
 			SAMFileHeader fileHeader, Map<String, Long> nanoMap)
 			throws IllegalArgumentException, IllegalAccessException,

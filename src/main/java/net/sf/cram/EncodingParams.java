@@ -1,6 +1,6 @@
 package net.sf.cram;
 
-import java.util.Arrays;
+import net.sf.cram.io.IOUtils;
 
 public class EncodingParams {
 
@@ -12,10 +12,10 @@ public class EncodingParams {
 		this.id = id;
 		this.params = params;
 	}
-	
+
 	@Override
 	public String toString() {
-		return id.name() + ":" + Arrays.toString(params) ;
+		return id.name() + ":" + IOUtils.toHexString(params, 20);
 	}
 
 }

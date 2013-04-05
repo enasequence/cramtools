@@ -111,7 +111,7 @@ public class IOUtils {
 			return -(o1[1] - o2[1]);
 		}
 	};
-	
+
 	public final static byte[] readFully(InputStream is, int len)
 			throws IOException {
 		byte[] b = new byte[len];
@@ -127,5 +127,17 @@ public class IOUtils {
 		}
 
 		return b;
+	}
+
+	public final static String toHexString(byte[] data, int maxLen) {
+		StringBuilder sb = new StringBuilder("[");
+		for (int i = 0; i < data.length && i < maxLen; i++) {
+			sb.append(String.format("0x%02x", data[i]));
+			if (i < data.length - 1 && i < maxLen - 1)
+				sb.append(" ");
+		}
+
+		sb.append("]");
+		return sb.toString();
 	}
 }

@@ -1,5 +1,6 @@
 package net.sf.cram.encoding;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -15,8 +16,8 @@ import net.sf.cram.io.ExposedByteArrayOutputStream;
 
 public class ByteArrayLenEncoding implements Encoding<byte[]> {
 	public final static EncodingID ID = EncodingID.BYTE_ARRAY_LEN;
-	private Encoding<Integer> lenEncoding;
-	private Encoding<byte[]> byteEncoding;
+	Encoding<Integer> lenEncoding;
+	Encoding<byte[]> byteEncoding;
 
 	public ByteArrayLenEncoding() {
 	}
@@ -28,40 +29,69 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 
 	public static EncodingParams toParam(EncodingParams lenParams,
 			EncodingParams byteParams) {
-		ByteBuffer buf = ByteBuffer.allocate(1024);
-		buf.put((byte) lenParams.id.ordinal());
-		ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, buf);
-		buf.put(lenParams.params);
-
-		buf.put((byte) byteParams.id.ordinal());
-		ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, buf);
-		buf.put(byteParams.params);
-
-		buf.flip();
-		byte[] data = new byte[buf.limit()];
-		buf.get(data);
-
-		EncodingParams params = new EncodingParams(ID, data);
-		return params;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+		try {
+			baos.write((byte) lenParams.id.ordinal());
+			ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, baos);
+			baos.write(lenParams.params);
+			
+			baos.write((byte) byteParams.id.ordinal());
+			ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, baos);
+			baos.write(byteParams.params);
+		} catch (IOException e) {
+			throw new RuntimeException("It never happened. ") ;
+		}
+		return new EncodingParams(ID, baos.toByteArray());
+//		ByteBuffer buf = ByteBuffer.allocate(1024);
+//		buf.put((byte) lenParams.id.ordinal());
+//		ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, buf);
+//		buf.put(lenParams.params);
+//
+//		buf.put((byte) byteParams.id.ordinal());
+//		ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, buf);
+//		buf.put(byteParams.params);
+//
+//		buf.flip();
+//		byte[] data = new byte[buf.limit()];
+//		buf.get(data);
+//
+//		EncodingParams params = new EncodingParams(ID, data);
+//		return params;
 	}
 
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(1024);
-		buf.put((byte) lenEncoding.id().ordinal());
-		byte[] lenBytes = lenEncoding.toByteArray();
-		ByteBufferUtils.writeUnsignedITF8(lenBytes.length, buf);
-		buf.put(lenBytes);
-
-		buf.put((byte) byteEncoding.id().ordinal());
-		byte[] byteBytes = lenEncoding.toByteArray();
-		ByteBufferUtils.writeUnsignedITF8(byteBytes.length, buf);
-		buf.put(byteBytes);
-
-		buf.flip();
-		byte[] array = new byte[buf.limit()];
-		buf.get(array);
-
-		return array;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+		try {
+			baos.write((byte) lenEncoding.id().ordinal());
+			byte[] lenBytes = lenEncoding.toByteArray() ;
+			ByteBufferUtils.writeUnsignedITF8(lenBytes.length, baos);
+			baos.write(lenBytes);
+			
+			baos.write((byte) byteEncoding.id().ordinal());
+			byte[] byteBytes = byteEncoding.toByteArray() ;
+			ByteBufferUtils.writeUnsignedITF8(byteBytes.length, baos);
+			baos.write(byteBytes);
+		} catch (IOException e) {
+			throw new RuntimeException("It never happened. ") ;
+		}
+		return baos.toByteArray() ;
+		
+//		ByteBuffer buf = ByteBuffer.allocate(1024);
+//		buf.put((byte) lenEncoding.id().ordinal());
+//		byte[] lenBytes = lenEncoding.toByteArray();
+//		ByteBufferUtils.writeUnsignedITF8(lenBytes.length, buf);
+//		buf.put(lenBytes);
+//
+//		buf.put((byte) byteEncoding.id().ordinal());
+//		byte[] byteBytes = lenEncoding.toByteArray();
+//		ByteBufferUtils.writeUnsignedITF8(byteBytes.length, buf);
+//		buf.put(byteBytes);
+//
+//		buf.flip();
+//		byte[] array = new byte[buf.limit()];
+//		buf.get(array);
+//
+//		return array;
 	}
 
 	public void fromByteArray(byte[] data) {
