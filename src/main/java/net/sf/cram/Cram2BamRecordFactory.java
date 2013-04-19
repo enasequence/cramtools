@@ -57,8 +57,8 @@ public class Cram2BamRecordFactory {
 			samRecord
 					.setMateAlignmentStart(cramRecord.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? SAMRecord.NO_ALIGNMENT_START
 							: cramRecord.mateAlignmentStart);
-			samRecord.setMateNegativeStrandFlag(cramRecord.mateNegativeStrand);
-			samRecord.setMateUnmappedFlag(cramRecord.mateUmapped);
+			samRecord.setMateNegativeStrandFlag(cramRecord.isMateNegativeStrand());
+			samRecord.setMateUnmappedFlag(cramRecord.isMateUmapped());
 		} else {
 			samRecord
 					.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);

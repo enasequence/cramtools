@@ -49,29 +49,29 @@ public class CramNormalizer {
 
 		{// restore pairing first:
 			for (CramRecord r : records) {
-				if (!r.isMultiFragment() || r.detached) {
+				if (!r.isMultiFragment() || r.isDetached()) {
 					r.recordsToNextFragment = -1;
 
 					r.next = null;
 					r.previous = null;
 					continue;
 				}
-				if (r.hasMateDownStream) {
+				if (r.isHasMateDownStream()) {
 					CramRecord downMate = records.get(r.index
 							+ r.recordsToNextFragment - startCounter);
 					r.next = downMate;
 					downMate.previous = r;
 
 					r.mateAlignmentStart = downMate.getAlignmentStart();
-					r.mateUmapped = downMate.isSegmentUnmapped();
-					r.mateNegativeStrand = downMate.isNegativeStrand();
+					r.setMateUmapped(downMate.isSegmentUnmapped());
+					r.setMateNegativeStrand(downMate.isNegativeStrand());
 					r.mateSequnceID = downMate.sequenceId;
 					if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 						r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 					downMate.mateAlignmentStart = r.getAlignmentStart();
-					downMate.mateUmapped = r.isSegmentUnmapped();
-					downMate.mateNegativeStrand = r.isNegativeStrand();
+					downMate.setMateUmapped(r.isSegmentUnmapped());
+					downMate.setMateNegativeStrand(r.isNegativeStrand());
 					downMate.mateSequnceID = r.sequenceId;
 					if (downMate.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
@@ -116,7 +116,7 @@ public class CramNormalizer {
 	public static void restoreQualityScores(byte defaultQualityScore,
 			List<CramRecord> records) {
 		for (CramRecord r : records) {
-			if (!r.forcePreserveQualityScores) {
+			if (!r.isForcePreserveQualityScores()) {
 				byte[] scores = new byte[r.getReadLength()];
 				Arrays.fill(scores, defaultQualityScore);
 				if (r.getReadFeatures() != null)

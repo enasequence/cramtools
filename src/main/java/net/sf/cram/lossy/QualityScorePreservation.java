@@ -169,7 +169,7 @@ public class QualityScorePreservation {
 	public void addQualityScores(SAMRecord s, CramRecord r, ReferenceTracks t) {
 		if (s.getBaseQualities() == SAMRecord.NULL_QUALS) {
 			r.setQualityScores(SAMRecord.NULL_QUALS);
-			r.forcePreserveQualityScores = false;
+			r.setForcePreserveQualityScores(false);
 			return;
 		}
 
@@ -178,7 +178,7 @@ public class QualityScorePreservation {
 		for (PreservationPolicy p : policyList)
 			addQS(s, r, scores, t, p);
 
-		if (!r.forcePreserveQualityScores) {
+		if (!r.isForcePreserveQualityScores()) {
 			for (int i = 0; i < scores.length; i++) {
 				if (scores[i] > -1) {
 					if (r.getReadFeatures() == null)
@@ -242,16 +242,16 @@ public class QualityScorePreservation {
 				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
 						scores.length);
 				applyBinning(scores);
-				r.forcePreserveQualityScores = true;
+				r.setForcePreserveQualityScores(true);
 				break;
 			case PRESERVE:
 				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
 						scores.length);
-				r.forcePreserveQualityScores = true;
+				r.setForcePreserveQualityScores(true);
 				break;
 			case DROP:
 				r.setQualityScores(null);
-				r.forcePreserveQualityScores = false;
+				r.setForcePreserveQualityScores(false);
 				break;
 
 			default:
@@ -392,6 +392,6 @@ public class QualityScorePreservation {
 		// safety latch, store all qs if there are too many individual score
 		// to store:
 		if (maskedCount > s.getReadLength() / 2)
-			r.forcePreserveQualityScores = true;
+			r.setForcePreserveQualityScores(true);
 	}
 }

@@ -172,19 +172,19 @@ public class Bam2Cram {
 				mate.recordsToNextFragment = r.index - mate.index - 1;
 				mate.next = r;
 				r.previous = mate;
-				r.previous.hasMateDownStream = true;
-				r.hasMateDownStream = false;
-				r.detached = false;
-				r.previous.detached = false;
+				r.previous.setHasMateDownStream(true);
+				r.setHasMateDownStream(false);
+				r.setDetached(false);
+				r.previous.setDetached(false);
 
 				mateMap.remove(name);
 			}
 		}
 
 		for (CramRecord r : mateMap.values()) {
-			r.detached = true;
+			r.setDetached(true);
 
-			r.hasMateDownStream = false;
+			r.setHasMateDownStream(false);
 			r.recordsToNextFragment = -1;
 			r.next = null;
 			r.previous = null;

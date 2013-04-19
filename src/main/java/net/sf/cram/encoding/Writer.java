@@ -140,7 +140,7 @@ public class Writer {
 		}
 
 		// mate record:
-		if (r.detached) {
+		if (r.isDetached()) {
 			mbfc.writeData(r.getMateFlags());
 			if (!captureReadNames)
 				readNameC.writeData(r.getReadName().getBytes(charset));
@@ -150,7 +150,7 @@ public class Writer {
 			tsc.writeData(r.templateSize);
 
 			detachedCount++;
-		} else if (r.hasMateDownStream)
+		} else if (r.isHasMateDownStream())
 			distanceC.writeData(r.recordsToNextFragment);
 
 		// tag records:
@@ -228,13 +228,13 @@ public class Writer {
 
 			// mapping quality:
 			mqc.writeData(r.getMappingQuality());
-			if (r.forcePreserveQualityScores) {
+			if (r.isForcePreserveQualityScores()) {
 				qcArray.writeData(r.getQualityScores());
 			}
 		} else {
 			for (byte b : r.getReadBases())
 				bc.writeData(b);
-			if (r.forcePreserveQualityScores) {
+			if (r.isForcePreserveQualityScores()) {
 				qcArray.writeData(r.getQualityScores());
 			}
 		}

@@ -503,7 +503,7 @@ public class CompressionHeaderFactory {
 		{ // next fragment ref id:
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				if (r.detached)
+				if (r.isDetached())
 					calculator.add(r.mateSequnceID);
 			calculator.calculate();
 

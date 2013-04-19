@@ -11,7 +11,6 @@ import java.util.NoSuchElementException;
 
 import net.sf.cram.ReadWrite;
 import net.sf.cram.ReadWrite.CramHeader;
-import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.structure.Container;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.BAMFileReader.QueryType;
@@ -54,6 +53,10 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 		if (file == null)
 			getIterator();
+	}
+
+	public SAMRecordIterator iterator() {
+		return getIterator();
 	}
 
 	private void readHeader() throws FileNotFoundException, IOException {
@@ -121,7 +124,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	}
 
 	@Override
-	CloseableIterator<SAMRecord> getIterator() {
+	SAMRecordIterator getIterator() {
 		if (it != null && file == null)
 			return it;
 		try {
@@ -152,7 +155,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	}
 
 	@Override
-	CloseableIterator<SAMRecord> query(String sequence, int start, int end,
+	public CloseableIterator<SAMRecord> query(String sequence, int start, int end,
 			boolean contained) {
 		CloseableIterator<SAMRecord> iterator = queryAlignmentStart(sequence,
 				start);

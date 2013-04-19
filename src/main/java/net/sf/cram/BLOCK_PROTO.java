@@ -572,7 +572,7 @@ public class BLOCK_PROTO {
 		}
 		for (CramRecord r : cramRecords) {
 			if (!r.isLastSegment() && r.next == null)
-				r.detached = true;
+				r.setDetached(true);
 		}
 
 		for (int i = 0; i < Math.min(cramRecords.size(), 10); i++)
@@ -617,7 +617,7 @@ public class BLOCK_PROTO {
 		}
 		for (CramRecord r : newRecords) {
 			if (!r.isLastSegment() && r.next == null)
-				r.detached = true;
+				r.setDetached(true);
 		}
 
 		time2 = System.nanoTime();
@@ -687,7 +687,7 @@ public class BLOCK_PROTO {
 		}
 		for (CramRecord r : newRecords) {
 			if (!r.isLastSegment() && r.next == null)
-				r.detached = true;
+				r.setDetached(true);
 		}
 
 		time2 = System.nanoTime();

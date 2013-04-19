@@ -150,7 +150,7 @@ public class Reader {
 			}
 
 			// mate record:
-			if (r.detached) {
+			if (r.isDetached()) {
 				r.setMateFlags(mbfc.readData());
 				if (!captureReadNames)
 					r.setReadName(new String(readNameC.readData(), charset));
@@ -159,7 +159,7 @@ public class Reader {
 				r.mateAlignmentStart = malsc.readData();
 				r.templateSize = tsc.readData();
 				detachedCount++;
-			} else if (r.hasMateDownStream)
+			} else if (r.isHasMateDownStream())
 				r.setRecordsToNextFragment(distanceC.readData());
 
 			Integer tagIdList = tagIdListCodec.readData();
@@ -241,7 +241,7 @@ public class Reader {
 
 				// mapping quality:
 				r.setMappingQuality(mqc.readData());
-				if (r.forcePreserveQualityScores) {
+				if (r.isForcePreserveQualityScores()) {
 					// byte[] qs = new byte[r.getReadLength()];
 					// for (int i = 0; i < qs.length; i++)
 					// qs[i] = qc.readData();
@@ -254,7 +254,7 @@ public class Reader {
 					bases[i] = bc.readData();
 				r.setReadBases(bases);
 
-				if (r.forcePreserveQualityScores) {
+				if (r.isForcePreserveQualityScores()) {
 					// byte[] qs = new byte[r.getReadLength()];
 					// for (int i = 0; i < qs.length; i++)
 					// qs[i] = qc.readData();

@@ -15,12 +15,9 @@
  ******************************************************************************/
 package net.sf.cram;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import javax.swing.text.MutableAttributeSet;
 
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
@@ -29,18 +26,23 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.stats.MutableInt;
 
-public class CramRecord implements Serializable {
-	public static int MULTIFRAGMENT_FLAG = 0x1;
-	public static int PROPER_PAIR_FLAG = 0x2;
-	public static int SEGMENT_UNMAPPED_FLAG = 0x4;
-	public static int NEGATIVE_STRAND_FLAG = 0x8;
-	public static int FIRST_SEGMENT_FLAG = 0x10;
-	public static int LAST_SEGMENT_FLAG = 0x20;
-	public static int SECONDARY_ALIGNMENT_FLAG = 0x40;
-	public static int VENDOR_FILTERED_FLAG = 0x80;
-	public static int DUPLICATE_FLAG = 0x100;
+public class CramRecord {
+	public static final int MULTIFRAGMENT_FLAG = 0x1;
+	public static final int PROPER_PAIR_FLAG = 0x2;
+	public static final int SEGMENT_UNMAPPED_FLAG = 0x4;
+	public static final int NEGATIVE_STRAND_FLAG = 0x8;
+	public static final int FIRST_SEGMENT_FLAG = 0x10;
+	public static final int LAST_SEGMENT_FLAG = 0x20;
+	public static final int SECONDARY_ALIGNMENT_FLAG = 0x40;
+	public static final int VENDOR_FILTERED_FLAG = 0x80;
+	public static final int DUPLICATE_FLAG = 0x100;
 
-	public ReadTag[] tags;
+	public static final int MATE_NEG_STRAND_FLAG = 0x1;
+	public static final int MATE_UNMAPPED_FLAG = 0x2;
+
+	public static final int FORCE_PRESERVE_QS_FLAG = 0x1;
+	public static final int DETACHED_FLAG = 0x2;
+	public static final int HAS_MATE_DOWNSTREAM_FLAG = 0x4;
 
 	public int index = 0;
 	private int alignmentStart;
@@ -56,21 +58,14 @@ public class CramRecord implements Serializable {
 	private List<ReadFeature> readFeatures;
 
 	private int readGroupID = 0;
-	private int flags ;
+
+	// bit flags:
+	private int flags = 0;
+	private int mateFlags = 0;
+	private int compressionFlags = 0;
 
 	// pointers to the previous and next segments in the template:
 	public CramRecord next, previous;
-
-	// mate flags:
-	private Byte mateFlags = null;
-	public boolean mateUmapped = false;
-	public boolean mateNegativeStrand = false;
-
-	// compression flags:
-	private Byte compressionFlags = null;
-	public boolean hasMateDownStream = false;
-	public boolean detached = false;
-	public boolean forcePreserveQualityScores = false;
 
 	public int mateSequnceID = -1;
 	public int mateAlignmentStart = 0;
@@ -80,9 +75,11 @@ public class CramRecord implements Serializable {
 	private String sequenceName;
 	public int sequenceId;
 	private String readName;
+	
+	// insert size:
 	public int templateSize;
-	public long counter = 1;
 
+	public ReadTag[] tags;
 	public byte[] tagIds;
 	public MutableInt tagIdsIndex;
 
@@ -95,57 +92,19 @@ public class CramRecord implements Serializable {
 	}
 
 	public byte getMateFlags() {
-		if (mateFlags == null) {
-			byte b = 0;
-			b |= mateUmapped ? 1 : 0;
-			b <<= 1;
-			b |= mateNegativeStrand ? 1 : 0;
-			mateFlags = new Byte(b);
-		}
-		return mateFlags;
+		return (byte) (0xFF & mateFlags);
 	}
 
 	public void setMateFlags(byte value) {
-		int b = 0xFF & value;
-
-		mateNegativeStrand = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		mateUmapped = ((b & 1) == 0) ? false : true;
-
 		mateFlags = value;
 	}
 
-	public void resetMateFlags() {
-		mateFlags = null;
-	}
-
 	public byte getCompressionFlags() {
-		if (compressionFlags == null) {
-			byte b = 0;
-			b |= hasMateDownStream ? 1 : 0;
-			b <<= 1;
-			b |= detached ? 1 : 0;
-			b <<= 1;
-			b |= forcePreserveQualityScores ? 1 : 0;
-			compressionFlags = new Byte(b);
-		}
-		return compressionFlags;
+		return (byte) (0xFF & compressionFlags);
 	}
 
 	public void setCompressionFlags(byte value) {
-		int b = 0xFF & value;
-
-		forcePreserveQualityScores = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		detached = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		hasMateDownStream = ((b & 1) == 0) ? false : true;
-
 		compressionFlags = value;
-	}
-
-	public void resetCompressionFlags() {
-		compressionFlags = null;
 	}
 
 	public int getAlignmentStart() {
@@ -304,7 +263,7 @@ public class CramRecord implements Serializable {
 	public int getMappingQuality() {
 		return mappingQuality;
 	}
-	
+
 	public void setMappingQuality(int mappingQuality) {
 		this.mappingQuality = mappingQuality;
 	}
@@ -357,7 +316,8 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setMultiFragment(boolean multiFragment) {
-		flags = multiFragment ? flags | MULTIFRAGMENT_FLAG : flags & ~MULTIFRAGMENT_FLAG;
+		flags = multiFragment ? flags | MULTIFRAGMENT_FLAG : flags
+				& ~MULTIFRAGMENT_FLAG;
 	}
 
 	public boolean isSegmentUnmapped() {
@@ -365,7 +325,8 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setSegmentUnmapped(boolean segmentUnmapped) {
-		flags = segmentUnmapped ? flags | SEGMENT_UNMAPPED_FLAG : flags & ~SEGMENT_UNMAPPED_FLAG;
+		flags = segmentUnmapped ? flags | SEGMENT_UNMAPPED_FLAG : flags
+				& ~SEGMENT_UNMAPPED_FLAG;
 	}
 
 	public boolean isFirstSegment() {
@@ -373,7 +334,8 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setFirstSegment(boolean firstSegment) {
-		flags = firstSegment ? flags | FIRST_SEGMENT_FLAG : flags & ~FIRST_SEGMENT_FLAG;
+		flags = firstSegment ? flags | FIRST_SEGMENT_FLAG : flags
+				& ~FIRST_SEGMENT_FLAG;
 	}
 
 	public boolean isLastSegment() {
@@ -381,7 +343,8 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setLastSegment(boolean lastSegment) {
-		flags = lastSegment ? flags | LAST_SEGMENT_FLAG : flags & ~LAST_SEGMENT_FLAG;
+		flags = lastSegment ? flags | LAST_SEGMENT_FLAG : flags
+				& ~LAST_SEGMENT_FLAG;
 	}
 
 	public boolean isSecondaryALignment() {
@@ -389,7 +352,8 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setSecondaryALignment(boolean secondaryALignment) {
-		flags = secondaryALignment ? flags | SECONDARY_ALIGNMENT_FLAG : flags & ~SECONDARY_ALIGNMENT_FLAG;
+		flags = secondaryALignment ? flags | SECONDARY_ALIGNMENT_FLAG : flags
+				& ~SECONDARY_ALIGNMENT_FLAG;
 	}
 
 	public boolean isVendorFiltered() {
@@ -397,15 +361,17 @@ public class CramRecord implements Serializable {
 	}
 
 	public void setVendorFiltered(boolean vendorFiltered) {
-		flags = vendorFiltered ? flags | VENDOR_FILTERED_FLAG : flags & ~VENDOR_FILTERED_FLAG;
+		flags = vendorFiltered ? flags | VENDOR_FILTERED_FLAG : flags
+				& ~VENDOR_FILTERED_FLAG;
 	}
-	
+
 	public boolean isProperPair() {
 		return (flags & PROPER_PAIR_FLAG) != 0;
 	}
 
 	public void setProperPair(boolean properPair) {
-		flags = properPair ? flags | PROPER_PAIR_FLAG : flags & ~PROPER_PAIR_FLAG;
+		flags = properPair ? flags | PROPER_PAIR_FLAG : flags
+				& ~PROPER_PAIR_FLAG;
 	}
 
 	public boolean isDuplicate() {
@@ -415,13 +381,65 @@ public class CramRecord implements Serializable {
 	public void setDuplicate(boolean duplicate) {
 		flags = duplicate ? flags | DUPLICATE_FLAG : flags & ~DUPLICATE_FLAG;
 	}
-	
+
 	public boolean isNegativeStrand() {
 		return (flags & NEGATIVE_STRAND_FLAG) != 0;
 	}
 
 	public void setNegativeStrand(boolean negativeStrand) {
-		flags = negativeStrand ? flags | NEGATIVE_STRAND_FLAG : flags & ~NEGATIVE_STRAND_FLAG;
+		flags = negativeStrand ? flags | NEGATIVE_STRAND_FLAG : flags
+				& ~NEGATIVE_STRAND_FLAG;
+	}
+
+	public boolean isMateUmapped() {
+		return (mateFlags & MATE_UNMAPPED_FLAG) != 0;
+	}
+
+	public void setMateUmapped(boolean mateUmapped) {
+		mateFlags = mateUmapped ? mateFlags | MATE_UNMAPPED_FLAG : mateFlags
+				& ~MATE_UNMAPPED_FLAG;
+	}
+
+	public boolean isMateNegativeStrand() {
+		return (mateFlags & MATE_NEG_STRAND_FLAG) != 0;
+	}
+
+	public void setMateNegativeStrand(boolean mateNegativeStrand) {
+		mateFlags = mateNegativeStrand ? mateFlags | MATE_NEG_STRAND_FLAG
+				: mateFlags & ~MATE_NEG_STRAND_FLAG;
+	}
+
+	// public static int FORCE_PRESERVE_QS_FLAG = 0x1;
+	// public static int DETACHED_FLAG = 0x2;
+	// public static int HAS_MATE_DOWNSTREAM_FLAG = 0x3;
+
+	public boolean isHasMateDownStream() {
+		return (compressionFlags & HAS_MATE_DOWNSTREAM_FLAG) != 0;
+	}
+
+	public void setHasMateDownStream(boolean hasMateDownStream) {
+		compressionFlags = hasMateDownStream ? compressionFlags
+				| HAS_MATE_DOWNSTREAM_FLAG : compressionFlags
+				& ~HAS_MATE_DOWNSTREAM_FLAG;
+	}
+
+	public boolean isDetached() {
+		return (compressionFlags & DETACHED_FLAG) != 0;
+	}
+
+	public void setDetached(boolean detached) {
+		compressionFlags = detached ? compressionFlags | DETACHED_FLAG
+				: compressionFlags & ~DETACHED_FLAG;
+	}
+
+	public boolean isForcePreserveQualityScores() {
+		return (compressionFlags & FORCE_PRESERVE_QS_FLAG) != 0;
+	}
+
+	public void setForcePreserveQualityScores(boolean forcePreserveQualityScores) {
+		compressionFlags = forcePreserveQualityScores ? compressionFlags
+				| FORCE_PRESERVE_QS_FLAG : compressionFlags
+				& ~FORCE_PRESERVE_QS_FLAG;
 	}
 
 }
