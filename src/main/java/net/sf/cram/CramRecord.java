@@ -30,12 +30,12 @@ public class CramRecord {
 	public static final int MULTIFRAGMENT_FLAG = 0x1;
 	public static final int PROPER_PAIR_FLAG = 0x2;
 	public static final int SEGMENT_UNMAPPED_FLAG = 0x4;
-	public static final int NEGATIVE_STRAND_FLAG = 0x8;
-	public static final int FIRST_SEGMENT_FLAG = 0x10;
-	public static final int LAST_SEGMENT_FLAG = 0x20;
-	public static final int SECONDARY_ALIGNMENT_FLAG = 0x40;
-	public static final int VENDOR_FILTERED_FLAG = 0x80;
-	public static final int DUPLICATE_FLAG = 0x100;
+	public static final int NEGATIVE_STRAND_FLAG = 0x10;
+	public static final int FIRST_SEGMENT_FLAG = 0x40;
+	public static final int LAST_SEGMENT_FLAG = 0x80;
+	public static final int SECONDARY_ALIGNMENT_FLAG = 0x100;
+	public static final int VENDOR_FILTERED_FLAG = 0x200;
+	public static final int DUPLICATE_FLAG = 0x400;
 
 	public static final int MATE_NEG_STRAND_FLAG = 0x1;
 	public static final int MATE_UNMAPPED_FLAG = 0x2;
