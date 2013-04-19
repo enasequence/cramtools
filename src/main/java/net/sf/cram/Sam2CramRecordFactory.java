@@ -118,18 +118,18 @@ public class Sam2CramRecordFactory {
 		cramRecord.setReadName(record.getReadName());
 		cramRecord.setAlignmentStart(record.getAlignmentStart());
 
-		cramRecord.multiFragment = record.getReadPairedFlag();
-		cramRecord.properPair = record.getReadPairedFlag()
-				&& record.getProperPairFlag();
-		cramRecord.segmentUnmapped = record.getReadUnmappedFlag();
-		cramRecord.negativeStrand = record.getReadNegativeStrandFlag();
-		cramRecord.firstSegment = record.getReadPairedFlag()
-				&& record.getFirstOfPairFlag();
-		cramRecord.lastSegment = record.getReadPairedFlag()
-				&& record.getSecondOfPairFlag();
-		cramRecord.secondaryALignment = record.getNotPrimaryAlignmentFlag();
-		cramRecord.vendorFiltered = record.getReadFailsVendorQualityCheckFlag();
-		cramRecord.duplicate = record.getDuplicateReadFlag();
+		cramRecord.setMultiFragment(record.getReadPairedFlag());
+		cramRecord.setProperPair(record.getReadPairedFlag()
+				&& record.getProperPairFlag());
+		cramRecord.setSegmentUnmapped(record.getReadUnmappedFlag());
+		cramRecord.setNegativeStrand(record.getReadNegativeStrandFlag());
+		cramRecord.setFirstSegment(record.getReadPairedFlag()
+				&& record.getFirstOfPairFlag());
+		cramRecord.setLastSegment(record.getReadPairedFlag()
+				&& record.getSecondOfPairFlag());
+		cramRecord.setSecondaryALignment(record.getNotPrimaryAlignmentFlag());
+		cramRecord.setVendorFiltered(record.getReadFailsVendorQualityCheckFlag());
+		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 
 		cramRecord.setReadLength(record.getReadLength());
 		cramRecord.setMappingQuality(record.getMappingQuality());
@@ -163,7 +163,7 @@ public class Sam2CramRecordFactory {
 				cramRecord.setLastFragment(true);
 		}
 
-		if (!cramRecord.segmentUnmapped) {
+		if (!cramRecord.isSegmentUnmapped()) {
 			List<ReadFeature> features = checkedCreateVariations(cramRecord,
 					record);
 			cramRecord.setReadFeatures(features);
@@ -196,7 +196,7 @@ public class Sam2CramRecordFactory {
 		cramRecord.tags = (ReadTag[]) readTagList
 				.toArray(new ReadTag[readTagList.size()]);
 
-		cramRecord.vendorFiltered = record.getReadFailsVendorQualityCheckFlag();
+		cramRecord.setVendorFiltered(record.getReadFailsVendorQualityCheckFlag());
 
 		if (preserveReadNames)
 			cramRecord.setReadName(record.getReadName());

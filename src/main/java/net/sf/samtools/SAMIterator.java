@@ -114,7 +114,7 @@ public class SAMIterator implements SAMRecordIterator {
 			long time = System.nanoTime();
 			SAMRecord s = c2sFactory.create(r);
 			c2sTime += System.nanoTime() - time;
-			if (!r.segmentUnmapped)
+			if (!r.isSegmentUnmapped())
 				Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
 
 			s.setValidationStringency(validationStringency);
@@ -172,11 +172,19 @@ public class SAMIterator implements SAMRecordIterator {
 	public static class CramFileIterable implements Iterable<SAMRecord> {
 		private ReferenceSequenceFile referenceSequenceFile;
 		private File cramFile;
+		private ValidationStringency validationStringency;
 
 		public CramFileIterable(File cramFile,
-				ReferenceSequenceFile referenceSequenceFile) {
+				ReferenceSequenceFile referenceSequenceFile, ValidationStringency validationStringency) {
 			this.referenceSequenceFile = referenceSequenceFile;
 			this.cramFile = cramFile;
+			this.validationStringency = validationStringency;
+			
+		}
+		
+		public CramFileIterable(File cramFile,
+				ReferenceSequenceFile referenceSequenceFile) {
+			this (cramFile, referenceSequenceFile, ValidationStringency.DEFAULT_STRINGENCY) ;
 		}
 
 		@Override
@@ -186,6 +194,7 @@ public class SAMIterator implements SAMRecordIterator {
 				BufferedInputStream bis = new BufferedInputStream(fis);
 				SAMIterator iterator = new SAMIterator(bis,
 						referenceSequenceFile);
+				iterator.setValidationStringency(validationStringency) ;
 				return iterator;
 			} catch (IOException e) {
 				throw new RuntimeException(e);

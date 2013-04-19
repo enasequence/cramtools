@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import net.sf.cram.ReadWrite.CramHeader;
@@ -15,7 +16,10 @@ import net.sf.picard.sam.SamFileValidator;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.picard.util.ProgressLogger;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMIterator;
+import net.sf.samtools.SAMIterator.CramFileIterable;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMValidationError;
 import net.sf.samtools.SAMValidationError.Type;
 
@@ -76,10 +80,9 @@ public class ValidateCramFile {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		SAMIterator iterator = new SAMIterator(bis,
-				referenceSequenceFile);
-
+		SAMIterator iterator = new SAMIterator(bis, referenceSequenceFile);
 		CramHeader cramHeader = iterator.getCramHeader();
+
 		iterator.close();
 
 		ProgressLogger progress = new ProgressLogger(log, 100000,
@@ -88,12 +91,14 @@ public class ValidateCramFile {
 				1);
 		List<SAMValidationError.Type> errors = new ArrayList<SAMValidationError.Type>();
 		errors.add(Type.MATE_NOT_FOUND);
-//		errors.add(Type.MISSING_TAG_NM);
+		// errors.add(Type.MISSING_TAG_NM);
 		v.setErrorsToIgnore(errors);
 		v.init(referenceSequenceFile, cramHeader.samFileHeader);
-		v.validateSamRecords(new SAMIterator.CramFileIterable(
-				params.cramFile, referenceSequenceFile),
-				cramHeader.samFileHeader);
+		CramFileIterable iterable = new SAMIterator.CramFileIterable(
+				params.cramFile, referenceSequenceFile,
+				ValidationStringency.STRICT);
+		
+		v.validateSamRecords(iterable, cramHeader.samFileHeader);
 		log.info("Elapsed seconds: " + progress.getElapsedSeconds());
 	}
 

@@ -181,7 +181,7 @@ public class Reader {
 				}
 			}
 
-			if (!r.segmentUnmapped) {
+			if (!r.isSegmentUnmapped()) {
 				// writing read features:
 				int size = nfc.readData();
 				int prevPos = 0;

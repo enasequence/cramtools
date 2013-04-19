@@ -49,7 +49,7 @@ public class CramNormalizer {
 
 		{// restore pairing first:
 			for (CramRecord r : records) {
-				if (!r.multiFragment || r.detached) {
+				if (!r.isMultiFragment() || r.detached) {
 					r.recordsToNextFragment = -1;
 
 					r.next = null;
@@ -63,23 +63,23 @@ public class CramNormalizer {
 					downMate.previous = r;
 
 					r.mateAlignmentStart = downMate.getAlignmentStart();
-					r.mateUmapped = downMate.segmentUnmapped;
-					r.mateNegativeStrand = downMate.negativeStrand;
+					r.mateUmapped = downMate.isSegmentUnmapped();
+					r.mateNegativeStrand = downMate.isNegativeStrand();
 					r.mateSequnceID = downMate.sequenceId;
 					if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 						r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 					downMate.mateAlignmentStart = r.getAlignmentStart();
-					downMate.mateUmapped = r.segmentUnmapped;
-					downMate.mateNegativeStrand = r.negativeStrand;
+					downMate.mateUmapped = r.isSegmentUnmapped();
+					downMate.mateNegativeStrand = r.isNegativeStrand();
 					downMate.mateSequnceID = r.sequenceId;
 					if (downMate.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
-					if (r.firstSegment && downMate.lastSegment) {
+					if (r.isFirstSegment() && downMate.isLastSegment()) {
 						r.templateSize = Utils.computeInsertSize(r, downMate);
 						downMate.templateSize = -r.templateSize;
-					} else if (r.lastSegment && downMate.firstSegment) {
+					} else if (r.isLastSegment() && downMate.isFirstSegment()) {
 						downMate.templateSize = Utils.computeInsertSize(
 								downMate, r);
 						r.templateSize = -downMate.templateSize;
@@ -102,7 +102,7 @@ public class CramNormalizer {
 
 		// resolve bases:
 		for (CramRecord r : records) {
-			if (r.segmentUnmapped)
+			if (r.isSegmentUnmapped())
 				continue;
 
 			byte[] bases = restoreReadBases(r, ref, substitutionMatrix);
@@ -110,6 +110,11 @@ public class CramNormalizer {
 		}
 
 		// restore quality scores:
+		restoreQualityScores(defaultQualityScore, records) ;
+	}
+
+	public static void restoreQualityScores(byte defaultQualityScore,
+			List<CramRecord> records) {
 		for (CramRecord r : records) {
 			if (!r.forcePreserveQualityScores) {
 				byte[] scores = new byte[r.getReadLength()];
@@ -139,11 +144,6 @@ public class CramNormalizer {
 						scores[i] = defaultQualityScore;
 			}
 		}
-	}
-
-	public void restoreQualityScores(byte defaultQualityScore,
-			List<CramRecord> records) {
-
 	}
 
 	private static final long calcRefLength(CramRecord record) {

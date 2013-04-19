@@ -481,7 +481,7 @@ public class CompressionHeaderFactory {
 		{ // mapping quality score
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				if (!r.segmentUnmapped)
+				if (!r.isSegmentUnmapped())
 					calculator.add(r.getMappingQuality());
 			calculator.calculate();
 

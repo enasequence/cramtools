@@ -347,7 +347,7 @@ public class BLOCK_PROTO {
 			record.setSequenceName(sequenceRecord.getSequenceName());
 			record.sequenceId = sequenceRecord.getSequenceIndex();
 			record.setReadMapped(random.nextBoolean());
-			record.resetFlags();
+			record.setFlags(0) ;
 			record.setReadFeatures(new ArrayList<ReadFeature>());
 			record.setMappingQuality((byte) random.nextInt(40));
 
@@ -553,9 +553,9 @@ public class BLOCK_PROTO {
 		// mating:
 		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
 		for (CramRecord r : cramRecords) {
-			if (r.lastSegment) {
+			if (r.isLastSegment()) {
 				r.recordsToNextFragment = -1;
-				if (r.firstSegment)
+				if (r.isFirstSegment())
 					continue;
 			}
 
@@ -571,7 +571,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : cramRecords) {
-			if (!r.lastSegment && r.next == null)
+			if (!r.isLastSegment() && r.next == null)
 				r.detached = true;
 		}
 
@@ -598,9 +598,9 @@ public class BLOCK_PROTO {
 				r.index = i++;
 		}
 		for (CramRecord r : newRecords) {
-			if (r.lastSegment) {
+			if (r.isLastSegment()) {
 				r.recordsToNextFragment = -1;
-				if (r.firstSegment)
+				if (r.isFirstSegment())
 					continue;
 			}
 
@@ -616,7 +616,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : newRecords) {
-			if (!r.lastSegment && r.next == null)
+			if (!r.isLastSegment() && r.next == null)
 				r.detached = true;
 		}
 
@@ -668,9 +668,9 @@ public class BLOCK_PROTO {
 				r.index = i++;
 		}
 		for (CramRecord r : newRecords) {
-			if (r.lastSegment) {
+			if (r.isLastSegment()) {
 				r.recordsToNextFragment = -1;
-				if (r.firstSegment)
+				if (r.isFirstSegment())
 					continue;
 			}
 
@@ -686,7 +686,7 @@ public class BLOCK_PROTO {
 			r.previous = mate;
 		}
 		for (CramRecord r : newRecords) {
-			if (!r.lastSegment && r.next == null)
+			if (!r.isLastSegment() && r.next == null)
 				r.detached = true;
 		}
 

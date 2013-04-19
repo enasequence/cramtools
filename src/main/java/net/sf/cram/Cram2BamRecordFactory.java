@@ -46,7 +46,7 @@ public class Cram2BamRecordFactory {
 			samRecord.setMappingQuality(cramRecord.getMappingQuality());
 		}
 
-		if (cramRecord.segmentUnmapped)
+		if (cramRecord.isSegmentUnmapped())
 			samRecord.setCigarString(SAMRecord.NO_ALIGNMENT_CIGAR);
 		else
 			samRecord.setCigar(getCigar2(cramRecord.getReadFeatures(),
@@ -84,15 +84,15 @@ public class Cram2BamRecordFactory {
 	}
 
 	private static final void copyFlags(CramRecord cr, SAMRecord sr) {
-		sr.setReadPairedFlag(cr.multiFragment);
-		sr.setProperPairFlag(cr.properPair);
-		sr.setReadUnmappedFlag(cr.segmentUnmapped);
-		sr.setReadNegativeStrandFlag(cr.negativeStrand);
-		sr.setFirstOfPairFlag(cr.firstSegment);
-		sr.setSecondOfPairFlag(cr.lastSegment);
-		sr.setNotPrimaryAlignmentFlag(cr.secondaryALignment);
-		sr.setReadFailsVendorQualityCheckFlag(cr.vendorFiltered);
-		sr.setDuplicateReadFlag(cr.duplicate);
+		sr.setReadPairedFlag(cr.isMultiFragment());
+		sr.setProperPairFlag(cr.isProperPair());
+		sr.setReadUnmappedFlag(cr.isSegmentUnmapped());
+		sr.setReadNegativeStrandFlag(cr.isNegativeStrand());
+		sr.setFirstOfPairFlag(cr.isFirstSegment());
+		sr.setSecondOfPairFlag(cr.isLastSegment());
+		sr.setNotPrimaryAlignmentFlag(cr.isSecondaryALignment());
+		sr.setReadFailsVendorQualityCheckFlag(cr.isVendorFiltered());
+		sr.setDuplicateReadFlag(cr.isDuplicate());
 	}
 
 	private static final Cigar getCigar2(Collection<ReadFeature> features,

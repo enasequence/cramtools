@@ -60,7 +60,7 @@ public class Bam2Cram {
 		return set;
 	}
 
-	private static List<CramRecord> convert(List<SAMRecord> samRecords,
+	public static List<CramRecord> convert(List<SAMRecord> samRecords,
 			SAMFileHeader samFileHeader, byte[] ref,
 			QualityScorePreservation preservation, boolean captureAllTags,
 			String captureTags, String ignoreTags) {
@@ -104,22 +104,8 @@ public class Bam2Cram {
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
-
+		
 		for (SAMRecord samRecord : samRecords) {
-			if (samRecord.getAlignmentStart() > 0
-					&& alStart > samRecord.getAlignmentStart())
-				alStart = samRecord.getAlignmentStart();
-			if (alEnd < samRecord.getAlignmentEnd())
-				alEnd = samRecord.getAlignmentEnd();
-
-			CramRecord cramRecord = f.createCramRecord(samRecord);
-			cramRecord.index = ++index;
-			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
-					.getAlignmentStart() - prevAlStart;
-			cramRecord.setAlignmentStart(samRecord.getAlignmentStart());
-			prevAlStart = samRecord.getAlignmentStart();
-
-			cramRecords.add(cramRecord);
 			int refPos = samRecord.getAlignmentStart();
 			int readPos = 0;
 			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
@@ -153,6 +139,25 @@ public class Bam2Cram {
 							.getLength() : 0;
 				}
 			}
+		}
+
+		for (SAMRecord samRecord : samRecords) {
+			if (samRecord.getAlignmentStart() > 0
+					&& alStart > samRecord.getAlignmentStart())
+				alStart = samRecord.getAlignmentStart();
+			if (alEnd < samRecord.getAlignmentEnd())
+				alEnd = samRecord.getAlignmentEnd();
+
+			CramRecord cramRecord = f.createCramRecord(samRecord);
+			cramRecord.index = ++index;
+			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
+					.getAlignmentStart() - prevAlStart;
+			cramRecord.setAlignmentStart(samRecord.getAlignmentStart());
+			prevAlStart = samRecord.getAlignmentStart();
+
+			cramRecords.add(cramRecord);
+
+			
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
 

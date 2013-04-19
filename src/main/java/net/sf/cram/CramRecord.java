@@ -30,6 +30,15 @@ import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.stats.MutableInt;
 
 public class CramRecord implements Serializable {
+	public static int MULTIFRAGMENT_FLAG = 0x1;
+	public static int PROPER_PAIR_FLAG = 0x2;
+	public static int SEGMENT_UNMAPPED_FLAG = 0x4;
+	public static int NEGATIVE_STRAND_FLAG = 0x8;
+	public static int FIRST_SEGMENT_FLAG = 0x10;
+	public static int LAST_SEGMENT_FLAG = 0x20;
+	public static int SECONDARY_ALIGNMENT_FLAG = 0x40;
+	public static int VENDOR_FILTERED_FLAG = 0x80;
+	public static int DUPLICATE_FLAG = 0x100;
 
 	public ReadTag[] tags;
 
@@ -47,18 +56,7 @@ public class CramRecord implements Serializable {
 	private List<ReadFeature> readFeatures;
 
 	private int readGroupID = 0;
-
-	// flags:
-	public Integer flags = null;
-	public boolean multiFragment = false;
-	public boolean properPair = false;
-	public boolean segmentUnmapped = false;
-	public boolean negativeStrand = false;
-	public boolean firstSegment = false;
-	public boolean lastSegment = false;
-	public boolean secondaryALignment = false;
-	public boolean vendorFiltered = false;
-	public boolean duplicate = false;
+	private int flags ;
 
 	// pointers to the previous and next segments in the template:
 	public CramRecord next, previous;
@@ -89,54 +87,11 @@ public class CramRecord implements Serializable {
 	public MutableInt tagIdsIndex;
 
 	public int getFlags() {
-		if (flags == null) {
-			int b = 0;
-			b |= duplicate ? 1 : 0;
-			b <<= 1;
-			b |= vendorFiltered ? 1 : 0;
-			b <<= 1;
-			b |= secondaryALignment ? 1 : 0;
-			b <<= 1;
-			b |= lastSegment ? 1 : 0;
-			b <<= 1;
-			b |= firstSegment ? 1 : 0;
-			b <<= 2;
-			b |= negativeStrand ? 1 : 0;
-			b <<= 2;
-			b |= segmentUnmapped ? 1 : 0;
-			b <<= 1;
-			b |= properPair ? 1 : 0;
-			b <<= 1;
-			b |= multiFragment ? 1 : 0;
-			flags = new Integer(b);
-		}
 		return flags;
 	}
 
 	public void setFlags(int value) {
-		int b = value;
-		multiFragment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		properPair = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		segmentUnmapped = ((b & 1) == 0) ? false : true;
-		b >>>= 2;
-		negativeStrand = ((b & 1) == 0) ? false : true;
-		b >>>= 2;
-		firstSegment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		lastSegment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		secondaryALignment = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		vendorFiltered = ((b & 1) == 0) ? false : true;
-		b >>>= 1;
-		duplicate = ((b & 1) == 0) ? false : true;
 		this.flags = value;
-	}
-
-	public void resetFlags() {
-		flags = null;
 	}
 
 	public byte getMateFlags() {
@@ -201,14 +156,6 @@ public class CramRecord implements Serializable {
 		this.alignmentStart = alignmentStart;
 	}
 
-	public boolean isNegativeStrand() {
-		return negativeStrand;
-	}
-
-	public void setNegativeStrand(boolean negativeStrand) {
-		this.negativeStrand = negativeStrand;
-	}
-
 	@Override
 	public boolean equals(Object obj) {
 		if (!(obj instanceof CramRecord))
@@ -218,19 +165,19 @@ public class CramRecord implements Serializable {
 
 		if (alignmentStart != r.alignmentStart)
 			return false;
-		if (negativeStrand != r.negativeStrand)
+		if (isNegativeStrand() != r.isNegativeStrand())
 			return false;
-		if (vendorFiltered != r.vendorFiltered)
+		if (isVendorFiltered() != r.isVendorFiltered())
 			return false;
-		if (segmentUnmapped != r.segmentUnmapped)
+		if (isSegmentUnmapped() != r.isSegmentUnmapped())
 			return false;
 		if (readLength != r.readLength)
 			return false;
-		if (lastSegment != r.lastSegment)
+		if (isLastSegment() != r.isLastSegment())
 			return false;
 		if (recordsToNextFragment != r.recordsToNextFragment)
 			return false;
-		if (firstSegment != r.firstSegment)
+		if (isFirstSegment() != r.isFirstSegment())
 			return false;
 		if (mappingQuality != r.mappingQuality)
 			return false;
@@ -299,11 +246,11 @@ public class CramRecord implements Serializable {
 	}
 
 	public boolean isLastFragment() {
-		return lastSegment;
+		return isLastSegment();
 	}
 
 	public void setLastFragment(boolean lastFragment) {
-		this.lastSegment = lastFragment;
+		this.setLastSegment(lastFragment);
 	}
 
 	public int getRecordsToNextFragment() {
@@ -315,11 +262,11 @@ public class CramRecord implements Serializable {
 	}
 
 	public boolean isReadMapped() {
-		return segmentUnmapped;
+		return isSegmentUnmapped();
 	}
 
 	public void setReadMapped(boolean readMapped) {
-		this.segmentUnmapped = readMapped;
+		this.setSegmentUnmapped(readMapped);
 	}
 
 	public List<ReadFeature> getReadFeatures() {
@@ -354,36 +301,12 @@ public class CramRecord implements Serializable {
 		this.readGroupID = readGroupID;
 	}
 
-	public boolean isFirstInPair() {
-		return firstSegment;
-	}
-
-	public void setFirstInPair(boolean firstInPair) {
-		this.firstSegment = firstInPair;
-	}
-
 	public int getMappingQuality() {
 		return mappingQuality;
 	}
-
+	
 	public void setMappingQuality(int mappingQuality) {
 		this.mappingQuality = mappingQuality;
-	}
-
-	public boolean isProperPair() {
-		return properPair;
-	}
-
-	public void setProperPair(boolean properPair) {
-		this.properPair = properPair;
-	}
-
-	public boolean isDuplicate() {
-		return duplicate;
-	}
-
-	public void setDuplicate(boolean duplicate) {
-		this.duplicate = duplicate;
 	}
 
 	public String getSequenceName() {
@@ -427,6 +350,78 @@ public class CramRecord implements Serializable {
 			}
 		}
 		return alignmentStart + len;
+	}
+
+	public boolean isMultiFragment() {
+		return (flags & MULTIFRAGMENT_FLAG) != 0;
+	}
+
+	public void setMultiFragment(boolean multiFragment) {
+		flags = multiFragment ? flags | MULTIFRAGMENT_FLAG : flags & ~MULTIFRAGMENT_FLAG;
+	}
+
+	public boolean isSegmentUnmapped() {
+		return (flags & SEGMENT_UNMAPPED_FLAG) != 0;
+	}
+
+	public void setSegmentUnmapped(boolean segmentUnmapped) {
+		flags = segmentUnmapped ? flags | SEGMENT_UNMAPPED_FLAG : flags & ~SEGMENT_UNMAPPED_FLAG;
+	}
+
+	public boolean isFirstSegment() {
+		return (flags & FIRST_SEGMENT_FLAG) != 0;
+	}
+
+	public void setFirstSegment(boolean firstSegment) {
+		flags = firstSegment ? flags | FIRST_SEGMENT_FLAG : flags & ~FIRST_SEGMENT_FLAG;
+	}
+
+	public boolean isLastSegment() {
+		return (flags & LAST_SEGMENT_FLAG) != 0;
+	}
+
+	public void setLastSegment(boolean lastSegment) {
+		flags = lastSegment ? flags | LAST_SEGMENT_FLAG : flags & ~LAST_SEGMENT_FLAG;
+	}
+
+	public boolean isSecondaryALignment() {
+		return (flags & SECONDARY_ALIGNMENT_FLAG) != 0;
+	}
+
+	public void setSecondaryALignment(boolean secondaryALignment) {
+		flags = secondaryALignment ? flags | SECONDARY_ALIGNMENT_FLAG : flags & ~SECONDARY_ALIGNMENT_FLAG;
+	}
+
+	public boolean isVendorFiltered() {
+		return (flags & VENDOR_FILTERED_FLAG) != 0;
+	}
+
+	public void setVendorFiltered(boolean vendorFiltered) {
+		flags = vendorFiltered ? flags | VENDOR_FILTERED_FLAG : flags & ~VENDOR_FILTERED_FLAG;
+	}
+	
+	public boolean isProperPair() {
+		return (flags & PROPER_PAIR_FLAG) != 0;
+	}
+
+	public void setProperPair(boolean properPair) {
+		flags = properPair ? flags | PROPER_PAIR_FLAG : flags & ~PROPER_PAIR_FLAG;
+	}
+
+	public boolean isDuplicate() {
+		return (flags & DUPLICATE_FLAG) != 0;
+	}
+
+	public void setDuplicate(boolean duplicate) {
+		flags = duplicate ? flags | DUPLICATE_FLAG : flags & ~DUPLICATE_FLAG;
+	}
+	
+	public boolean isNegativeStrand() {
+		return (flags & NEGATIVE_STRAND_FLAG) != 0;
+	}
+
+	public void setNegativeStrand(boolean negativeStrand) {
+		flags = negativeStrand ? flags | NEGATIVE_STRAND_FLAG : flags & ~NEGATIVE_STRAND_FLAG;
 	}
 
 }

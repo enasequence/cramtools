@@ -284,16 +284,16 @@ public class Utils {
 
 	public static int computeInsertSize(CramRecord firstEnd,
 			CramRecord secondEnd) {
-		if (firstEnd.segmentUnmapped || secondEnd.segmentUnmapped) {
+		if (firstEnd.isSegmentUnmapped() || secondEnd.isSegmentUnmapped()) {
 			return 0;
 		}
 		if (firstEnd.sequenceId != secondEnd.sequenceId) {
 			return 0;
 		}
 
-		final int firstEnd5PrimePosition = firstEnd.negativeStrand ? firstEnd
+		final int firstEnd5PrimePosition = firstEnd.isNegativeStrand() ? firstEnd
 				.calcualteAlignmentEnd() : firstEnd.getAlignmentStart();
-		final int secondEnd5PrimePosition = secondEnd.negativeStrand ? secondEnd
+		final int secondEnd5PrimePosition = secondEnd.isNegativeStrand() ? secondEnd
 				.calcualteAlignmentEnd() : secondEnd.getAlignmentStart();
 
 		int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition) ? +1

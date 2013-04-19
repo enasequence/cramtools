@@ -163,7 +163,7 @@ public class Writer {
 			}
 		}
 
-		if (!r.segmentUnmapped) {
+		if (!r.isSegmentUnmapped()) {
 			// writing read features:
 			nfc.writeData(r.getReadFeatures().size());
 			int prevPos = 0;

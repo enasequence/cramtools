@@ -11,6 +11,7 @@ import net.sf.cram.CramRecord;
 import net.sf.cram.ReferenceTracks;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
@@ -45,15 +46,15 @@ public class QualityScorePreservation {
 			}
 		});
 	}
-	
-	public List<PreservationPolicy> getPreservationPolicies () {
-		return policyList ;
+
+	public List<PreservationPolicy> getPreservationPolicies() {
+		return policyList;
 	}
 
 	private static final int readParam(LinkedList<Character> list) {
 		int value = 0;
 
-		while (!list.isEmpty() && Character.isDigit(list.getFirst())) 
+		while (!list.isEmpty() && Character.isDigit(list.getFirst()))
 			value = value * 10 + (list.removeFirst() - 48);
 
 		return value;
@@ -118,7 +119,7 @@ public class QualityScorePreservation {
 				p.treatment = readTreament(list);
 				break;
 			case 'P':
-				int mismatches = readParam(list) ;
+				int mismatches = readParam(list);
 				p.baseCategories.add(BaseCategory.pileup(mismatches));
 				p.treatment = readTreament(list);
 				break;
@@ -146,12 +147,12 @@ public class QualityScorePreservation {
 		return p;
 	}
 
-	private static final void applyBinning(byte[] scores) {
+	public static final void applyBinning(byte[] scores) {
 		for (int i = 0; i < scores.length; i++)
 			scores[i] = Binning.Illumina_binning_matrix[scores[i]];
 	}
 
-	private static final byte applyTreatment(byte score, QualityScoreTreatment t) {
+	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
 		switch (t.type) {
 		case BIN:
 			return (byte) (Binning.Illumina_binning_matrix[score]);
@@ -167,11 +168,11 @@ public class QualityScorePreservation {
 
 	public void addQualityScores(SAMRecord s, CramRecord r, ReferenceTracks t) {
 		if (s.getBaseQualities() == SAMRecord.NULL_QUALS) {
-			r.setQualityScores(SAMRecord.NULL_QUALS) ;
-			r.forcePreserveQualityScores = false ;
-			return ;
+			r.setQualityScores(SAMRecord.NULL_QUALS);
+			r.forcePreserveQualityScores = false;
+			return;
 		}
-		
+
 		byte[] scores = new byte[s.getReadLength()];
 		Arrays.fill(scores, (byte) -1);
 		for (PreservationPolicy p : policyList)
@@ -180,7 +181,8 @@ public class QualityScorePreservation {
 		if (!r.forcePreserveQualityScores) {
 			for (int i = 0; i < scores.length; i++) {
 				if (scores[i] > -1) {
-					if (r.getReadFeatures() == null) r.setReadFeatures(new LinkedList<ReadFeature>()) ;
+					if (r.getReadFeatures() == null)
+						r.setReadFeatures(new LinkedList<ReadFeature>());
 					r.getReadFeatures().add(
 							new BaseQualityScore(i + 1, scores[i]));
 				}
@@ -188,8 +190,8 @@ public class QualityScorePreservation {
 			if (r.getReadFeatures() != null)
 				Collections.sort(r.getReadFeatures(),
 						readFeaturePositionComparator);
-		} else
-			r.setQualityScores(scores);
+		}
+		r.setQualityScores(scores);
 	}
 
 	private static final Comparator<ReadFeature> readFeaturePositionComparator = new Comparator<ReadFeature>() {
@@ -210,8 +212,8 @@ public class QualityScorePreservation {
 			boolean properRead = false;
 			switch (p.readCategory.type) {
 			case ALL:
-				properRead = true ;
-				break ;
+				properRead = true;
+				break;
 			case UNPLACED:
 				properRead = s.getReadUnmappedFlag();
 				break;
@@ -248,7 +250,7 @@ public class QualityScorePreservation {
 				r.forcePreserveQualityScores = true;
 				break;
 			case DROP:
-				r.setQualityScores(null) ;
+				r.setQualityScores(null);
 				r.forcePreserveQualityScores = false;
 				break;
 
@@ -264,6 +266,7 @@ public class QualityScorePreservation {
 
 		// here we go, scan all bases to check if the policy applies:
 		boolean[] mask = new boolean[qs.length];
+
 		int alStart = s.getAlignmentStart();
 		// must be a mapped read at this point:
 		if (alStart == SAMRecord.NO_ALIGNMENT_START)
@@ -300,34 +303,35 @@ public class QualityScorePreservation {
 							if ((c.type == BaseCategoryType.MATCH && match)
 									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
 								mask[pos + i] = true;
-							}
+							} else
+								mask[pos + i] = false;
 						}
 						pos += ce.getLength();
 					}
 					refPos += ce.getOperator().consumesReferenceBases() ? ce
 							.getLength() : 0;
-					
-//					switch (ce.getOperator()) {
-//					case M:
-//					case X:
-//					case EQ:
-//						for (int i = 0; i < ce.getLength(); i++) {
-//							boolean match = s.getReadBases()[pos + i] == t
-//									.baseAt(refPos + i);
-//							if ((c.type == BaseCategoryType.MATCH && match)
-//									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
-//								mask[pos + i] = true;
-//							}
-//						}
-//						break;
-//					default:
-//						break;
-//					}
-//
-//					pos += ce.getOperator().consumesReadBases() ? ce
-//							.getLength() : 0;
-//					refPos += ce.getOperator().consumesReferenceBases() ? ce
-//							.getLength() : 0;
+
+					// switch (ce.getOperator()) {
+					// case M:
+					// case X:
+					// case EQ:
+					// for (int i = 0; i < ce.getLength(); i++) {
+					// boolean match = s.getReadBases()[pos + i] == t
+					// .baseAt(refPos + i);
+					// if ((c.type == BaseCategoryType.MATCH && match)
+					// || (c.type == BaseCategoryType.MISMATCH && !match)) {
+					// mask[pos + i] = true;
+					// }
+					// }
+					// break;
+					// default:
+					// break;
+					// }
+					//
+					// pos += ce.getOperator().consumesReadBases() ? ce
+					// .getLength() : 0;
+					// refPos += ce.getOperator().consumesReferenceBases() ? ce
+					// .getLength() : 0;
 				}
 				break;
 			case INSERTION:
@@ -347,9 +351,25 @@ public class QualityScorePreservation {
 				}
 				break;
 			case LOWER_COVERAGE:
-				for (int i = 0; i < qs.length; i++)
-					if (t.coverageAt(alStart + i) < c.param)
-						mask[i] = true;
+				pos = 1;
+				refPos = s.getAlignmentStart();
+				for (CigarElement ce : s.getCigar().getCigarElements()) {
+					switch (ce.getOperator()) {
+					case M:
+					case EQ:
+					case X:
+						for (int i = 0; i < ce.getLength(); i++)
+							mask[pos + i-1] = t.coverageAt(refPos + i) < c.param;
+						break;
+					default:
+						break;
+					}
+
+					pos += ce.getOperator().consumesReadBases() ? ce
+							.getLength() : 0;
+					refPos += ce.getOperator().consumesReferenceBases() ? ce
+							.getLength() : 0;
+				}
 				break;
 			case PILEUP:
 				for (int i = 0; i < qs.length; i++)
@@ -361,16 +381,17 @@ public class QualityScorePreservation {
 				break;
 			}
 
-			int maskedCount = 0;
-			for (int i = 0; i < mask.length; i++)
-				if (mask[i]) {
-					scores[i] = applyTreatment(qs[i], p.treatment);
-					maskedCount++;
-				}
-			// safety latch, store all qs if there are too many individual score
-			// to store:
-			if (maskedCount > s.getReadLength() / 2)
-				r.forcePreserveQualityScores = true;
 		}
+
+		int maskedCount = 0;
+		for (int i = 0; i < mask.length; i++)
+			if (mask[i]) {
+				scores[i] = applyTreatment(qs[i], p.treatment);
+				maskedCount++;
+			}
+		// safety latch, store all qs if there are too many individual score
+		// to store:
+		if (maskedCount > s.getReadLength() / 2)
+			r.forcePreserveQualityScores = true;
 	}
 }

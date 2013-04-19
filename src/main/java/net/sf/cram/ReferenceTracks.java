@@ -152,8 +152,9 @@ public class ReferenceTracks {
 	public final short coverageAt(int pos) {
 		if (pos - this.position >= coverage.length)
 			return 0;
-		else
+		else {
 			return coverage[pos - this.position];
+		}
 	}
 
 	public final short mismatchesAt(int pos) {
