@@ -14,12 +14,12 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import net.sf.cram.build.CompressionHeaderFactory;
+import net.sf.cram.build.CompressionHeaderFactory.HuffmanParamsCalculator;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
-import net.sf.cram.stats.CompressionHeaderFactory;
-import net.sf.cram.stats.CompressionHeaderFactory.HuffmanParamsCalculator;
 
 class HelperByte {
 	TreeMap<Integer, HuffmanBitCode> codes;

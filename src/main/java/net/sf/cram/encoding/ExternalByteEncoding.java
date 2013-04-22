@@ -4,10 +4,10 @@ import java.io.InputStream;
 import java.util.Map;
 
 
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 public class ExternalByteEncoding implements Encoding<Byte> {
 	public static final EncodingID encodingId = EncodingID.EXTERNAL ;

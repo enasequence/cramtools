@@ -7,10 +7,10 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-import net.sf.cram.CramRecord;
-import net.sf.cram.ReferenceTracks;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.ref.ReferenceTracks;
+import net.sf.cram.structure.CramRecord;
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -168,7 +168,7 @@ public class QualityScorePreservation {
 
 	public void addQualityScores(SAMRecord s, CramRecord r, ReferenceTracks t) {
 		if (s.getBaseQualities() == SAMRecord.NULL_QUALS) {
-			r.setQualityScores(SAMRecord.NULL_QUALS);
+			r.qualityScores = SAMRecord.NULL_QUALS;
 			r.setForcePreserveQualityScores(false);
 			return;
 		}
@@ -181,17 +181,17 @@ public class QualityScorePreservation {
 		if (!r.isForcePreserveQualityScores()) {
 			for (int i = 0; i < scores.length; i++) {
 				if (scores[i] > -1) {
-					if (r.getReadFeatures() == null)
-						r.setReadFeatures(new LinkedList<ReadFeature>());
-					r.getReadFeatures().add(
+					if (r.readFeatures == null)
+						r.readFeatures = new LinkedList<ReadFeature>();
+					r.readFeatures.add(
 							new BaseQualityScore(i + 1, scores[i]));
 				}
 			}
-			if (r.getReadFeatures() != null)
-				Collections.sort(r.getReadFeatures(),
+			if (r.readFeatures != null)
+				Collections.sort(r.readFeatures,
 						readFeaturePositionComparator);
 		}
-		r.setQualityScores(scores);
+		r.qualityScores = scores;
 	}
 
 	private static final Comparator<ReadFeature> readFeaturePositionComparator = new Comparator<ReadFeature>() {
@@ -237,8 +237,8 @@ public class QualityScorePreservation {
 		if (p.baseCategories == null || p.baseCategories.isEmpty()) {
 			switch (p.treatment.type) {
 			case BIN:
-				if (r.getQualityScores() == null)
-					r.setQualityScores(s.getBaseQualities());
+				if (r.qualityScores == null)
+					r.qualityScores = s.getBaseQualities();
 				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
 						scores.length);
 				applyBinning(scores);
@@ -250,7 +250,7 @@ public class QualityScorePreservation {
 				r.setForcePreserveQualityScores(true);
 				break;
 			case DROP:
-				r.setQualityScores(null);
+				r.qualityScores = null;
 				r.setForcePreserveQualityScores(false);
 				break;
 

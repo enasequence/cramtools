@@ -18,9 +18,16 @@ import java.util.TreeSet;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.build.ContainerParser;
+import net.sf.cram.build.ContainerFactory;
+import net.sf.cram.build.CramIO;
+import net.sf.cram.build.Sam2CramRecordFactory;
+import net.sf.cram.common.Utils;
 import net.sf.cram.lossy.QualityScorePreservation;
+import net.sf.cram.ref.ReferenceTracks;
 import net.sf.cram.structure.Container;
+import net.sf.cram.structure.CramHeader;
+import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.Slice;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -104,7 +111,7 @@ public class Bam2Cram {
 		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		int prevAlStart = samRecords.get(0).getAlignmentStart();
 		int index = 0;
-		
+
 		for (SAMRecord samRecord : samRecords) {
 			int refPos = samRecord.getAlignmentStart();
 			int readPos = 0;
@@ -150,21 +157,20 @@ public class Bam2Cram {
 
 			CramRecord cramRecord = f.createCramRecord(samRecord);
 			cramRecord.index = ++index;
-			cramRecord.alignmentStartOffsetFromPreviousRecord = samRecord
-					.getAlignmentStart() - prevAlStart;
-			cramRecord.setAlignmentStart(samRecord.getAlignmentStart());
+			cramRecord.alignmentDelta = samRecord.getAlignmentStart()
+					- prevAlStart;
+			cramRecord.alignmentStart = samRecord.getAlignmentStart();
 			prevAlStart = samRecord.getAlignmentStart();
 
 			cramRecords.add(cramRecord);
 
-			
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
 
 		// mating:
 		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
 		for (CramRecord r : cramRecords) {
-			String name = r.getReadName();
+			String name = r.readName;
 			CramRecord mate = mateMap.get(name);
 			if (mate == null) {
 				mateMap.put(name, r);
@@ -252,10 +258,9 @@ public class Bam2Cram {
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.referenceFasta);
 
-		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
 		ReferenceSequence sequence = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
-				params.maxContainerSize);
+				params.maxSliceSize);
 		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		SAMRecordIterator iterator = samFileReader.iterator();
 		{
@@ -328,14 +333,16 @@ public class Bam2Cram {
 
 		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN"
 				: params.bamFile.getName(), samFileReader.getFileHeader());
-		long offset = ReadWrite.writeCramHeader(h, os);
+		long offset = CramIO.writeCramHeader(h, os);
 
 		long bases = 0;
 		long coreBytes = 0;
 		long[] externalBytes = new long[10];
-		BLOCK_PROTO.recordsPerSlice = params.maxSliceSize;
-		long globalRecordCounter = 0;
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
+
+		ContainerFactory cf = new ContainerFactory(
+				samFileReader.getFileHeader(), params.maxContainerSize,
+				params.preserveReadNames);
 
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
@@ -354,10 +361,7 @@ public class Bam2Cram {
 							params.ignoreTags);
 					samRecords.clear();
 
-					Container container = BLOCK_PROTO.buildContainer(records,
-							samFileReader.getFileHeader(),
-							params.preserveReadNames, globalRecordCounter,
-							null, true);
+					Container container = cf.buildContainer(records);
 					for (Slice s : container.slices) {
 						if (s.alignmentStart < 1) {
 							s.refMD5 = new byte[16];
@@ -383,9 +387,8 @@ public class Bam2Cram {
 								+ (String.format("%032x", new BigInteger(1,
 										s.refMD5))));
 					}
-					globalRecordCounter += records.size();
 					records.clear();
-					long len = ReadWrite.writeContainer(container, os);
+					long len = CramIO.writeContainer(container, os);
 					container.offset = offset;
 					offset += len;
 
@@ -444,10 +447,7 @@ public class Bam2Cram {
 						params.captureAllTags, params.captureTags,
 						params.ignoreTags);
 				samRecords.clear();
-				Container container = BLOCK_PROTO.buildContainer(records,
-						samFileReader.getFileHeader(),
-						params.preserveReadNames, globalRecordCounter, null,
-						true);
+				Container container = cf.buildContainer(records);
 				for (Slice s : container.slices) {
 					if (s.alignmentStart < 1) {
 						s.refMD5 = new byte[16];
@@ -462,8 +462,7 @@ public class Bam2Cram {
 					if (s.alignmentStart == 0)
 						System.out.println("gotcha");
 
-					md5_MessageDigest.update(ref, s.alignmentStart - 1,
-							span);
+					md5_MessageDigest.update(ref, s.alignmentStart - 1, span);
 
 					String sliceRef = new String(ref, s.alignmentStart - 1,
 							Math.min(span, 30));
@@ -474,7 +473,7 @@ public class Bam2Cram {
 									s.refMD5))));
 				}
 				records.clear();
-				ReadWrite.writeContainer(container, os);
+				CramIO.writeContainer(container, os);
 				log.info(String
 						.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
 								container.buildHeaderTime / 1000000,

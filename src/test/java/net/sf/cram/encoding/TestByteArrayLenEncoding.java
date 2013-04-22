@@ -2,8 +2,8 @@ package net.sf.cram.encoding;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 import org.junit.Test;
 

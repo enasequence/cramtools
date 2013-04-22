@@ -6,10 +6,6 @@ import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.Map;
 
-import net.sf.cram.CramRecord;
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingKey;
-import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.read_features.BaseChange;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
@@ -20,6 +16,9 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.structure.CramRecord;
+import net.sf.cram.structure.EncodingKey;
+import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.SubstitutionMatrix;
 
 public class Reader {
@@ -131,38 +130,40 @@ public class Reader {
 			// throw new RuntimeException("Test mark not found.");
 			// }
 
-			r.setFlags(bitFlagsC.readData());
-			r.setCompressionFlags(compBitFlagsC.readData());
+			r.flags = bitFlagsC.readData();
+			r.compressionFlags = compBitFlagsC.readData();
 			if (refId == -2)
 				r.sequenceId = refIdCodec.readData();
 			else
 				r.sequenceId = refId;
 
-			r.setReadLength(readLengthC.readData());
+			r.readLength = readLengthC.readData();
 			if (AP_delta)
-				r.alignmentStartOffsetFromPreviousRecord = alStartC.readData();
+				r.alignmentDelta = alStartC.readData();
 			else
-				r.setAlignmentStart(alStartC.readData());
-			r.setReadGroupID(readGroupC.readData());
+				r.alignmentStart = alStartC.readData();
+			r.readGroupID = readGroupC.readData();
 
 			if (captureReadNames) {
-				r.setReadName(new String(readNameC.readData(), charset));
+				r.readName = new String(readNameC.readData(), charset);
 			}
 
 			// mate record:
 			if (r.isDetached()) {
-				r.setMateFlags(mbfc.readData());
+				r.mateFlags = mbfc.readData();
 				if (!captureReadNames)
-					r.setReadName(new String(readNameC.readData(), charset));
+					r.readName = new String(readNameC.readData(), charset);
 
 				r.mateSequnceID = mrc.readData();
 				r.mateAlignmentStart = malsc.readData();
 				r.templateSize = tsc.readData();
 				detachedCount++;
 			} else if (r.isHasMateDownStream())
-				r.setRecordsToNextFragment(distanceC.readData());
+				r.recordsToNextFragment = distanceC.readData();
 
 			Integer tagIdList = tagIdListCodec.readData();
+			if (tagIdDictionary == null)
+				System.out.println("asdfasdfasdf");
 			byte[][] ids = tagIdDictionary[tagIdList];
 			if (ids.length > 0) {
 				int tagCount = ids.length;
@@ -186,7 +187,7 @@ public class Reader {
 				int size = nfc.readData();
 				int prevPos = 0;
 				java.util.List<ReadFeature> rf = new LinkedList<ReadFeature>();
-				r.setReadFeatures(rf);
+				r.readFeatures = rf;
 				for (int i = 0; i < size; i++) {
 					Byte operator = fc.readData();
 
@@ -240,26 +241,26 @@ public class Reader {
 				}
 
 				// mapping quality:
-				r.setMappingQuality(mqc.readData());
+				r.mappingQuality = mqc.readData();
 				if (r.isForcePreserveQualityScores()) {
 					// byte[] qs = new byte[r.getReadLength()];
 					// for (int i = 0; i < qs.length; i++)
 					// qs[i] = qc.readData();
-					byte[] qs = qcArray.readDataArray(r.getReadLength());
-					r.setQualityScores(qs);
+					byte[] qs = qcArray.readDataArray(r.readLength);
+					r.qualityScores = qs;
 				}
 			} else {
-				byte[] bases = new byte[r.getReadLength()];
+				byte[] bases = new byte[r.readLength];
 				for (int i = 0; i < bases.length; i++)
 					bases[i] = bc.readData();
-				r.setReadBases(bases);
+				r.readBases = bases;
 
 				if (r.isForcePreserveQualityScores()) {
 					// byte[] qs = new byte[r.getReadLength()];
 					// for (int i = 0; i < qs.length; i++)
 					// qs[i] = qc.readData();
-					byte[] qs = qcArray.readDataArray(r.getReadLength());
-					r.setQualityScores(qs);
+					byte[] qs = qcArray.readDataArray(r.readLength);
+					r.qualityScores = qs;
 				}
 			}
 

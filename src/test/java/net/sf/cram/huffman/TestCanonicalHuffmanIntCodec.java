@@ -6,12 +6,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import net.sf.cram.ReadTag;
+import net.sf.cram.build.CompressionHeaderFactory;
+import net.sf.cram.build.CompressionHeaderFactory.HuffmanParamsCalculator;
 import net.sf.cram.encoding.CanonicalHuffmanIntegerCodec;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
-import net.sf.cram.stats.CompressionHeaderFactory;
-import net.sf.cram.stats.CompressionHeaderFactory.HuffmanParamsCalculator;
+import net.sf.cram.structure.ReadTag;
 
 import org.junit.Test;
 

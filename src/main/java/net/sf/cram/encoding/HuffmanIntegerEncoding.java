@@ -5,11 +5,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.encoding.huffint.CanonicalHuffmanIntegerCodec2;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 public class HuffmanIntegerEncoding implements Encoding<Integer> {
 	public static final EncodingID ENCODING_ID = EncodingID.HUFFMAN;

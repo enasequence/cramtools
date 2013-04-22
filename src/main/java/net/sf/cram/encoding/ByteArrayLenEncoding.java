@@ -6,13 +6,12 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 public class ByteArrayLenEncoding implements Encoding<byte[]> {
 	public final static EncodingID ID = EncodingID.BYTE_ARRAY_LEN;

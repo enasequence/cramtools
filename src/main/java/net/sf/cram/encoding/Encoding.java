@@ -4,8 +4,8 @@ import java.io.InputStream;
 import java.util.Map;
 
 
-import net.sf.cram.EncodingID;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
 
 public interface Encoding<T> {
 	

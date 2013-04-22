@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.structure.CramHeader;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.sam.SamFileValidator;

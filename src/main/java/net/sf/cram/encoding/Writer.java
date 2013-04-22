@@ -4,10 +4,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import net.sf.cram.CramRecord;
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingKey;
-import net.sf.cram.ReadTag;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.InsertBase;
@@ -17,6 +13,9 @@ import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.structure.CramRecord;
+import net.sf.cram.structure.EncodingKey;
+import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.SubstitutionMatrix;
 
 public class Writer {
@@ -121,29 +120,29 @@ public class Writer {
 	public void write(CramRecord r) throws IOException {
 		// testC.writeData(TEST_MARK) ;
 
-		bitFlagsC.writeData(r.getFlags());
+		bitFlagsC.writeData(r.flags);
 		compBitFlagsC.writeData(r.getCompressionFlags());
 		if (refId == -2)
 			refIdCodec.writeData(r.sequenceId);
 
-		readLengthC.writeData(r.getReadLength());
+		readLengthC.writeData(r.readLength);
 
 		if (AP_delta)
-			alStartC.writeData(r.alignmentStartOffsetFromPreviousRecord);
+			alStartC.writeData(r.alignmentDelta);
 		else
-			alStartC.writeData(r.getAlignmentStart());
+			alStartC.writeData(r.alignmentStart);
 
-		readGroupC.writeData(r.getReadGroupID());
+		readGroupC.writeData(r.readGroupID);
 
 		if (captureReadNames) {
-			readNameC.writeData(r.getReadName().getBytes(charset));
+			readNameC.writeData(r.readName.getBytes(charset));
 		}
 
 		// mate record:
 		if (r.isDetached()) {
 			mbfc.writeData(r.getMateFlags());
 			if (!captureReadNames)
-				readNameC.writeData(r.getReadName().getBytes(charset));
+				readNameC.writeData(r.readName.getBytes(charset));
 
 			mrc.writeData(r.mateSequnceID);
 			malsc.writeData(r.mateAlignmentStart);
@@ -165,9 +164,9 @@ public class Writer {
 
 		if (!r.isSegmentUnmapped()) {
 			// writing read features:
-			nfc.writeData(r.getReadFeatures().size());
+			nfc.writeData(r.readFeatures.size());
 			int prevPos = 0;
-			for (ReadFeature f : r.getReadFeatures()) {
+			for (ReadFeature f : r.readFeatures) {
 				fc.writeData(f.getOperator());
 				switch (f.getOperator()) {
 				case Substitution.operator:
@@ -227,15 +226,15 @@ public class Writer {
 			}
 
 			// mapping quality:
-			mqc.writeData(r.getMappingQuality());
+			mqc.writeData(r.mappingQuality);
 			if (r.isForcePreserveQualityScores()) {
-				qcArray.writeData(r.getQualityScores());
+				qcArray.writeData(r.qualityScores);
 			}
 		} else {
-			for (byte b : r.getReadBases())
+			for (byte b : r.readBases)
 				bc.writeData(b);
 			if (r.isForcePreserveQualityScores()) {
-				qcArray.writeData(r.getQualityScores());
+				qcArray.writeData(r.qualityScores);
 			}
 		}
 	}

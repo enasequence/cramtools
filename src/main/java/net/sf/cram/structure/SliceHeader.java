@@ -1,6 +1,6 @@
 package net.sf.cram.structure;
 
-public class SliceHeader {
+class SliceHeader {
 	// as defined in the specs:
 	public int sequenceId = -1;
 	public int alignmentStart = -1;

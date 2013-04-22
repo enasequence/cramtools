@@ -5,8 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingKey;
+import net.sf.cram.structure.EncodingKey;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

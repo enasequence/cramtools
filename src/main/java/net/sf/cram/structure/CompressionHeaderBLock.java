@@ -15,7 +15,7 @@ public class CompressionHeaderBLock extends Block {
 		this.compressionHeader = header;
 		contentType = BlockContentType.COMPRESSION_HEADER;
 		contentId = 0;
-		method = BlockCompressionMethod.RAW.ordinal();
+		method = BlockCompressionMethod.RAW;
 		byte[] bytes;
 		try {
 			bytes = header.toByteArray();

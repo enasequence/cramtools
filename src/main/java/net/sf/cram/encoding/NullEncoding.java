@@ -4,9 +4,9 @@ import java.io.InputStream;
 import java.util.Map;
 
 
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 public class NullEncoding<T> implements Encoding<T> {
 	public static final EncodingID ENCODING_ID = EncodingID.NULL;

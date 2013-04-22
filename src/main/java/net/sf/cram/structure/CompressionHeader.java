@@ -12,18 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingKey;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.picard.util.Log;
 
 public class CompressionHeader {
+	private static final String RN_readNamesIncluded = "RN" ;
+	private static final String AP_alignmentPositionIsDelta = "AP" ;
+	private static final String RR_referenceRequired = "RR" ;
+	private static final String TD_tagIdsDictionary = "TD" ;
+	private static final String SM_substitutionMatrix = "SM" ;
+	
 	private static Log log = Log.getInstance(CompressionHeader.class);
 
 	public boolean readNamesIncluded;
 	public boolean AP_seriesDelta=true;
+	public boolean referenceRequired=false;
 
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;
@@ -111,16 +115,18 @@ public class CompressionHeader {
 			int mapSize = ByteBufferUtils.readUnsignedITF8(buf);
 			for (int i = 0; i < mapSize; i++) {
 				String key = new String(new byte[] { buf.get(), buf.get() });
-				if ("RN".equals(key))
+				if (RN_readNamesIncluded.equals(key))
 					readNamesIncluded = buf.get() == 1 ? true : false;
-				else if ("AP".equals(key))
+				else if (AP_alignmentPositionIsDelta.equals(key))
 					AP_seriesDelta = buf.get() == 1 ? true : false;
-				else if ("TD".equals(key)) {
+				else if (RR_referenceRequired.equals(key))
+					referenceRequired = buf.get() == 1 ? true : false;
+				else if (TD_tagIdsDictionary.equals(key)) {
 					int size = ByteBufferUtils.readUnsignedITF8(buf);
 					byte[] dictionaryBytes = new byte[size];
 					buf.get(dictionaryBytes);
 					dictionary = parseDictionary(dictionaryBytes);
-				} else if ("SM".equals(key)) {
+				} else if (SM_substitutionMatrix.equals(key)) {
 					// parse subs matrix here:
 					byte[] matrixBytes = new byte[5] ;
 					buf.get(matrixBytes);
@@ -192,20 +198,22 @@ public class CompressionHeader {
 
 		{ // preservation map:
 			ByteBuffer mapBuf = ByteBuffer.allocate(1024 * 100);
-			ByteBufferUtils.writeUnsignedITF8(4, mapBuf);
+			ByteBufferUtils.writeUnsignedITF8(5, mapBuf);
 
-			mapBuf.put("RN".getBytes());
+			mapBuf.put(RN_readNamesIncluded.getBytes());
 			mapBuf.put((byte) (readNamesIncluded ? 1 : 0));
 
-			mapBuf.put("AP".getBytes());
+			mapBuf.put(AP_alignmentPositionIsDelta.getBytes());
 			mapBuf.put((byte) (AP_seriesDelta ? 1 : 0));
+			
+			mapBuf.put(RR_referenceRequired.getBytes());
+			mapBuf.put((byte) (referenceRequired ? 1 : 0));
 
-			mapBuf.put("SM".getBytes());
+			mapBuf.put(SM_substitutionMatrix.getBytes());
 			mapBuf.put(substitutionMatrix.getEncodedMatrix());
 
-			mapBuf.put("TD".getBytes());
+			mapBuf.put(TD_tagIdsDictionary.getBytes());
 			{
-
 				byte[] dBytes = dictionaryToByteArray();
 				ByteBufferUtils.writeUnsignedITF8(dBytes.length, mapBuf);
 				mapBuf.put(dBytes);

@@ -3,6 +3,8 @@ package net.sf.cram;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+import net.sf.cram.ref.ReferenceTracks;
+
 import org.junit.Test;
 
 public class TestReferenceTracks {

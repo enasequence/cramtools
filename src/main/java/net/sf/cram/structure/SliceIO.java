@@ -58,7 +58,7 @@ public class SliceIO {
 
 	public void createSliceHeaderBlock(Slice s) throws IOException {
 		byte[] rawContent = createSliceHeaderBlockContent(s);
-		s.headerBlock = new Block(BlockCompressionMethod.RAW.ordinal(),
+		s.headerBlock = new Block(BlockCompressionMethod.RAW,
 				BlockContentType.MAPPED_SLICE, 0, rawContent, null);
 	}
 

@@ -10,14 +10,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import net.sf.cram.BLOCK_PROTO;
-import net.sf.cram.Cram2BamRecordFactory;
-import net.sf.cram.CramNormalizer;
-import net.sf.cram.CramRecord;
-import net.sf.cram.ReadWrite;
-import net.sf.cram.ReadWrite.CramHeader;
-import net.sf.cram.Utils;
+import net.sf.cram.build.ContainerParser;
+import net.sf.cram.build.Cram2BamRecordFactory;
+import net.sf.cram.build.CramNormalizer;
+import net.sf.cram.build.CramIO;
+import net.sf.cram.common.Utils;
 import net.sf.cram.structure.Container;
+import net.sf.cram.structure.CramHeader;
+import net.sf.cram.structure.CramRecord;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.util.Log;
@@ -40,6 +40,8 @@ public class SAMIterator implements SAMRecordIterator {
 	private int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 	private Container container;
 
+	private ContainerParser parser;
+
 	private ValidationStringency validationStringency = ValidationStringency.SILENT;
 
 	public ValidationStringency getValidationStringency() {
@@ -57,9 +59,10 @@ public class SAMIterator implements SAMRecordIterator {
 			ReferenceSequenceFile referenceSequenceFile) throws IOException {
 		this.is = is;
 		this.referenceSequenceFile = referenceSequenceFile;
-		cramHeader = ReadWrite.readCramHeader(is);
+		cramHeader = CramIO.readCramHeader(is);
 		records = new ArrayList<SAMRecord>(100000);
 		normalizer = new CramNormalizer(cramHeader.samFileHeader);
+		parser = new ContainerParser(cramHeader.samFileHeader);
 	}
 
 	public CramHeader getCramHeader() {
@@ -74,15 +77,14 @@ public class SAMIterator implements SAMRecordIterator {
 		recordCounter = 0;
 
 		container = null;
-		container = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+		container = CramIO.readContainer(is);
 		if (container == null)
 			return;
 
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
 		try {
 			cramRecords.clear();
-			BLOCK_PROTO.getRecords(container.h, container,
-					cramHeader.samFileHeader, cramRecords);
+			parser.getRecords(container, cramRecords);
 		} catch (EOFException e) {
 			throw e;
 		}
@@ -175,16 +177,18 @@ public class SAMIterator implements SAMRecordIterator {
 		private ValidationStringency validationStringency;
 
 		public CramFileIterable(File cramFile,
-				ReferenceSequenceFile referenceSequenceFile, ValidationStringency validationStringency) {
+				ReferenceSequenceFile referenceSequenceFile,
+				ValidationStringency validationStringency) {
 			this.referenceSequenceFile = referenceSequenceFile;
 			this.cramFile = cramFile;
 			this.validationStringency = validationStringency;
-			
+
 		}
-		
+
 		public CramFileIterable(File cramFile,
 				ReferenceSequenceFile referenceSequenceFile) {
-			this (cramFile, referenceSequenceFile, ValidationStringency.DEFAULT_STRINGENCY) ;
+			this(cramFile, referenceSequenceFile,
+					ValidationStringency.DEFAULT_STRINGENCY);
 		}
 
 		@Override
@@ -194,7 +198,7 @@ public class SAMIterator implements SAMRecordIterator {
 				BufferedInputStream bis = new BufferedInputStream(fis);
 				SAMIterator iterator = new SAMIterator(bis,
 						referenceSequenceFile);
-				iterator.setValidationStringency(validationStringency) ;
+				iterator.setValidationStringency(validationStringency);
 				return iterator;
 			} catch (IOException e) {
 				throw new RuntimeException(e);

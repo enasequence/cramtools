@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.structure.ReadTag;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileReader;

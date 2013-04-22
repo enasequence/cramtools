@@ -7,13 +7,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingKey;
-import net.sf.cram.EncodingParams;
-import net.sf.cram.ReadTag;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.structure.CompressionHeader;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingKey;
+import net.sf.cram.structure.EncodingParams;
+import net.sf.cram.structure.ReadTag;
 
 public class DataReaderFactory {
 

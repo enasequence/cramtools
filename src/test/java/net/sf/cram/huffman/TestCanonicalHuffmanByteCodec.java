@@ -8,14 +8,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import net.sf.cram.EncodingParams;
+import net.sf.cram.build.CompressionHeaderFactory;
+import net.sf.cram.build.CompressionHeaderFactory.HuffmanParamsCalculator;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.encoding.CanonicalHuffmanIntegerCodec;
 import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
-import net.sf.cram.stats.CompressionHeaderFactory;
-import net.sf.cram.stats.CompressionHeaderFactory.HuffmanParamsCalculator;
+import net.sf.cram.structure.EncodingParams;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecordIterator;
 

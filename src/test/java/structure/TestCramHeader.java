@@ -6,8 +6,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.InputStream;
 
-import net.sf.cram.ReadWrite;
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.build.CramIO;
+import net.sf.cram.structure.CramHeader;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +24,7 @@ public class TestCramHeader {
 		if (stream == null)
 			fail("CRAM file not found: " + cramPath);
 
-		CramHeader cramHeader = ReadWrite.readCramHeader(stream);
+		CramHeader cramHeader = CramIO.readCramHeader(stream);
 
 		assertNotNull(cramHeader);
 		assertEquals(cramHeader.majorVersion, 1) ;

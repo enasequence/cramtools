@@ -9,9 +9,9 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-import net.sf.cram.ReadWrite;
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.build.CramIO;
 import net.sf.cram.structure.Container;
+import net.sf.cram.structure.CramHeader;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.BAMFileReader.QueryType;
 import net.sf.samtools.SAMFileHeader.SortOrder;
@@ -60,7 +60,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	}
 
 	private void readHeader() throws FileNotFoundException, IOException {
-		header = ReadWrite.readCramHeader(new FileInputStream(file));
+		header = CramIO.readCramHeader(new FileInputStream(file));
 	}
 
 	@Override
@@ -246,7 +246,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 				// access, not slice:
 
 				// CountingInputStream cis = new CountingInputStream(s) ;
-				c = ReadWrite.readContainerHeader(s);
+				c = CramIO.readContainerHeader(s);
 				// long headerSize = cis.getCount() ;
 				// int sliceOffset = c.landmarks[sliceIndex] ;
 				if (c.alignmentStart + c.alignmentSpan > start) {

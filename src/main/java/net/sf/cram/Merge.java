@@ -13,6 +13,7 @@ import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.CramTools.ValidationStringencyConverter;
+import net.sf.cram.common.Utils;
 import net.sf.cram.index.BAMQueryFilteringIterator;
 import net.sf.cram.index.CramIndex;
 import net.sf.picard.io.IoUtil;

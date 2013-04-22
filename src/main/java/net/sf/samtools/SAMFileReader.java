@@ -35,7 +35,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.structure.CramHeader;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;

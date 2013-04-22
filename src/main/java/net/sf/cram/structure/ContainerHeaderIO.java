@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import net.sf.cram.io.ByteBufferUtils;
-import net.sf.samtools.util.IOUtil;
 
 public class ContainerHeaderIO {
 

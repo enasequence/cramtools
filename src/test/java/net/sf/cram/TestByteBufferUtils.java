@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.structure.ReadTag;
 
 import org.junit.Assert;
 import org.junit.Test;

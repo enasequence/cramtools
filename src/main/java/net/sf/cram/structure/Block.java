@@ -8,21 +8,19 @@ import java.util.Arrays;
 import net.sf.cram.io.ByteBufferUtils;
 
 public class Block {
-	// TODO change int method to BlockCompressionMethod enum:
-	public int method;
+	public BlockCompressionMethod method;
 	public BlockContentType contentType;
 	public int contentId;
 	private int compressedContentSize;
 	private int rawContentSize;
-	// public byte[] content;
 
 	private byte[] rawContent, compressedContent;
 
 	public Block() {
 	}
 
-	public Block(int method, BlockContentType contentType, int contentId,
-			byte[] rawContent, byte[] compressedContent) {
+	public Block(BlockCompressionMethod method, BlockContentType contentType,
+			int contentId, byte[] rawContent, byte[] compressedContent) {
 		this.method = method;
 		this.contentType = contentType;
 		this.contentId = contentId;
@@ -34,7 +32,7 @@ public class Block {
 
 	public Block(InputStream is, boolean readContent, boolean uncompress)
 			throws IOException {
-		method = is.read();
+		method = BlockCompressionMethod.values()[is.read()];
 
 		int contentTypeId = is.read();
 		contentType = BlockContentType.values()[contentTypeId];
@@ -105,9 +103,7 @@ public class Block {
 		if (compressedContent != null || rawContent == null)
 			return;
 
-		BlockCompressionMethod m = BlockCompressionMethod.values()[method];
-
-		switch (m) {
+		switch (method) {
 		case RAW:
 			compressedContent = rawContent;
 			compressedContentSize = rawContentSize;
@@ -129,9 +125,7 @@ public class Block {
 		if (rawContent != null || compressedContent == null)
 			return;
 
-		BlockCompressionMethod m = BlockCompressionMethod.values()[method];
-
-		switch (m) {
+		switch (method) {
 		case RAW:
 			rawContent = compressedContent;
 			rawContentSize = compressedContentSize;
@@ -145,7 +139,7 @@ public class Block {
 			break;
 		default:
 			throw new RuntimeException("Unknown block compression method: "
-					+ m.name());
+					+ method.name());
 		}
 	}
 
@@ -155,7 +149,7 @@ public class Block {
 		if (!isUncompressed())
 			uncompress();
 
-		os.write(method);
+		os.write(method.ordinal());
 		os.write(contentType.ordinal());
 		os.write(contentId);
 

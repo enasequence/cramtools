@@ -16,11 +16,17 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.ReadWrite.CramHeader;
+import net.sf.cram.build.ContainerParser;
+import net.sf.cram.build.Cram2BamRecordFactory;
+import net.sf.cram.build.CramNormalizer;
+import net.sf.cram.build.CramIO;
+import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.index.CramIndex.Entry;
 import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.structure.Container;
+import net.sf.cram.structure.CramHeader;
+import net.sf.cram.structure.CramRecord;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -118,7 +124,7 @@ public class Cram2Bam {
 
 		long offset = 0;
 		CountingInputStream cis = new CountingInputStream(is);
-		CramHeader cramHeader = ReadWrite.readCramHeader(cis);
+		CramHeader cramHeader = CramIO.readCramHeader(cis);
 		offset = cis.getCount();
 
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
@@ -161,11 +167,13 @@ public class Cram2Bam {
 
 		byte[] ref = null;
 		int prevSeqId = -1;
+		
+		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader) ;
 		while (true) {
 //			try {
 				time = System.nanoTime();
 				// cis = new CountingInputStream(is);
-				c = ReadWrite.readContainer(cramHeader.samFileHeader, is);
+				c = CramIO.readContainer(is);
 				if (c == null) break ;
 				// c.offset = offset;
 				// offset += cis.getCount();
@@ -189,8 +197,7 @@ public class Cram2Bam {
 			try {
 				time = System.nanoTime();
 				cramRecords.clear();
-				BLOCK_PROTO.getRecords(c.h, c, cramHeader.samFileHeader,
-						cramRecords);
+				parser.getRecords(c, cramRecords);
 				parseTime += System.nanoTime() - time;
 			} catch (EOFException e) {
 				throw e;
@@ -237,7 +244,7 @@ public class Cram2Bam {
 			boolean enough = false;
 			for (CramRecord r : cramRecords) {
 				// check if the record ends before the query start:
-				if (location != null && r.getAlignmentStart() < location.start)
+				if (location != null && r.alignmentStart < location.start)
 					continue;
 
 				time = System.nanoTime();
@@ -311,7 +318,7 @@ public class Cram2Bam {
 				try {
 					Entry leftmost = CramIndex.getLeftmost(entries);
 					cramFileInputStream.seek(leftmost.containerStartOffset);
-					c = ReadWrite.readContainerHeader(cramFileInputStream);
+					c = CramIO.readContainerHeader(cramFileInputStream);
 					if (c == null) return null ;
 					if (c.alignmentStart + c.alignmentSpan > location.start) {
 						cramFileInputStream.seek(leftmost.containerStartOffset);
@@ -335,7 +342,7 @@ public class Cram2Bam {
 				int sliceIndex = (int) ((filePointers[i] << 48) >>> 48);
 				try {
 					cramFileInputStream.seek(offset);
-					c = ReadWrite.readContainerHeader(cramFileInputStream);
+					c = CramIO.readContainerHeader(cramFileInputStream);
 					if (c.alignmentStart + c.alignmentSpan > location.start) {
 						cramFileInputStream.seek(offset);
 						return c;

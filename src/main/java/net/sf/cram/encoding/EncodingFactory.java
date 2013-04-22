@@ -1,7 +1,6 @@
 package net.sf.cram.encoding;
 
-import net.sf.cram.DataSeriesType;
-import net.sf.cram.EncodingID;
+import net.sf.cram.structure.EncodingID;
 
 public class EncodingFactory {
 

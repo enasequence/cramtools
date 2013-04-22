@@ -10,7 +10,7 @@ import java.util.Map;
 
 import net.sf.cram.AlignmentSliceQuery;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.ReadTag;
+import net.sf.cram.structure.ReadTag;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileReader;

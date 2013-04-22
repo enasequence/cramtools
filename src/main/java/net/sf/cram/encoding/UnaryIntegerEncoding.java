@@ -5,10 +5,10 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 
 
-import net.sf.cram.EncodingID;
-import net.sf.cram.EncodingParams;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
+import net.sf.cram.structure.EncodingID;
+import net.sf.cram.structure.EncodingParams;
 
 @Deprecated
 public class UnaryIntegerEncoding implements Encoding<Integer> {
