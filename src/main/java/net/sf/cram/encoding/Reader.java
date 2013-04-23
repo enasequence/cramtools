@@ -162,8 +162,6 @@ public class Reader {
 				r.recordsToNextFragment = distanceC.readData();
 
 			Integer tagIdList = tagIdListCodec.readData();
-			if (tagIdDictionary == null)
-				System.out.println("asdfasdfasdf");
 			byte[][] ids = tagIdDictionary[tagIdList];
 			if (ids.length > 0) {
 				int tagCount = ids.length;
@@ -205,7 +203,6 @@ public class Reader {
 						sv.setPosition(pos);
 						byte code = bsc.readData();
 						sv.setCode(code);
-						// sv.setBaseChange(new BaseChange(bsc.readData()));
 						rf.add(sv);
 						break;
 					case Insertion.operator:
@@ -243,9 +240,6 @@ public class Reader {
 				// mapping quality:
 				r.mappingQuality = mqc.readData();
 				if (r.isForcePreserveQualityScores()) {
-					// byte[] qs = new byte[r.getReadLength()];
-					// for (int i = 0; i < qs.length; i++)
-					// qs[i] = qc.readData();
 					byte[] qs = qcArray.readDataArray(r.readLength);
 					r.qualityScores = qs;
 				}
@@ -256,9 +250,6 @@ public class Reader {
 				r.readBases = bases;
 
 				if (r.isForcePreserveQualityScores()) {
-					// byte[] qs = new byte[r.getReadLength()];
-					// for (int i = 0; i < qs.length; i++)
-					// qs[i] = qc.readData();
 					byte[] qs = qcArray.readDataArray(r.readLength);
 					r.qualityScores = qs;
 				}

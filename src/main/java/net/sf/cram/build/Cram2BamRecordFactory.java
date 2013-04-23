@@ -92,7 +92,7 @@ public class Cram2BamRecordFactory {
 		sr.setReadNegativeStrandFlag(cr.isNegativeStrand());
 		sr.setFirstOfPairFlag(cr.isFirstSegment());
 		sr.setSecondOfPairFlag(cr.isLastSegment());
-		sr.setNotPrimaryAlignmentFlag(cr.isSecondaryALignment());
+		sr.setNotPrimaryAlignmentFlag(cr.isSecondaryAlignment());
 		sr.setReadFailsVendorQualityCheckFlag(cr.isVendorFiltered());
 		sr.setDuplicateReadFlag(cr.isDuplicate());
 	}

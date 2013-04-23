@@ -129,7 +129,7 @@ public class Sam2CramRecordFactory {
 				&& record.getFirstOfPairFlag());
 		cramRecord.setLastSegment(record.getReadPairedFlag()
 				&& record.getSecondOfPairFlag());
-		cramRecord.setSecondaryALignment(record.getNotPrimaryAlignmentFlag());
+		cramRecord.setSecondaryAlignment(record.getNotPrimaryAlignmentFlag());
 		cramRecord.setVendorFiltered(record.getReadFailsVendorQualityCheckFlag());
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 
@@ -193,13 +193,6 @@ public class Sam2CramRecordFactory {
 
 		if (preserveReadNames)
 			cramRecord.readName = record.getReadName();
-
-//		for (ReadFeature rf:cramRecord.getReadFeatures()) {
-//			if (rf instanceof Substitution) {
-//				Substitution s = (Substitution) rf ;
-//				System.out.printf("pos=%d, ref=%c, base=%c, code=%d\n", s.getPosition(), s.getRefernceBase(), s.getBase(), s.getCode());
-//			}
-//		}
 
 		return cramRecord;
 	}

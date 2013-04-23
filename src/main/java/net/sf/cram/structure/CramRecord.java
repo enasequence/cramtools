@@ -76,7 +76,7 @@ public class CramRecord {
 	public String sequenceName;
 	public int sequenceId;
 	public String readName;
-	
+
 	// insert size:
 	public int templateSize;
 
@@ -236,12 +236,12 @@ public class CramRecord {
 				& ~LAST_SEGMENT_FLAG;
 	}
 
-	public boolean isSecondaryALignment() {
+	public boolean isSecondaryAlignment() {
 		return (flags & SECONDARY_ALIGNMENT_FLAG) != 0;
 	}
 
-	public void setSecondaryALignment(boolean secondaryALignment) {
-		flags = secondaryALignment ? flags | SECONDARY_ALIGNMENT_FLAG : flags
+	public void setSecondaryAlignment(boolean secondaryAlignment) {
+		flags = secondaryAlignment ? flags | SECONDARY_ALIGNMENT_FLAG : flags
 				& ~SECONDARY_ALIGNMENT_FLAG;
 	}
 
