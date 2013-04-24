@@ -180,7 +180,7 @@ public class CramIO {
 		lastSlice.size = c.containerByteSize - lastSlice.offset;
 	}
 
-	private static byte[] toByteArray(SAMFileHeader samFileHeader) {
+	public static byte[] toByteArray(SAMFileHeader samFileHeader) {
 		ExposedByteArrayOutputStream headerBodyOS = new ExposedByteArrayOutputStream();
 		OutputStreamWriter w = new OutputStreamWriter(headerBodyOS);
 		new SAMTextHeaderCodec().encode(w, samFileHeader);

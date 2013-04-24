@@ -33,7 +33,7 @@ import java.nio.ByteOrder;
 /**
  * Converter between disk and in-memory representation of a SAMRecord tag.
  */
-class BinaryTagCodec {
+public class BinaryTagCodec {
     // Size in bytes of the fixed part of the disk representation of a tag,
     // i.e. the number of bytes occupied by the tag name and tag type fields.
     private static final int FIXED_TAG_SIZE = 3;
