@@ -73,7 +73,8 @@ public class ContainerParser {
 		}
 
 		long time = 0;
-		Reader reader = f.buildReader(new DefaultBitInputStream(
+		Reader reader = new Reader() ;
+		f.buildReader(reader, new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.getRawContent())),
 				inputMap, h, s.sequenceId);
 

@@ -18,10 +18,9 @@ public class DataReaderFactory {
 
 	private boolean collectStats = false;
 
-	public Reader buildReader(BitInputStream bis,
+	public AbstractReader buildReader(AbstractReader reader, BitInputStream bis,
 			Map<Integer, InputStream> inputMap, CompressionHeader h, int refId)
 			throws IllegalArgumentException, IllegalAccessException {
-		Reader reader = new Reader();
 		reader.captureReadNames = h.readNamesIncluded;
 		reader.refId = refId ;
 
