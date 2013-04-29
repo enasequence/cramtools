@@ -16,9 +16,8 @@ import net.sf.cram.CramTools.ValidationStringencyConverter;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.BAMQueryFilteringIterator;
 import net.sf.cram.index.CramIndex;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.io.IoUtil;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMFileWriter;
@@ -76,22 +75,21 @@ public class Merge {
 			System.exit(1);
 		}
 
-		ReferenceSequenceFile refFile = null;
+		ReferenceSource referenceSource = null;
 		if (params.reference != null) {
 			System.setProperty("reference", params.reference.getAbsolutePath());
-			refFile = ReferenceSequenceFileFactory
-					.getReferenceSequenceFile(params.reference);
+			referenceSource = new ReferenceSource(params.reference);
 		} else {
 			String prop = System.getProperty("reference");
 			if (prop != null)
-				refFile = ReferenceSequenceFileFactory
-						.getReferenceSequenceFile(new File(prop));
+				referenceSource = new ReferenceSource(new File(prop));
 		}
 
 		AlignmentSliceQuery query = params.region == null ? null
 				: new AlignmentSliceQuery(params.region);
 
-		List<RecordSource> list = readFiles(params.files, refFile, query, params.validationLevel);
+		List<RecordSource> list = readFiles(params.files, referenceSource,
+				query, params.validationLevel);
 
 		StringBuffer mergeComment = new StringBuffer("Merged from:");
 		for (RecordSource source : list) {
@@ -150,12 +148,12 @@ public class Merge {
 	}
 
 	private static List<RecordSource> readFiles(List<File> files,
-			ReferenceSequenceFile refFile, AlignmentSliceQuery query, ValidationStringency ValidationStringency)
-			throws IOException {
+			ReferenceSource referenceSource, AlignmentSliceQuery query,
+			ValidationStringency ValidationStringency) throws IOException {
 		List<RecordSource> sources = new ArrayList<Merge.RecordSource>(
 				files.size());
 
-		SAMFileReader.setDefaultValidationStringency(ValidationStringency) ;
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency);
 		for (File file : files) {
 			IoUtil.assertFileIsReadable(file);
 
@@ -202,7 +200,7 @@ public class Merge {
 
 						bis.close();
 
-						SAMIterator it = new SAMIterator(is, refFile);
+						SAMIterator it = new SAMIterator(is, referenceSource);
 						is.seek(entries.get(0).containerStartOffset);
 						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(
 								it, query.sequence, query.start, query.end,

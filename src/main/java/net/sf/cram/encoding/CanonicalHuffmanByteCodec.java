@@ -13,7 +13,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class CanonicalHuffmanByteCodec implements BitCodec<Byte> {
+public class CanonicalHuffmanByteCodec extends AbstractBitCodec<Byte> {
 
 	private TreeMap<Byte, HuffmanBitCode> codes;
 	private HuffmanBitCode[] bitCodes = new HuffmanBitCode[256];

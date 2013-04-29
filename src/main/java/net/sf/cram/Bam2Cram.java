@@ -15,32 +15,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.build.ContainerParser;
 import net.sf.cram.build.ContainerFactory;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.build.Sam2CramRecordFactory;
-import net.sf.cram.common.Utils;
 import net.sf.cram.lossy.QualityScorePreservation;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.ref.ReferenceTracks;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.Slice;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMSequenceRecord;
 import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
 
 import com.beust.jcommander.JCommander;
@@ -230,12 +225,12 @@ public class Bam2Cram {
 			System.exit(1);
 		}
 
-		if (params.referenceFasta == null) {
-			System.out.println("A reference fasta file is required.");
-			System.exit(1);
-		}
-
 		Log.setGlobalLogLevel(params.logLevel);
+
+		if (params.referenceFasta == null) 
+			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
+		ReferenceSource referenceSource = new ReferenceSource(
+				params.referenceFasta);
 
 		char[] pass = null;
 		if (params.encrypt) {
@@ -255,10 +250,7 @@ public class Bam2Cram {
 		} else
 			samFileReader = new SAMFileReader(bamFile);
 
-		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
-				.getReferenceSequenceFile(params.referenceFasta);
-
-		ReferenceSequence sequence = null;
+		SAMSequenceRecord samSequenceRecord = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
 				params.maxSliceSize);
 		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
@@ -272,24 +264,11 @@ public class Bam2Cram {
 			prevSeqId = samRecord.getReferenceIndex();
 			samRecords.add(samRecord);
 
-			// if (samFileReader.getFileHeader().getReadGroups().isEmpty()
-			// || samFileReader.getFileHeader().getReadGroup(
-			// Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID) == null) {
-			// log.info("Adding default read group.");
-			// SAMReadGroupRecord readGroup = new SAMReadGroupRecord(
-			// Sam2CramRecordFactory.UNKNOWN_READ_GROUP_ID);
-			//
-			// readGroup
-			// .setSample(Sam2CramRecordFactory.UNKNOWN_READ_GROUP_SAMPLE);
-			// samFileReader.getFileHeader().addReadGroup(readGroup);
-			// }
-
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
-				sequence = null;
+				samSequenceRecord = null;
 			else
-				sequence = Utils.trySequenceNameVariants(referenceSequenceFile,
+				samSequenceRecord = samFileReader.getFileHeader().getSequence(
 						seqName);
-
 		}
 
 		QualityScorePreservation preservation;
@@ -298,7 +277,8 @@ public class Bam2Cram {
 		else
 			preservation = new QualityScorePreservation(params.qsSpec);
 
-		byte[] ref = sequence == null ? new byte[0] : sequence.getBases();
+		byte[] ref = samSequenceRecord == null ? new byte[0] : referenceSource
+				.getReferenceBases(samSequenceRecord, true);
 
 		{
 			// hack:
@@ -409,10 +389,10 @@ public class Bam2Cram {
 
 			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					sequence = Utils
-							.trySequenceNameVariants(referenceSequenceFile,
-									samRecord.getReferenceName());
-					ref = sequence.getBases();
+					samSequenceRecord = samFileReader.getFileHeader()
+							.getSequence(samRecord.getReferenceName());
+					ref = referenceSource.getReferenceBases(samSequenceRecord,
+							true);
 					{
 						// hack:
 						int newLines = 0;

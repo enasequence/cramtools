@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.util.SeekableStream;
@@ -57,7 +58,7 @@ public class ReferenceDiscovery {
 		return null;
 	}
 
-	public static ReferenceSequenceFile findReferenceSequenceFileOrFail(Object... sources) {
+	public static ReferenceSource findReferenceSequenceFileOrFail(Object... sources) {
 		ReferenceSequenceFile referenceSequenceFile = null;
 
 		if (sources != null)
@@ -66,7 +67,7 @@ public class ReferenceDiscovery {
 					continue;
 				ReferenceSequenceFile foundFile = referenceFactory.get(source);
 				if (foundFile != null)
-					return foundFile;
+					return new ReferenceSource(foundFile);
 
 				// last resort, using a blind-walk method in a black room to
 				// find a
@@ -85,12 +86,12 @@ public class ReferenceDiscovery {
 
 				referenceSequenceFile = probeLocation(name);
 				if (referenceSequenceFile != null)
-					return referenceSequenceFile;
+					return new ReferenceSource(referenceSequenceFile) ;
 
 				// could be an index file:
 				referenceSequenceFile = probeLocation(name.replaceAll(".crai$", ""));
 				if (referenceSequenceFile != null)
-					return referenceSequenceFile;
+					return new ReferenceSource(referenceSequenceFile) ;
 			}
 
 		// try default rsf from java properties:
@@ -98,9 +99,9 @@ public class ReferenceDiscovery {
 		if (refProperty != null) {
 			File file = new File(refProperty);
 			if (file.isFile())
-				return ReferenceSequenceFileFactory.getReferenceSequenceFile(file);
+				return new ReferenceSource(file);
 		}
-
-		throw new RuntimeException("Reference sequence file not found.");
+		
+		return new ReferenceSource() ;
 	}
 }

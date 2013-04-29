@@ -8,7 +8,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class ExternalByteCodec implements BitCodec<Byte> {
+public class ExternalByteCodec extends AbstractBitCodec<Byte> {
 	private OutputStream os;
 	private InputStream is;
 

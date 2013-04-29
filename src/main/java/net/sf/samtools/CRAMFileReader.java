@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 import net.sf.cram.build.CramIO;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -23,7 +24,7 @@ import net.sf.samtools.util.SeekableStream;
 
 public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	private File file;
-	private ReferenceSequenceFile referenceSequenceFile;
+	private ReferenceSource referenceSource;
 	private CramHeader header;
 	private InputStream is;
 	private SAMRecordIterator it;
@@ -36,20 +37,20 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	private ValidationStringency validationStringency;
 
 	public CRAMFileReader(File file, InputStream is,
-			ReferenceSequenceFile referenceSequenceFile) {
+			ReferenceSource referenceSource) {
 		this.file = file;
 		this.is = is;
-		this.referenceSequenceFile = referenceSequenceFile;
+		this.referenceSource = referenceSource;
 
 		if (file == null)
 			getIterator();
 	}
 
 	public CRAMFileReader(File bamFile, File indexFile,
-			ReferenceSequenceFile referenceSequenceFile) {
+			ReferenceSource referenceSource) {
 		this.file = bamFile;
 		this.mIndexFile = indexFile;
-		this.referenceSequenceFile = referenceSequenceFile;
+		this.referenceSource = referenceSource;
 
 		if (file == null)
 			getIterator();
@@ -131,9 +132,9 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 			SAMIterator si = null;
 			if (file != null)
 				si = new SAMIterator(new FileInputStream(file),
-						referenceSequenceFile);
+						referenceSource);
 			else
-				si = new SAMIterator(is, referenceSequenceFile);
+				si = new SAMIterator(is, referenceSource);
 
 			si.setValidationStringency(validationStringency);
 			header = si.getCramHeader();
@@ -229,7 +230,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 		SAMIterator si = null;
 		try {
 			s.seek(0);
-			si = new SAMIterator(s, referenceSequenceFile);
+			si = new SAMIterator(s, referenceSource);
 			si.setValidationStringency(validationStringency);
 			it = si;
 		} catch (IOException e) {
@@ -280,7 +281,7 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 		SAMIterator si = null;
 		try {
 			s.seek(0);
-			si = new SAMIterator(s, referenceSequenceFile);
+			si = new SAMIterator(s, referenceSource);
 			si.setValidationStringency(validationStringency);
 			s.seek(startOfLastLinearBin);
 			it = si;

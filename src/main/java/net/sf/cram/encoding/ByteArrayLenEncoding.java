@@ -121,7 +121,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 				byteEncoding.buildCodec(inputMap, outputMap));
 	}
 
-	private static class ByteArrayLenCodec implements BitCodec<byte[]> {
+	private static class ByteArrayLenCodec extends AbstractBitCodec<byte[]> {
 		private BitCodec<Integer> lenCodec;
 		private BitCodec<byte[]> byteCodec;
 

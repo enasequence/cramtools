@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class GolombRiceIntegerCodec implements BitCodec<Integer> {
+public class GolombRiceIntegerCodec extends AbstractBitCodec<Integer> {
 	private int m;
 	private int log2m;
 	private long mask ;

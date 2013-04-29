@@ -9,12 +9,13 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import net.sf.cram.encoding.AbstractBitCodec;
 import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class CanonicalHuffmanIntegerCodec2 implements BitCodec<Integer> {
+public class CanonicalHuffmanIntegerCodec2 extends AbstractBitCodec<Integer> {
 	private final Helper helper ;
 
 	/*

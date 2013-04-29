@@ -11,7 +11,7 @@ import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.picard.util.Log;
 
-public class ArithCodec implements BitCodec<byte[]> {
+public class ArithCodec extends AbstractBitCodec<byte[]> {
 	private byte curBit = 0;
 	private int curByte = 0;
 	private double min = 0;

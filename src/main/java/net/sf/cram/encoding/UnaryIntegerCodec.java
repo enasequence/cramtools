@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class UnaryIntegerCodec implements BitCodec<Integer> {
+public class UnaryIntegerCodec extends AbstractBitCodec<Integer> {
 	private boolean stopBit = false;
 	private int offset = 0;
 

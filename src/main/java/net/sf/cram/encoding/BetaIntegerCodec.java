@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class BetaIntegerCodec implements BitCodec<Integer> {
+public class BetaIntegerCodec extends AbstractBitCodec<Integer> {
 	private int offset = 0;
 	private int readNofBits;
 	

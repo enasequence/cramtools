@@ -27,7 +27,7 @@ public class CompressionHeader {
 
 	public boolean readNamesIncluded;
 	public boolean AP_seriesDelta=true;
-	public boolean referenceRequired=false;
+	public boolean referenceRequired=true;
 
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;

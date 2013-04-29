@@ -9,7 +9,7 @@ import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.ByteBufferUtils;
 
 
-public class ExternalIntegerCodec implements BitCodec<Integer> {
+public class ExternalIntegerCodec extends AbstractBitCodec<Integer> {
 	private OutputStream os;
 	private InputStream is;
 	private OutputStream nullOS = new OutputStream() {

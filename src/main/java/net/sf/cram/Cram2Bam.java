@@ -24,6 +24,7 @@ import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.index.CramIndex.Entry;
 import net.sf.cram.io.CountingInputStream;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
@@ -82,12 +83,11 @@ public class Cram2Bam {
 			System.exit(1);
 		}
 
-		if (params.reference == null) {
-			System.out.println("A reference fasta file is required.");
-			System.exit(1);
-		}
-
 		Log.setGlobalLogLevel(params.logLevel);
+
+		if (params.reference == null)
+			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
+		ReferenceSource referenceSource = new ReferenceSource(params.reference);
 
 		if (params.locations == null)
 			params.locations = new ArrayList<String>();
@@ -98,9 +98,6 @@ public class Cram2Bam {
 				throw new RuntimeException("Cannot access console.");
 			pass = System.console().readPassword();
 		}
-
-		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
-				.getReferenceSequenceFile(params.reference);
 
 		InputStream is;
 		if (params.cramFile != null) {
@@ -167,22 +164,16 @@ public class Cram2Bam {
 
 		byte[] ref = null;
 		int prevSeqId = -1;
-		
-		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader) ;
-		while (true) {
-//			try {
-				time = System.nanoTime();
-				// cis = new CountingInputStream(is);
-				c = CramIO.readContainer(is);
-				if (c == null) break ;
-				// c.offset = offset;
-				// offset += cis.getCount();
-				readTime += System.nanoTime() - time;
-//			} catch (EOFException e) {
-//				break;
-//			}
 
-			// for random access check if the sequence is the one look for:
+		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
+		while (true) {
+			time = System.nanoTime();
+			c = CramIO.readContainer(is);
+			if (c == null)
+				break;
+			readTime += System.nanoTime() - time;
+
+			// for random access check if the sequence is the one we are looking for:
 			if (location != null
 					&& cramHeader.samFileHeader.getSequence(location.sequence)
 							.getSequenceIndex() != c.sequenceId)
@@ -208,30 +199,13 @@ public class Cram2Bam {
 			} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 				SAMSequenceRecord sequence = cramHeader.samFileHeader
 						.getSequence(c.sequenceId);
-				ReferenceSequence referenceSequence = Utils
-						.trySequenceNameVariants(referenceSequenceFile,
-								sequence.getSequenceName());
-				ref = referenceSequence.getBases();
-				{
-					// hack:
-					int newLines = 0;
-					for (byte b : ref)
-						if (b == 10)
-							newLines++;
-					byte[] ref2 = new byte[ref.length - newLines];
-					int j = 0;
-					for (int i = 0; i < ref.length; i++)
-						if (ref[i] == 10)
-							continue;
-						else
-							ref2[j++] = ref[i];
-					ref = ref2;
-				}
+				ref = referenceSource.getReferenceBases(sequence, true) ;
 				prevSeqId = c.sequenceId;
 			}
 
 			long time1 = System.nanoTime();
-			n.normalize(cramRecords, true, ref, c.alignmentStart, c.h.substitutionMatrix, c.h.AP_seriesDelta);
+			n.normalize(cramRecords, true, ref, c.alignmentStart,
+					c.h.substitutionMatrix, c.h.AP_seriesDelta);
 			long time2 = System.nanoTime();
 			normTime += time2 - time1;
 
@@ -295,8 +269,6 @@ public class Cram2Bam {
 		if (params.countOnly)
 			System.out.println(recordCount);
 
-		// if (writer instanceof SAMTextWriter)
-		// ((SAMTextWriter)writer).getWriter().flush() ;
 		writer.close();
 
 		log.warn(String
@@ -319,7 +291,8 @@ public class Cram2Bam {
 					Entry leftmost = CramIndex.getLeftmost(entries);
 					cramFileInputStream.seek(leftmost.containerStartOffset);
 					c = CramIO.readContainerHeader(cramFileInputStream);
-					if (c == null) return null ;
+					if (c == null)
+						return null;
 					if (c.alignmentStart + c.alignmentSpan > location.start) {
 						cramFileInputStream.seek(leftmost.containerStartOffset);
 						return c;
@@ -397,54 +370,7 @@ public class Cram2Bam {
 		}
 		return null;
 	}
-
-	// private static long[] getFilePointers(File cramFile, CramHeader
-	// cramHeader,
-	// SeekableStream cramFileInputStream, AlignmentSliceQuery location,
-	// boolean bai) throws IOException {
-	// long[] filePointers = new long[0];
-	//
-	// if (bai) {
-	// File indexFile = new File(cramFile.getAbsolutePath() + ".bai");
-	// if (indexFile.exists())
-	// filePointers = BAMIndexFactory.SHARED_INSTANCE
-	// .getBAMIndexPointers(indexFile,
-	// cramHeader.samFileHeader
-	// .getSequenceDictionary(),
-	// location.sequence, location.start, location.end);
-	// } else {
-	// File indexFile = new File(cramFile.getAbsolutePath() + ".crai");
-	// if (indexFile.exists()) {
-	// FileInputStream fis = new FileInputStream(indexFile);
-	// GZIPInputStream gis = new GZIPInputStream(
-	// new BufferedInputStream(fis));
-	// BufferedInputStream bis = new BufferedInputStream(gis);
-	// List<CramIndex.Entry> full = CramIndex.readIndex(gis);
-	//
-	// List<CramIndex.Entry> entries = new LinkedList<CramIndex.Entry>();
-	// SAMSequenceRecord sequence = cramHeader.samFileHeader
-	// .getSequence(location.sequence);
-	// if (sequence == null)
-	// throw new RuntimeException("Sequence not found: "
-	// + location.sequence);
-	//
-	// entries.addAll(CramIndex.find(full, sequence.getSequenceIndex(),
-	// location.start, location.end - location.start));
-	//
-	// bis.close();
-	//
-	// filePointers = new long[entries.size() * 2];
-	// int i = 0;
-	// for (CramIndex.Entry entry : entries) {
-	// filePointers[i++] = (entry.containerStartOffset << 16) | entry.;
-	// filePointers[i++] = 0;
-	// }
-	// }
-	// }
-	//
-	// return filePointers;
-	// }
-
+	
 	private static SAMFileWriter createSAMFileWriter(Params params,
 			CramHeader cramHeader, SAMFileWriterFactory samFileWriterFactory)
 			throws IOException {
@@ -501,7 +427,7 @@ public class Cram2Bam {
 		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file to uncompress. Omit if standard input (pipe).")
 		File cramFile;
 
-		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example).")
+		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example). ")
 		File reference;
 
 		@Parameter(names = { "--output-bam-file", "-O" }, converter = FileConverter.class, description = "The path to the output BAM file.")

@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class GolombLongCodec implements BitCodec<Long> {
+public class GolombLongCodec extends AbstractBitCodec<Long> {
 	private int m;
 	private boolean quotientBit = true;
 	private long offset = 0L;

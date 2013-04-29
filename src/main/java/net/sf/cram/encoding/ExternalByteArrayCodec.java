@@ -9,7 +9,7 @@ import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.IOUtils;
 
 
-public class ExternalByteArrayCodec implements BitCodec<byte[]> {
+public class ExternalByteArrayCodec extends AbstractBitCodec<byte[]> {
 	private OutputStream os;
 	private InputStream is;
 

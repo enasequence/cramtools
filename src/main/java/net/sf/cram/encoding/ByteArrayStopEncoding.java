@@ -69,7 +69,7 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		return new ByteArrayStopCodec(stopByte, is, os);
 	}
 
-	public static class ByteArrayStopCodec implements BitCodec<byte[]> {
+	public static class ByteArrayStopCodec extends AbstractBitCodec<byte[]> {
 
 		private int stop;
 		private InputStream is;

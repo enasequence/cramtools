@@ -20,7 +20,7 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-public class GammaIntegerCodec implements BitCodec<Integer> {
+public class GammaIntegerCodec extends AbstractBitCodec<Integer> {
 	private int offset = 0;
 	private boolean lenCodingBit = false;
 

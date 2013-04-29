@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class GolombIntegerCodec implements BitCodec<Integer> {
+public class GolombIntegerCodec extends AbstractBitCodec<Integer> {
 	private int m;
 	private boolean quotientBit = true;
 	private int offset = 0;

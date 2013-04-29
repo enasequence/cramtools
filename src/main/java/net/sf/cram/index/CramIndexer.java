@@ -9,7 +9,7 @@ import java.util.Random;
 
 import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMIndexer;
@@ -181,7 +181,7 @@ public class CramIndexer {
 			File cramIndexFile, File refFile, int posMin, int posMax,
 			int repeat, String sequenceName) {
 		CRAMFileReader reader = new CRAMFileReader(cramFile, cramIndexFile,
-				ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
+				new ReferenceSource(refFile));
 
 		int overhead = 0;
 

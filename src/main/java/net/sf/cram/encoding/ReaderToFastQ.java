@@ -32,6 +32,7 @@ import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.Slice;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
@@ -122,9 +123,9 @@ public class ReaderToFastQ extends AbstractReader {
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
 					scores = qcArray.readDataArray(readLength);
 			}
-			
-			correct(bases) ;
-			
+
+			correct(bases);
+
 			buf.put((byte) '@');
 			buf.put(readName);
 			buf.put((byte) '\n');
@@ -263,8 +264,8 @@ public class ReaderToFastQ extends AbstractReader {
 
 		return bases;
 	}
-	
-	private final void correct (byte[] bases) {
+
+	private final void correct(byte[] bases) {
 		for (int i = 0; i < bases.length; i++) {
 			switch (bases[i]) {
 			case 'a':
@@ -291,17 +292,18 @@ public class ReaderToFastQ extends AbstractReader {
 
 	public static void main(String[] args) throws IOException,
 			IllegalArgumentException, IllegalAccessException {
-		Log.setGlobalLogLevel(LogLevel.ERROR) ;
-		
+		Log.setGlobalLogLevel(LogLevel.ERROR);
+
 		File cramFile = new File(args[0]);
 		File refFile = new File(args[1]);
-		File fqgzFile = new File(cramFile.getAbsolutePath() + ".fq") ;
-		
-		OutputStream os = (new BufferedOutputStream(new FileOutputStream(fqgzFile))) ;
+		File fqgzFile = new File(cramFile.getAbsolutePath() + ".fq");
+
+		OutputStream os = (new BufferedOutputStream(new FileOutputStream(
+				fqgzFile)));
 
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(refFile);
-		byte[] ref = null ;
+		byte[] ref = null;
 
 		InputStream is = new FileInputStream(cramFile);
 
@@ -316,9 +318,15 @@ public class ReaderToFastQ extends AbstractReader {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(s.sequenceId);
 					seqName = sequence.getSequenceName();
-					ref = referenceSequenceFile.getSequence(seqName).getBases();
-
-				} 
+					ReferenceSequence referenceSequence = referenceSequenceFile
+							.getSequence(seqName);
+					int appendix = 1024;
+					ref = new byte[referenceSequence.length() + appendix];
+					System.arraycopy(referenceSequence.getBases(), 0, ref, 0,
+							referenceSequence.length());
+					for (int i = 0; i < appendix; i++)
+						ref[i + referenceSequence.length()] = 'N';
+				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {
 					inputMap.put(exId,
@@ -338,14 +346,14 @@ public class ReaderToFastQ extends AbstractReader {
 					reader.read();
 				}
 				reader.buf.flip();
-				long sum = 0 ;
-//				for (int i=0; i<reader.buf.limit(); i++)
-//					sum += reader.buf.get(i) ;
-//				System.out.println(sum);
+				long sum = 0;
+				// for (int i=0; i<reader.buf.limit(); i++)
+				// sum += reader.buf.get(i) ;
+				// System.out.println(sum);
 				os.write(reader.buf.array(), 0, reader.buf.limit());
 				reader.buf.clear();
 			}
 		}
-		os.close() ;
+		os.close();
 	}
 }

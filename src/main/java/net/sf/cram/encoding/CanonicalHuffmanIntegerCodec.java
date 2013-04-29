@@ -13,7 +13,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class CanonicalHuffmanIntegerCodec implements BitCodec<Integer> {
+public class CanonicalHuffmanIntegerCodec extends AbstractBitCodec<Integer> {
 
 	private TreeMap<Integer, HuffmanBitCode> codes;
 	private Integer[] codeLentghSorted;

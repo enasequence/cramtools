@@ -27,11 +27,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.structure.CramRecord;
-import net.sf.picard.PicardException;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -150,8 +148,7 @@ public class Utils {
 	}
 
 	public static void reversePositionsInRead(CramRecord record) {
-		if (record.readFeatures == null
-				|| record.readFeatures.isEmpty())
+		if (record.readFeatures == null || record.readFeatures.isEmpty())
 			return;
 		for (ReadFeature f : record.readFeatures)
 			f.setPosition((int) (record.readLength - f.getPosition() - 1));
@@ -315,87 +312,6 @@ public class Utils {
 							+ file.getAbsolutePath() + "'");
 	}
 
-	public static ReferenceSequence getReferenceSequenceOrNull(
-			ReferenceSequenceFile rsFile, String name) {
-		ReferenceSequence rs = null;
-		try {
-			return rsFile.getSequence(name);
-		} catch (PicardException e) {
-			return null;
-		}
-	}
-
-	private static final Pattern chrPattern = Pattern.compile("chr.*",
-			Pattern.CASE_INSENSITIVE);
-
-	public static ReferenceSequence trySequenceNameVariants(
-			ReferenceSequenceFile rsFile, String name) {
-		ReferenceSequence rs = getReferenceSequenceOrNull(rsFile, name);
-
-		if (rs == null && name.equals("M")) {
-			rs = getReferenceSequenceOrNull(rsFile, "MT");
-		}
-
-		if (rs == null && name.equals("MT")) {
-			rs = getReferenceSequenceOrNull(rsFile, "M");
-		}
-
-		boolean chrPatternMatch = chrPattern.matcher(name).matches();
-		if (rs == null) {
-			if (chrPatternMatch)
-				rs = getReferenceSequenceOrNull(rsFile, name.substring(3));
-			else
-				rs = getReferenceSequenceOrNull(rsFile, "chr" + name);
-		}
-
-		if (rs == null && "chrM".equals(name)) {
-			// chrM case:
-			rs = getReferenceSequenceOrNull(rsFile, "MT");
-		}
-
-		if (rs == null)
-			return null;
-
-		return rs;
-	}
-
-	public static byte[] getBasesOrNull(ReferenceSequenceFile rsFile,
-			String name, int start, int len) {
-
-		ReferenceSequence rs = trySequenceNameVariants(rsFile, name);
-		if (rs == null)
-			return null;
-
-		if (len < 1)
-			return rs.getBases();
-		else
-			return rsFile.getSubsequenceAt(rs.getName(), 1, len).getBases();
-	}
-
-	public static byte[] getReferenceSequenceBases(
-			ReferenceSequenceFile referenceSequenceFile, String seqName)
-			throws RuntimeException {
-		long time1 = System.currentTimeMillis();
-		byte[] refBases = Utils.getBasesOrNull(referenceSequenceFile, seqName,
-				1, 0);
-		if (refBases == null)
-			throw new RuntimeException("Reference sequence " + seqName
-					+ " not found in the fasta file "
-					+ referenceSequenceFile.toString());
-
-		long time2 = System.currentTimeMillis();
-		log.debug(String.format("Reference sequence %s read in %.2f seconds.",
-				seqName, (time2 - time1) / 1000f));
-
-		Utils.capitaliseAndCheckBases(refBases, false);
-
-		long time3 = System.currentTimeMillis();
-		log.debug(String.format(
-				"Reference sequence normalized in %.2f seconds.",
-				(time3 - time2) / 1000f));
-		return refBases;
-	}
-
 	/**
 	 * A rip off samtools bam_md.c
 	 * 
@@ -541,11 +457,11 @@ public class Utils {
 		}
 	}
 
-	
 	public static String calculateMD5(byte[] data)
 			throws NoSuchAlgorithmException {
-		return calculateMD5(data, 0, data.length) ;
+		return calculateMD5(data, 0, data.length);
 	}
+
 	public static String calculateMD5(byte[] data, int offset, int len)
 			throws NoSuchAlgorithmException {
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
@@ -566,7 +482,7 @@ public class Utils {
 		// return String.format( String.format( "%%0%dx",
 		// md5_MessageDigest.digest().length << 1 ), value );
 	}
-	
+
 	public static void main(String[] args) throws NoSuchAlgorithmException {
 		System.out.println(calculateMD5("363".getBytes()));
 		System.out.println(calculateMD5("a".getBytes()));

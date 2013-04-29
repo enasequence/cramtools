@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class SubexpIntegerCodec implements BitCodec<Integer> {
+public class SubexpIntegerCodec extends AbstractBitCodec<Integer> {
 	private int offset = 0;
 	private int k = 2;
 	private boolean unaryBit = true;

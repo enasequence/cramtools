@@ -21,7 +21,7 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
 
-public class NullCodec<T> implements BitCodec<T> {
+public class NullCodec<T> extends AbstractBitCodec<T> {
 	private T defaultValue = null ;
 
 	public NullCodec() {

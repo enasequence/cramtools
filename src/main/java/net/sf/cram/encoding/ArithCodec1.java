@@ -13,7 +13,7 @@ import net.sf.cram.io.DefaultBitOutputStream;
  * 
  * @author Alexander Senf
  */
-public class ArithCodec1 implements BitCodec<byte[]> {
+public class ArithCodec1 extends AbstractBitCodec<byte[]> {
 	private byte curBit = 0;
 	private int curByte = 0;
 	private double min = 0;
