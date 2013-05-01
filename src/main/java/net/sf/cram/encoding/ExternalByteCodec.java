@@ -6,6 +6,7 @@ import java.io.OutputStream;
 
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.IOUtils;
 
 
 public class ExternalByteCodec extends AbstractBitCodec<Byte> {
@@ -36,5 +37,11 @@ public class ExternalByteCodec extends AbstractBitCodec<Byte> {
 	@Override
 	public Byte read(BitInputStream bis, int len) throws IOException {
 		throw new RuntimeException("Not implemented.") ;
+	}
+	
+	@Override
+	public void readInto(BitInputStream bis, byte[] array, int offset,
+			int valueLen) throws IOException {
+		IOUtils.readFully(is, array, offset, valueLen);
 	}
 }

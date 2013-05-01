@@ -16,7 +16,6 @@
 package net.sf.cram.encoding;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
@@ -27,11 +26,8 @@ public interface BitCodec<T> {
 
 	public T read(BitInputStream bis, int valueLen) throws IOException;
 
-	public void readInto(BitInputStream bis, byte[] array, int offset, int valueLen)
-			throws IOException;
-	
-	public void readInto(BitInputStream bis, ByteBuffer buf, int valueLen)
-			throws IOException;	
+	public void readInto(BitInputStream bis, byte[] array, int offset,
+			int valueLen) throws IOException;
 
 	public void skip(BitInputStream bis) throws IOException;
 

@@ -1,24 +1,9 @@
 package net.sf.cram.encoding;
 
-import java.io.EOFException;
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.LinkedList;
-import java.util.Map;
 
-import net.sf.cram.encoding.read_features.BaseChange;
-import net.sf.cram.encoding.read_features.BaseQualityScore;
-import net.sf.cram.encoding.read_features.Deletion;
-import net.sf.cram.encoding.read_features.InsertBase;
-import net.sf.cram.encoding.read_features.Insertion;
-import net.sf.cram.encoding.read_features.ReadBase;
-import net.sf.cram.encoding.read_features.ReadFeature;
-import net.sf.cram.encoding.read_features.RefSkip;
-import net.sf.cram.encoding.read_features.SoftClip;
-import net.sf.cram.encoding.read_features.Substitution;
-import net.sf.cram.structure.CramRecord;
+import net.sf.cram.common.IntHashMap;
 import net.sf.cram.structure.EncodingKey;
-import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.SubstitutionMatrix;
 
 public abstract class AbstractReader {
@@ -54,7 +39,7 @@ public abstract class AbstractReader {
 	public DataReader<Integer> tagNameAndTypeC;
 
 	@DataSeriesMap(name = "TAG")
-	public Map<Integer, DataReader<byte[]>> tagValueCodecs;
+	public IntHashMap<DataReader<byte[]>> tagValueCodecs;
 
 	@DataSeries(key = EncodingKey.FN_NumberOfReadFeatures, type = DataSeriesType.INT)
 	public DataReader<Integer> nfc;
@@ -82,7 +67,7 @@ public abstract class AbstractReader {
 
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> softClipCodec;
-	
+
 	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> hardClipCodec;
 

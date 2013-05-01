@@ -43,7 +43,7 @@ import net.sf.samtools.SAMUtils;
 
 public class ReaderToFastQ extends AbstractReader {
 
-	ByteBuffer buf = ByteBuffer.allocate(1024 * 1024 * 10);
+	public ByteBuffer buf = ByteBuffer.allocate(1024 * 1024 * 10);
 	public int[] index = new int[4 * 100000];
 	public int[] distances = new int[4 * 100000];
 	private ByteBuffer readFeatureBuffer = ByteBuffer.allocate(1024);
@@ -58,6 +58,9 @@ public class ReaderToFastQ extends AbstractReader {
 	public byte[] ref;
 	private int readFeatureSize;
 
+	byte[] bases = new byte[1024];
+	byte[] scores = new byte[1024];
+
 	public void read() throws IOException {
 
 		try {
@@ -65,7 +68,7 @@ public class ReaderToFastQ extends AbstractReader {
 
 			compressionFlags = compBitFlagsC.readData();
 			if (refId == -2)
-				refIdCodec.readData();
+				refIdCodec.skip() ;
 
 			readLength = readLengthC.readData();
 			if (AP_delta)
@@ -73,7 +76,7 @@ public class ReaderToFastQ extends AbstractReader {
 			else
 				prevAlStart = alStartC.readData();
 
-			readGroupC.readData();
+			readGroupC.skip() ;
 
 			if (captureReadNames)
 				readName = readNameC.readData();
@@ -84,9 +87,9 @@ public class ReaderToFastQ extends AbstractReader {
 				if (!captureReadNames)
 					readName = readNameC.readData();
 
-				mrc.readData();
-				malsc.readData();
-				tsc.readData();
+				mrc.skip() ;
+				malsc.skip() ;
+				tsc.skip() ;
 				detachedCount++;
 			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0)
 				distances[recordCounter] = distanceC.readData();
@@ -98,45 +101,40 @@ public class ReaderToFastQ extends AbstractReader {
 					int id = ReadTag.name3BytesToInt(ids[i]);
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
 					try {
-						dataReader.readData();
+						dataReader.skip() ;
 					} catch (EOFException e) {
 						throw e;
 					}
 				}
 			}
 
-			byte[] bases;
-			byte[] scores = null;
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				readReadFeatures();
 				bases = restoreReadBases();
 
-				// mapping quality:
-				mqc.readData();
+				mqc.skip() ;
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					scores = qcArray.readDataArray(readLength);
+					qcArray.readByteArrayInto(scores, 0, readLength);
 			} else {
-				bases = new byte[readLength];
-				for (int i = 0; i < bases.length; i++)
-					bases[i] = bc.readData();
+				bc.readByteArrayInto(bases, 0, readLength);
 
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					scores = qcArray.readDataArray(readLength);
+					qcArray.readByteArrayInto(scores, 0, readLength);
 			}
 
-			correct(bases);
+			correctBases();
 
 			buf.put((byte) '@');
 			buf.put(readName);
 			buf.put((byte) '\n');
-			buf.put(bases);
+			buf.put(bases, 0, readLength);
 			buf.put((byte) '\n');
 			buf.put((byte) '+');
 			buf.put((byte) '\n');
 			if (scores != null) {
 				for (int i = 0; i < readLength; i++)
 					scores[i] += 33;
-				buf.put(scores);
+				buf.put(scores, 0, readLength);
 			}
 			buf.put((byte) '\n');
 
@@ -204,19 +202,18 @@ public class ReaderToFastQ extends AbstractReader {
 
 	private final byte[] restoreReadBases() {
 		readFeatureBuffer.rewind();
-		byte[] bases = new byte[readLength];
 
 		int posInRead = 1;
 		int alignmentStart = prevAlStart - 1;
 
 		int posInSeq = 0;
 		if (!readFeatureBuffer.hasRemaining()) {
-			if (ref.length < alignmentStart + bases.length) {
+			if (ref.length < alignmentStart + readLength) {
 				Arrays.fill(bases, (byte) 'N');
 				System.arraycopy(ref, alignmentStart, bases, 0,
-						Math.min(bases.length, ref.length - alignmentStart));
+						Math.min(readLength, ref.length - alignmentStart));
 			} else
-				System.arraycopy(ref, alignmentStart, bases, 0, bases.length);
+				System.arraycopy(ref, alignmentStart, bases, 0, readLength);
 			return bases;
 		}
 
@@ -265,8 +262,8 @@ public class ReaderToFastQ extends AbstractReader {
 		return bases;
 	}
 
-	private final void correct(byte[] bases) {
-		for (int i = 0; i < bases.length; i++) {
+	private final void correctBases() {
+		for (int i = 0; i < readLength; i++) {
 			switch (bases[i]) {
 			case 'a':
 				bases[i] = 'A';
@@ -309,6 +306,7 @@ public class ReaderToFastQ extends AbstractReader {
 
 		CramHeader cramHeader = CramIO.readCramHeader(is);
 		Container container = null;
+		ReaderToFastQ reader = new ReaderToFastQ();
 		while ((container = CramIO.readContainer(is)) != null) {
 			DataReaderFactory f = new DataReaderFactory();
 
@@ -334,10 +332,10 @@ public class ReaderToFastQ extends AbstractReader {
 									.getRawContent()));
 				}
 
-				ReaderToFastQ reader = new ReaderToFastQ();
 				reader.ref = ref;
 				reader.prevAlStart = s.alignmentStart;
 				reader.substitutionMatrix = container.h.substitutionMatrix;
+				reader.recordCounter = 0 ;
 				f.buildReader(reader, new DefaultBitInputStream(
 						new ByteArrayInputStream(s.coreBlock.getRawContent())),
 						inputMap, container.h, s.sequenceId);
@@ -347,10 +345,10 @@ public class ReaderToFastQ extends AbstractReader {
 				}
 				reader.buf.flip();
 				long sum = 0;
-				// for (int i=0; i<reader.buf.limit(); i++)
-				// sum += reader.buf.get(i) ;
-				// System.out.println(sum);
-				os.write(reader.buf.array(), 0, reader.buf.limit());
+				 for (int i=0; i<reader.buf.limit(); i++)
+				 sum += reader.buf.get(i) ;
+				 System.out.println(sum);
+//				os.write(reader.buf.array(), 0, reader.buf.limit());
 				reader.buf.clear();
 			}
 		}

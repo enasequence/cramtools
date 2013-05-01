@@ -129,6 +129,19 @@ public class IOUtils {
 		return b;
 	}
 
+	public final static void readFully(InputStream is, byte b[], int off,
+			int len) throws IOException {
+		if (len < 0)
+			throw new IndexOutOfBoundsException();
+		int n = 0;
+		while (n < len) {
+			int count = is.read(b, off + n, len - n);
+			if (count < 0)
+				throw new EOFException();
+			n += count;
+		}
+	}
+
 	public final static String toHexString(byte[] data, int maxLen) {
 		StringBuilder sb = new StringBuilder("[");
 		for (int i = 0; i < data.length && i < maxLen; i++) {

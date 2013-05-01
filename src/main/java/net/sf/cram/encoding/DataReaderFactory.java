@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import net.sf.cram.common.IntHashMap;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.EncodingID;
@@ -18,11 +19,12 @@ public class DataReaderFactory {
 
 	private boolean collectStats = false;
 
-	public AbstractReader buildReader(AbstractReader reader, BitInputStream bis,
-			Map<Integer, InputStream> inputMap, CompressionHeader h, int refId)
-			throws IllegalArgumentException, IllegalAccessException {
+	public AbstractReader buildReader(AbstractReader reader,
+			BitInputStream bis, Map<Integer, InputStream> inputMap,
+			CompressionHeader h, int refId) throws IllegalArgumentException,
+			IllegalAccessException {
 		reader.captureReadNames = h.readNamesIncluded;
-		reader.refId = refId ;
+		reader.refId = refId;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
@@ -43,7 +45,8 @@ public class DataReaderFactory {
 				DataSeriesMap dsm = f.getAnnotation(DataSeriesMap.class);
 				String name = dsm.name();
 				if ("TAG".equals(name)) {
-					Map<Integer, DataReader<byte[]>> map = new HashMap<Integer, DataReader<byte[]>>();
+//					Map<Integer, DataReader<byte[]>> map = new HashMap<Integer, DataReader<byte[]>>();
+					IntHashMap map = new IntHashMap();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
 						DataReader<byte[]> tagReader = createReader(
@@ -116,14 +119,29 @@ public class DataReaderFactory {
 		public T readDataArray(int len) throws IOException {
 			return codec.read(bis, len);
 		}
+
+		@Override
+		public void skip() throws IOException {
+			codec.read(bis);
+		}
+
+		@Override
+		public void readByteArrayInto(byte[] dest, int offset, int len)
+				throws IOException {
+			codec.readInto(bis, dest, offset, len);
+		}
 	}
 
 	private static class SingleValueReader<T> implements DataReader<T> {
 		private T value;
+		private Byte byteValue;
 
 		public SingleValueReader(T value) {
-			super();
 			this.value = value;
+			if (value instanceof Byte)
+				byteValue = (Byte) value;
+			else
+				byteValue = null;
 		}
 
 		@Override
@@ -134,6 +152,20 @@ public class DataReaderFactory {
 		@Override
 		public T readDataArray(int len) {
 			return value;
+		}
+
+		@Override
+		public void skip() throws IOException {
+		}
+
+		@Override
+		public void readByteArrayInto(byte[] dest, int offset, int len)
+				throws IOException {
+			if (byteValue != null)
+				for (int i = 0; i < len; i++)
+					dest[i + offset] = byteValue;
+			else
+				throw new RuntimeException("Not a byte reader.");
 		}
 
 	}
@@ -161,12 +193,28 @@ public class DataReaderFactory {
 			nanos += System.nanoTime() - time;
 			return value;
 		}
+
+		@Override
+		public void skip() throws IOException {
+			long time = System.nanoTime();
+			delegate.skip();
+			nanos += System.nanoTime() - time;
+		}
+
+		@Override
+		public void readByteArrayInto(byte[] dest, int offset, int len)
+				throws IOException {
+			long time = System.nanoTime();
+			delegate.readByteArrayInto(dest, offset, len);
+			nanos += System.nanoTime() - time;
+		}
 	}
 
 	public Map<String, DataReaderWithStats> getStats(Reader reader)
 			throws IllegalArgumentException, IllegalAccessException {
 		Map<String, DataReaderWithStats> map = new TreeMap<String, DataReaderFactory.DataReaderWithStats>();
-		if (!collectStats) return map ;
+		if (!collectStats)
+			return map;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
