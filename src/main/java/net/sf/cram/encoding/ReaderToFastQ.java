@@ -1,22 +1,10 @@
 package net.sf.cram.encoding;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.zip.GZIPOutputStream;
 
-import net.sf.cram.build.ContainerParser;
-import net.sf.cram.build.CramIO;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
@@ -26,20 +14,8 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
-import net.sf.cram.io.DefaultBitInputStream;
-import net.sf.cram.structure.Container;
-import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.ReadTag;
-import net.sf.cram.structure.Slice;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMUtils;
 
 public class ReaderToFastQ extends AbstractReader {
 
@@ -68,7 +44,7 @@ public class ReaderToFastQ extends AbstractReader {
 
 			compressionFlags = compBitFlagsC.readData();
 			if (refId == -2)
-				refIdCodec.skip() ;
+				refIdCodec.skip();
 
 			readLength = readLengthC.readData();
 			if (AP_delta)
@@ -76,7 +52,7 @@ public class ReaderToFastQ extends AbstractReader {
 			else
 				prevAlStart = alStartC.readData();
 
-			readGroupC.skip() ;
+			readGroupC.skip();
 
 			if (captureReadNames)
 				readName = readNameC.readData();
@@ -87,9 +63,9 @@ public class ReaderToFastQ extends AbstractReader {
 				if (!captureReadNames)
 					readName = readNameC.readData();
 
-				mrc.skip() ;
-				malsc.skip() ;
-				tsc.skip() ;
+				mrc.skip();
+				malsc.skip();
+				tsc.skip();
 				detachedCount++;
 			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0)
 				distances[recordCounter] = distanceC.readData();
@@ -101,7 +77,7 @@ public class ReaderToFastQ extends AbstractReader {
 					int id = ReadTag.name3BytesToInt(ids[i]);
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
 					try {
-						dataReader.skip() ;
+						dataReader.skip();
 					} catch (EOFException e) {
 						throw e;
 					}
@@ -112,7 +88,7 @@ public class ReaderToFastQ extends AbstractReader {
 				readReadFeatures();
 				bases = restoreReadBases();
 
-				mqc.skip() ;
+				mqc.skip();
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
 					qcArray.readByteArrayInto(scores, 0, readLength);
 			} else {
@@ -256,7 +232,7 @@ public class ReaderToFastQ extends AbstractReader {
 				break;
 			}
 		}
-		for (; posInRead <= readLength; posInRead++)
+		for (; posInRead <= readLength && alignmentStart + posInSeq < ref.length; posInRead++) 
 			bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
 		return bases;
@@ -285,73 +261,5 @@ public class ReaderToFastQ extends AbstractReader {
 				break;
 			}
 		}
-	}
-
-	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
-		Log.setGlobalLogLevel(LogLevel.ERROR);
-
-		File cramFile = new File(args[0]);
-		File refFile = new File(args[1]);
-		File fqgzFile = new File(cramFile.getAbsolutePath() + ".fq");
-
-		OutputStream os = (new BufferedOutputStream(new FileOutputStream(
-				fqgzFile)));
-
-		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
-				.getReferenceSequenceFile(refFile);
-		byte[] ref = null;
-
-		InputStream is = new FileInputStream(cramFile);
-
-		CramHeader cramHeader = CramIO.readCramHeader(is);
-		Container container = null;
-		ReaderToFastQ reader = new ReaderToFastQ();
-		while ((container = CramIO.readContainer(is)) != null) {
-			DataReaderFactory f = new DataReaderFactory();
-
-			for (Slice s : container.slices) {
-				String seqName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
-				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					SAMSequenceRecord sequence = cramHeader.samFileHeader
-							.getSequence(s.sequenceId);
-					seqName = sequence.getSequenceName();
-					ReferenceSequence referenceSequence = referenceSequenceFile
-							.getSequence(seqName);
-					int appendix = 1024;
-					ref = new byte[referenceSequence.length() + appendix];
-					System.arraycopy(referenceSequence.getBases(), 0, ref, 0,
-							referenceSequence.length());
-					for (int i = 0; i < appendix; i++)
-						ref[i + referenceSequence.length()] = 'N';
-				}
-				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
-				for (Integer exId : s.external.keySet()) {
-					inputMap.put(exId,
-							new ByteArrayInputStream(s.external.get(exId)
-									.getRawContent()));
-				}
-
-				reader.ref = ref;
-				reader.prevAlStart = s.alignmentStart;
-				reader.substitutionMatrix = container.h.substitutionMatrix;
-				reader.recordCounter = 0 ;
-				f.buildReader(reader, new DefaultBitInputStream(
-						new ByteArrayInputStream(s.coreBlock.getRawContent())),
-						inputMap, container.h, s.sequenceId);
-
-				for (int i = 0; i < s.nofRecords; i++) {
-					reader.read();
-				}
-				reader.buf.flip();
-				long sum = 0;
-				 for (int i=0; i<reader.buf.limit(); i++)
-				 sum += reader.buf.get(i) ;
-				 System.out.println(sum);
-//				os.write(reader.buf.array(), 0, reader.buf.limit());
-				reader.buf.clear();
-			}
-		}
-		os.close();
 	}
 }

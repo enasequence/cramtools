@@ -1,57 +1,26 @@
 package net.sf.cram;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.build.ContainerParser;
-import net.sf.cram.build.Cram2BamRecordFactory;
-import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.build.CramIO;
-import net.sf.cram.common.Utils;
 import net.sf.cram.encoding.DataReaderFactory;
 import net.sf.cram.encoding.ReaderToFastQ;
-import net.sf.cram.index.CramIndex;
-import net.sf.cram.index.CramIndex.Entry;
-import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
-import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.Slice;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.BAMIndexFactory;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMTextWriter;
-import net.sf.samtools.util.SeekableFileStream;
-import net.sf.samtools.util.SeekableStream;
-import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
-import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -100,8 +69,6 @@ public class Cram2Fastq {
 		// OutputStream os = (new BufferedOutputStream(new FileOutputStream(
 		// fqgzFile)));
 
-		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
-				.getReferenceSequenceFile(params.reference);
 		byte[] ref = null;
 
 		InputStream is = new FileInputStream(params.cramFile);
@@ -113,19 +80,10 @@ public class Cram2Fastq {
 			DataReaderFactory f = new DataReaderFactory();
 
 			for (Slice s : container.slices) {
-				String seqName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
 				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(s.sequenceId);
-					seqName = sequence.getSequenceName();
-					ReferenceSequence referenceSequence = referenceSequenceFile
-							.getSequence(seqName);
-					int appendix = 1024;
-					ref = new byte[referenceSequence.length() + appendix];
-					System.arraycopy(referenceSequence.getBases(), 0, ref, 0,
-							referenceSequence.length());
-					for (int i = 0; i < appendix; i++)
-						ref[i + referenceSequence.length()] = 'N';
+					ref = referenceSource.getReferenceBases(sequence, true);
 				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {

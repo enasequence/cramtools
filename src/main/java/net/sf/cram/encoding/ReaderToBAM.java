@@ -1,17 +1,22 @@
 package net.sf.cram.encoding;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.cram.encoding.read_features.BaseChange;
+import net.sf.cram.build.CramIO;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
@@ -19,124 +24,36 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
-import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.DefaultBitInputStream;
+import net.sf.cram.ref.ReferenceSource;
+import net.sf.cram.structure.Container;
+import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
-import net.sf.cram.structure.EncodingKey;
 import net.sf.cram.structure.ReadTag;
+import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.TextCigarCodec;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
-public class ReaderToBAM {
-	public Charset charset = Charset.forName("UTF8");
-	public boolean captureReadNames = false;
-	public byte[][][] tagIdDictionary;
-
-	@DataSeries(key = EncodingKey.BF_BitFlags, type = DataSeriesType.INT)
-	public DataReader<Integer> bitFlagsC;
-
-	@DataSeries(key = EncodingKey.CF_CompressionBitFlags, type = DataSeriesType.BYTE)
-	public DataReader<Byte> compBitFlagsC;
-
-	@DataSeries(key = EncodingKey.RL_ReadLength, type = DataSeriesType.INT)
-	public DataReader<Integer> readLengthC;
-
-	@DataSeries(key = EncodingKey.AP_AlignmentPositionOffset, type = DataSeriesType.INT)
-	public DataReader<Integer> alStartC;
-
-	@DataSeries(key = EncodingKey.RG_ReadGroup, type = DataSeriesType.INT)
-	public DataReader<Integer> readGroupC;
-
-	@DataSeries(key = EncodingKey.RN_ReadName, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> readNameC;
-
-	@DataSeries(key = EncodingKey.NF_RecordsToNextFragment, type = DataSeriesType.INT)
-	public DataReader<Integer> distanceC;
-
-	@DataSeries(key = EncodingKey.TC_TagCount, type = DataSeriesType.BYTE)
-	public DataReader<Byte> tagCountC;
-
-	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.INT)
-	public DataReader<Integer> tagNameAndTypeC;
-
-	@DataSeriesMap(name = "TAG")
-	public Map<Integer, DataReader<byte[]>> tagValueCodecs;
-
-	@DataSeries(key = EncodingKey.FN_NumberOfReadFeatures, type = DataSeriesType.INT)
-	public DataReader<Integer> nfc;
-
-	@DataSeries(key = EncodingKey.FP_FeaturePosition, type = DataSeriesType.INT)
-	public DataReader<Integer> fp;
-
-	@DataSeries(key = EncodingKey.FC_FeatureCode, type = DataSeriesType.BYTE)
-	public DataReader<Byte> fc;
-
-	@DataSeries(key = EncodingKey.BA_Base, type = DataSeriesType.BYTE)
-	public DataReader<Byte> bc;
-
-	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE)
-	public DataReader<Byte> qc;
-
-	@DataSeries(key = EncodingKey.QS_QualityScore, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> qcArray;
-
-	@DataSeries(key = EncodingKey.BS_BaseSubstitutionCode, type = DataSeriesType.BYTE)
-	public DataReader<Byte> bsc;
-
-	@DataSeries(key = EncodingKey.IN_Insertion, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> inc;
-
-	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> softClipCodec;
-	
-	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> hardClipCodec;
-
-	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
-	public DataReader<Integer> dlc;
-
-	@DataSeries(key = EncodingKey.MQ_MappingQualityScore, type = DataSeriesType.INT)
-	public DataReader<Integer> mqc;
-
-	@DataSeries(key = EncodingKey.MF_MateBitFlags, type = DataSeriesType.BYTE)
-	public DataReader<Byte> mbfc;
-
-	@DataSeries(key = EncodingKey.NS_NextFragmentReferenceSequenceID, type = DataSeriesType.INT)
-	public DataReader<Integer> mrc;
-
-	@DataSeries(key = EncodingKey.NP_NextFragmentAlignmentStart, type = DataSeriesType.INT)
-	public DataReader<Integer> malsc;
-
-	@DataSeries(key = EncodingKey.TS_InsetSize, type = DataSeriesType.INT)
-	public DataReader<Integer> tsc;
-
+public class ReaderToBAM extends AbstractReader {
 	public static int detachedCount = 0;
 	private int recordCounter = 0;
 	private CramRecord prevRecord;
-
-	@DataSeries(key = EncodingKey.TM_TestMark, type = DataSeriesType.INT)
-	public DataReader<Integer> testC;
-
-	@DataSeries(key = EncodingKey.TL_TagIdList, type = DataSeriesType.INT)
-	public DataReader<Integer> tagIdListCodec;
-
-	@DataSeries(key = EncodingKey.RI_RefId, type = DataSeriesType.INT)
-	public DataReader<Integer> refIdCodec;
-
-	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
-	public DataReader<Integer> refSkipCodec;
 
 	public int refId;
 	public SubstitutionMatrix substitutionMatrix;
 	public boolean AP_delta = true;
 
-	public byte[] buf = new byte[1024 * 1024 * 10];
+	public byte[] buf = new byte[1024 * 1024 * 100];
 	public int[] index = new int[4 * 100000];
 	public int[] distances = new int[4 * 100000];
 	private ByteBuffer readFeatureBuffer = ByteBuffer.allocate(1024);
@@ -154,9 +71,13 @@ public class ReaderToBAM {
 
 	public byte[] ref;
 	private int readFeatureSize;
+	private byte[] bases = new byte[1024], scores = new byte[1024];
 
-	public void read(CramRecord r) throws IOException {
+	public void read() throws IOException {
 
+		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 0, 247)));
+		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 247,
+		// 514)));
 		try {
 			flags = bitFlagsC.readData();
 			view.setFlags(flags);
@@ -206,16 +127,17 @@ public class ReaderToBAM {
 						throw e;
 					}
 
-					tagData[tagDataLen++] = (byte) (id & 0xFF);
-					tagData[tagDataLen++] = (byte) ((id >> 8) & 0xFF);
 					tagData[tagDataLen++] = (byte) ((id >> 16) & 0xFF);
+					tagData[tagDataLen++] = (byte) ((id >> 8) & 0xFF);
+					tagData[tagDataLen++] = (byte) (id & 0xFF);
+					// System.out.println(ReadTag.intToNameType3Bytes(id) + ": "
+					// + Arrays.toString(data)) ;
 					System.arraycopy(data, 0, tagData, tagDataLen, data.length);
 					tagDataLen += data.length;
 				}
+				System.out.println(new String(tagData, 0, tagDataLen));
 			}
 
-			byte[] bases;
-			byte[] scores = null;
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				readReadFeatures();
 				bases = restoreReadBases();
@@ -223,31 +145,27 @@ public class ReaderToBAM {
 				// mapping quality:
 				view.setMappingScore(mqc.readData());
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					scores = qcArray.readDataArray(readLength);
+					qcArray.readByteArrayInto(scores, 0, readLength);
 			} else {
 				bases = new byte[readLength];
 				for (int i = 0; i < bases.length; i++)
 					bases[i] = bc.readData();
 
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					scores = qcArray.readDataArray(readLength);
+					qcArray.readByteArrayInto(scores, 0, readLength);
 			}
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) != 0) {
 				Cigar noCigar = TextCigarCodec.getSingleton().decode(
 						SAMRecord.NO_ALIGNMENT_CIGAR);
 				view.setCigar(noCigar);
-			} else 
+			} else
 				view.setCigar(getCigar2());
 
-			view.setBases(bases);
-			
-			if (scores != null)
-				view.setQualityScores(scores);
-			else
-				view.setQualityScores(new byte[0]);
-			
-			view.setTagData(tagData, 0, tagDataLen) ;
+			view.setBases(bases, 0, readLength);
+			view.setQualityScores(scores, 0, readLength);
+
+			view.setTagData(tagData, 0, tagDataLen);
 
 			recordCounter++;
 		} catch (Exception e) {
@@ -265,12 +183,11 @@ public class ReaderToBAM {
 		int prevPos = 0;
 		for (int i = 0; i < readFeatureSize; i++) {
 			Byte operator = fc.readData();
-
 			int pos = prevPos + fp.readData();
 			prevPos = pos;
 
-			readFeatureBuffer.putInt(pos);
 			readFeatureBuffer.put(operator);
+			readFeatureBuffer.putInt(pos);
 
 			switch (operator) {
 			case ReadBase.operator:
@@ -316,20 +233,19 @@ public class ReaderToBAM {
 	}
 
 	private final byte[] restoreReadBases() {
-		readFeatureBuffer.rewind() ;
-		byte[] bases = new byte[readLength];
+		readFeatureBuffer.rewind();
 
 		int posInRead = 1;
 		int alignmentStart = prevAlStart - 1;
 
 		int posInSeq = 0;
 		if (!readFeatureBuffer.hasRemaining()) {
-			if (ref.length < alignmentStart + bases.length) {
+			if (ref.length < alignmentStart + readLength) {
 				Arrays.fill(bases, (byte) 'N');
 				System.arraycopy(ref, alignmentStart, bases, 0,
-						Math.min(bases.length, ref.length - alignmentStart));
+						Math.min(readLength, ref.length - alignmentStart));
 			} else
-				System.arraycopy(ref, alignmentStart, bases, 0, bases.length);
+				System.arraycopy(ref, alignmentStart, bases, 0, readLength);
 			return bases;
 		}
 
@@ -345,7 +261,8 @@ public class ReaderToBAM {
 				byte refBase = ref[alignmentStart + posInSeq];
 				byte base = substitutionMatrix.base(refBase,
 						readFeatureBuffer.get());
-				bases[posInRead++ - 1] = base;
+				bases[posInRead - 1] = base;
+				posInRead++;
 				posInSeq++;
 				break;
 			case Insertion.operator:
@@ -371,10 +288,15 @@ public class ReaderToBAM {
 				break;
 			}
 		}
-		for (; posInRead <= readLength; posInRead++)
+		for (; posInRead <= readLength
+				&& alignmentStart + posInSeq < ref.length; posInRead++)
 			bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
-		for (int i = 0; i < bases.length; i++) {
+		return bases;
+	}
+
+	private final void correctBases() {
+		for (int i = 0; i < readLength; i++) {
 			switch (bases[i]) {
 			case 'a':
 				bases[i] = 'A';
@@ -396,12 +318,10 @@ public class ReaderToBAM {
 				break;
 			}
 		}
-
-		return bases;
 	}
 
 	private final Cigar getCigar2() {
-		readFeatureBuffer.rewind() ;
+		readFeatureBuffer.rewind();
 		if (!readFeatureBuffer.hasRemaining()) {
 			CigarElement ce = new CigarElement(readLength, CigarOperator.M);
 			return new Cigar(Arrays.asList(ce));
@@ -437,21 +357,25 @@ public class ReaderToBAM {
 			case Insertion.operator:
 				co = CigarOperator.INSERTION;
 				rfLen = readFeatureBuffer.getInt();
-				readFeatureBuffer.position(readFeatureBuffer.position()+rfLen) ;
+				readFeatureBuffer
+						.position(readFeatureBuffer.position() + rfLen);
 				break;
 			case SoftClip.operator:
 				co = CigarOperator.SOFT_CLIP;
 				rfLen = readFeatureBuffer.getInt();
-				readFeatureBuffer.position(readFeatureBuffer.position()+rfLen) ;
+				readFeatureBuffer
+						.position(readFeatureBuffer.position() + rfLen);
 				break;
 			case HardClip.operator:
 				co = CigarOperator.HARD_CLIP;
 				rfLen = readFeatureBuffer.getInt();
-				readFeatureBuffer.position(readFeatureBuffer.position()+rfLen) ;
+				readFeatureBuffer
+						.position(readFeatureBuffer.position() + rfLen);
 				break;
 			case InsertBase.operator:
 				co = CigarOperator.INSERTION;
 				rfLen = 1;
+				readFeatureBuffer.get();
 				break;
 			case Deletion.operator:
 				co = CigarOperator.DELETION;
@@ -469,6 +393,7 @@ public class ReaderToBAM {
 			case ReadBase.operator:
 				co = CigarOperator.MATCH_OR_MISMATCH;
 				rfLen = 1;
+				readFeatureBuffer.get();
 				break;
 			default:
 				continue;
@@ -511,5 +436,93 @@ public class ReaderToBAM {
 		}
 
 		return new Cigar(list);
+	}
+
+	public static void main(String[] args) throws IOException,
+			IllegalArgumentException, IllegalAccessException {
+		File cramFile = new File(args[0]);
+		File refFile = new File(args[1]);
+		File bamFile = new File(cramFile.getAbsolutePath() + ".bam");
+
+		ReferenceSource referenceSource = new ReferenceSource(refFile);
+
+		OutputStream os = (new BufferedOutputStream(new FileOutputStream(
+				bamFile)));
+
+		byte[] ref = null;
+
+		InputStream is = new FileInputStream(cramFile);
+
+		CramHeader cramHeader = CramIO.readCramHeader(is);
+		// ByteArrayOutputStream bamBAOS = new ByteArrayOutputStream();
+		BlockCompressedOutputStream bcos = new BlockCompressedOutputStream(os,
+				null);
+		bcos.write("BAM\1".getBytes());
+		bcos.write(CramIO.toByteArray(cramHeader.samFileHeader));
+		ByteBufferUtils.writeInt32(cramHeader.samFileHeader
+				.getSequenceDictionary().size(), bcos);
+		for (final SAMSequenceRecord sequenceRecord : cramHeader.samFileHeader
+				.getSequenceDictionary().getSequences()) {
+			byte[] bytes = sequenceRecord.getSequenceName().getBytes();
+			ByteBufferUtils.writeInt32(bytes.length + 1, bcos);
+			bcos.write(sequenceRecord.getSequenceName().getBytes());
+			bcos.write(0);
+			ByteBufferUtils
+					.writeInt32(sequenceRecord.getSequenceLength(), bcos);
+		}
+
+		Container container = null;
+		ReaderToBAM reader = new ReaderToBAM();
+		while ((container = CramIO.readContainer(is)) != null) {
+			DataReaderFactory f = new DataReaderFactory();
+
+			for (Slice s : container.slices) {
+				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+					SAMSequenceRecord sequence = cramHeader.samFileHeader
+							.getSequence(s.sequenceId);
+					ref = referenceSource.getReferenceBases(sequence, true);
+				}
+				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
+				for (Integer exId : s.external.keySet()) {
+					inputMap.put(exId,
+							new ByteArrayInputStream(s.external.get(exId)
+									.getRawContent()));
+				}
+
+				reader.ref = ref;
+				reader.prevAlStart = s.alignmentStart;
+				reader.substitutionMatrix = container.h.substitutionMatrix;
+				reader.recordCounter = 0;
+				reader.view = new BAMRecordView(reader.buf);
+				f.buildReader(reader, new DefaultBitInputStream(
+						new ByteArrayInputStream(s.coreBlock.getRawContent())),
+						inputMap, container.h, s.sequenceId);
+
+				int len = 0;
+				for (int i = 0; i < s.nofRecords; i++) {
+					reader.read();
+					len += reader.view.finish();
+				}
+
+				// System.out.println(Arrays.toString(Arrays.copyOfRange(reader.buf,
+				// 0, len)));
+				bcos.write(reader.buf, 0, len);
+			}
+		}
+		// os.close();
+		bcos.close();
+
+		// SAMFileReader samFileReader = new SAMFileReader(
+		// new ByteArrayInputStream(bamBAOS.toByteArray()));
+		// System.out.println(samFileReader.getFileHeader().getTextHeader());
+		//
+		// System.out.println();
+		//
+		// SAMRecordIterator iterator = samFileReader.iterator();
+		// while (iterator.hasNext()) {
+		// SAMRecord next = iterator.next();
+		// System.out.print(next.getSAMString());
+		// }
+		// samFileReader.close();
 	}
 }

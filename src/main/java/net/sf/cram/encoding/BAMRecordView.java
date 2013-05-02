@@ -24,14 +24,14 @@ public class BAMRecordView {
 	private int BASES = -1;
 	private int SCORES = -1;
 	private int TAGS = -1;
-	private int END = -1;
+	public int END = -1;
 
 	private byte[] buf;
 
 	private int start;
 
 	private final BinaryCigarCodec cigarCodec = new BinaryCigarCodec();
-	
+
 	public BAMRecordView(byte[] buf) {
 		this.buf = buf;
 	}
@@ -48,12 +48,12 @@ public class BAMRecordView {
 		writeUByte((short) (readName.length() + 1), READ_NAME_LEN);
 		CIGAR = READ_NAME + wrteZString(readName, READ_NAME);
 	}
-	
+
 	public void setReadName(byte[] readName) {
 		writeUByte((short) (readName.length + 1), READ_NAME_LEN);
-		System.arraycopy(readName, 0, buf, start+READ_NAME, readName.length) ;
-		buf[start+READ_NAME+1] = 0 ;
-		CIGAR += readName.length + 1 ;
+		System.arraycopy(readName, 0, buf, start + READ_NAME, readName.length);
+		buf[start + READ_NAME + readName.length] = 0;
+		CIGAR = READ_NAME + readName.length + 1;
 	}
 
 	public void setMappingScore(int score) {
@@ -103,23 +103,43 @@ public class BAMRecordView {
 		writeInt(insertSize, INS_SIZE);
 	}
 
-	public void setBases(byte[] bases) {
+	public void setBases(byte[] bases, int offset, int length) {
 		if (BASES < 0)
 			throw new RuntimeException("Premature setting of bases.");
 
-		final byte[] compressedBases = new byte[(bases.length + 1) / 2];
+		final byte[] compressedBases = new byte[(length + 1) / 2];
 		int i;
 
-		for (i = 1; i < bases.length; i += 2) {
-			buf[start + BASES + i / 2] = (byte) (charToCompressedBaseHigh(bases[i - 1]) | charToCompressedBaseLow(bases[i]));
-		}
-		// Last nybble
-		if (i == bases.length) {
-			compressedBases[BASES + i / 2] = charToCompressedBaseHigh((char) bases[i - 1]);
-		}
+		for (i = 1; i < length; i += 2)
+			buf[start + BASES + i / 2] = (byte) (charToCompressedBaseHigh(bases[offset
+					+ i - 1]) | charToCompressedBaseLow(bases[offset + i]));
 
-		setReadLength(bases.length);
-		SCORES = BASES + bases.length / 2 + bases.length % 2;
+		// Last nybble
+		if (i == length)
+			compressedBases[BASES + i / 2] = charToCompressedBaseHigh((char) bases[offset
+					+ i - 1]);
+
+		setReadLength(length);
+		SCORES = BASES + length / 2 + length % 2;
+	}
+
+	public void setBases(byte[] bases) {
+		setBases(bases, 0, bases.length);
+	}
+
+	public void setQualityScores(byte[] qualities, int offset, int length) {
+		if (SCORES < 0)
+			throw new RuntimeException("Premature setting of scores.");
+
+		if (length == 0) {
+			int len = getReadLength();
+			for (int i = 0; i < len; i++)
+				buf[start + SCORES + i] = (byte) 0xFF;
+			TAGS = SCORES + len;
+		} else {
+			System.arraycopy(qualities, offset, buf, start + SCORES, length);
+			TAGS = SCORES + length;
+		}
 	}
 
 	public void setQualityScores(byte[] qualities) {
@@ -137,7 +157,7 @@ public class BAMRecordView {
 			TAGS = SCORES + qualities.length;
 		}
 	}
-	
+
 	public void addTag(int id, byte[] data, int offset, int len) {
 		if (TAGS < 0)
 			throw new RuntimeException("Premature addition of tag.");
@@ -150,15 +170,15 @@ public class BAMRecordView {
 		System.arraycopy(data, offset, buf, start + END, len);
 		END += len;
 	}
-	
-	public void setTagData (byte[] data, int offset, int length) {
+
+	public void setTagData(byte[] data, int offset, int length) {
 		if (TAGS < 0)
 			throw new RuntimeException("Premature addition of tag.");
 		if (END < 0)
 			END = TAGS;
-		
-		System.arraycopy(data, offset, buf, TAGS, length) ;
-		END += length ;
+
+		System.arraycopy(data, offset, buf, start + TAGS, length);
+		END += length;
 	}
 
 	public int finish() {
@@ -168,15 +188,15 @@ public class BAMRecordView {
 		if (blockSize < 0)
 			throw new RuntimeException("Incomplete record.");
 
-		writeInt(blockSize-4, BLOCK_SIZE);
-		
-		jump(start+END) ;
-		
+		writeInt(blockSize - 4, BLOCK_SIZE);
+
+		jump(start + END);
+
 		return blockSize;
 	}
-	
-	public void jump (int start) {
-		this.start = start ;
+
+	public void jump(int start) {
+		this.start = start;
 		CIGAR = -1;
 		BASES = -1;
 		SCORES = -1;
