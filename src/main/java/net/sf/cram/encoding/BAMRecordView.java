@@ -107,7 +107,6 @@ public class BAMRecordView {
 		if (BASES < 0)
 			throw new RuntimeException("Premature setting of bases.");
 
-		final byte[] compressedBases = new byte[(length + 1) / 2];
 		int i;
 
 		for (i = 1; i < length; i += 2)
@@ -116,7 +115,7 @@ public class BAMRecordView {
 
 		// Last nybble
 		if (i == length)
-			compressedBases[BASES + i / 2] = charToCompressedBaseHigh((char) bases[offset
+			buf[start + BASES + i / 2] |= charToCompressedBaseHigh((char) bases[offset
 					+ i - 1]);
 
 		setReadLength(length);

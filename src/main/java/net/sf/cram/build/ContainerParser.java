@@ -58,13 +58,25 @@ public class ContainerParser {
 		return records;
 	}
 
-	public List<CramRecord> getRecords(Slice s, CompressionHeader h) throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+	public List<CramRecord> getRecords(Slice s, CompressionHeader h)
+			throws IllegalArgumentException, IllegalAccessException,
+			IOException {
 		String seqName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
-		if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-			SAMSequenceRecord sequence = samFileHeader.getSequence(s.sequenceId);
+		switch (s.sequenceId) {
+		case SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX:
+
+			break;
+		case -2:
+			
+			break;
+
+		default:
+			SAMSequenceRecord sequence = samFileHeader
+					.getSequence(s.sequenceId);
 			seqName = sequence.getSequenceName();
+			break;
 		}
+		
 		DataReaderFactory f = new DataReaderFactory();
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
@@ -73,7 +85,7 @@ public class ContainerParser {
 		}
 
 		long time = 0;
-		Reader reader = new Reader() ;
+		Reader reader = new Reader();
 		f.buildReader(reader, new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.getRawContent())),
 				inputMap, h, s.sequenceId);

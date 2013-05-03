@@ -36,6 +36,8 @@ import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
+import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -135,7 +137,7 @@ public class ReaderToBAM extends AbstractReader {
 					System.arraycopy(data, 0, tagData, tagDataLen, data.length);
 					tagDataLen += data.length;
 				}
-				System.out.println(new String(tagData, 0, tagDataLen));
+//				System.out.println(new String(tagData, 0, tagDataLen));
 			}
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
@@ -165,6 +167,7 @@ public class ReaderToBAM extends AbstractReader {
 			view.setBases(bases, 0, readLength);
 			view.setQualityScores(scores, 0, readLength);
 
+			tagDataLen =0 ;
 			view.setTagData(tagData, 0, tagDataLen);
 
 			recordCounter++;
@@ -440,6 +443,8 @@ public class ReaderToBAM extends AbstractReader {
 
 	public static void main(String[] args) throws IOException,
 			IllegalArgumentException, IllegalAccessException {
+		Log.setGlobalLogLevel(LogLevel.INFO) ;
+		
 		File cramFile = new File(args[0]);
 		File refFile = new File(args[1]);
 		File bamFile = new File(cramFile.getAbsolutePath() + ".bam");

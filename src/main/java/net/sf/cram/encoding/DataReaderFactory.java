@@ -25,6 +25,7 @@ public class DataReaderFactory {
 			IllegalAccessException {
 		reader.captureReadNames = h.readNamesIncluded;
 		reader.refId = refId;
+		reader.AP_delta = h.AP_seriesDelta ;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {

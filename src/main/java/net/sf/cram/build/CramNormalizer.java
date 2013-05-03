@@ -13,6 +13,7 @@ import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.util.Log;
@@ -26,9 +27,15 @@ public class CramNormalizer {
 	private byte defaultQualityScore = '?' - '!';
 
 	private static Log log = Log.getInstance(CramNormalizer.class);
+	private ReferenceSource referenceSource;
 
 	public CramNormalizer(SAMFileHeader header) {
 		this.header = header;
+	}
+
+	public CramNormalizer(SAMFileHeader header, ReferenceSource referenceSource) {
+		this.header = header;
+		this.referenceSource = referenceSource;
 	}
 
 	public void normalize(ArrayList<CramRecord> records, boolean resetPairing,
@@ -45,7 +52,7 @@ public class CramNormalizer {
 				r.alignmentStart = SAMRecord.NO_ALIGNMENT_START;
 			} else {
 				r.sequenceName = header.getSequence(r.sequenceId)
-				.getSequenceName();
+						.getSequenceName();
 			}
 		}
 
@@ -107,12 +114,16 @@ public class CramNormalizer {
 			if (r.isSegmentUnmapped())
 				continue;
 
-			byte[] bases = restoreReadBases(r, ref, substitutionMatrix);
+			byte[] refBases = ref;
+			if (referenceSource != null)
+				refBases = referenceSource.getReferenceBases(
+						header.getSequence(r.sequenceId), true);
+			byte[] bases = restoreReadBases(r, refBases, substitutionMatrix);
 			r.readBases = bases;
 		}
 
 		// restore quality scores:
-		restoreQualityScores(defaultQualityScore, records) ;
+		restoreQualityScores(defaultQualityScore, records);
 	}
 
 	public static void restoreQualityScores(byte defaultQualityScore,
@@ -123,7 +134,8 @@ public class CramNormalizer {
 				Arrays.fill(scores, defaultQualityScore);
 				if (r.readFeatures != null)
 					for (ReadFeature f : r.readFeatures) {
-						if (f.getOperator() == BaseQualityScore.operator) {
+						switch (f.getOperator()) {
+						case BaseQualityScore.operator:
 							int pos = f.getPosition();
 							byte q = ((BaseQualityScore) f).getQualityScore();
 
@@ -134,6 +146,22 @@ public class CramNormalizer {
 								System.err.println(r.toString());
 								throw e;
 							}
+							break;
+						case ReadBase.operator:
+							pos = f.getPosition();
+							q = ((ReadBase) f).getQualityScore();
+
+							try {
+								scores[pos - 1] = q;
+							} catch (ArrayIndexOutOfBoundsException e) {
+								System.err.println("PROBLEM CAUSED BY:");
+								System.err.println(r.toString());
+								throw e;
+							}
+							break;
+
+						default:
+							break;
 						}
 
 					}
@@ -149,8 +177,7 @@ public class CramNormalizer {
 	}
 
 	private static final long calcRefLength(CramRecord record) {
-		if (record.readFeatures == null
-				|| record.readFeatures.isEmpty())
+		if (record.readFeatures == null || record.readFeatures.isEmpty())
 			return record.readLength;
 		long len = record.readLength;
 		for (ReadFeature rf : record.readFeatures) {
@@ -178,8 +205,7 @@ public class CramNormalizer {
 		int alignmentStart = record.alignmentStart - 1;
 
 		int posInSeq = 0;
-		if (record.readFeatures == null
-				|| record.readFeatures.isEmpty()) {
+		if (record.readFeatures == null || record.readFeatures.isEmpty()) {
 			if (ref.length < alignmentStart + bases.length) {
 				Arrays.fill(bases, (byte) 'N');
 				System.arraycopy(ref, alignmentStart, bases, 0,
@@ -198,17 +224,6 @@ public class CramNormalizer {
 				Substitution sv = (Substitution) v;
 				byte refBase = ref[alignmentStart + posInSeq];
 				byte base = substitutionMatrix.base(refBase, sv.getCode());
-				// switch (base) {
-				// case 'A':
-				// case 'C':
-				// case 'G':
-				// case 'T':
-				// case 'N':
-				// break;
-				//
-				// default:
-				// throw new RuntimeException("Invalid base: " + base) ;
-				// }
 				sv.setBase(base);
 				sv.setRefernceBase(refBase);
 				bases[posInRead++ - 1] = base;

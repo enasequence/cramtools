@@ -160,7 +160,7 @@ public class Cram2Bam {
 		long time = 0;
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(10000);
 
-		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader);
+		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader, referenceSource);
 
 		byte[] ref = null;
 		int prevSeqId = -1;
@@ -194,13 +194,20 @@ public class Cram2Bam {
 				throw e;
 			}
 
-			if (c.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			switch (c.sequenceId) {
+			case SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX:
+			case -2:
 				ref = new byte[] {};
-			} else if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
-				SAMSequenceRecord sequence = cramHeader.samFileHeader
-						.getSequence(c.sequenceId);
-				ref = referenceSource.getReferenceBases(sequence, true) ;
-				prevSeqId = c.sequenceId;
+				break;
+
+			default:
+				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
+					SAMSequenceRecord sequence = cramHeader.samFileHeader
+							.getSequence(c.sequenceId);
+					ref = referenceSource.getReferenceBases(sequence, true) ;
+					prevSeqId = c.sequenceId;
+				}
+				break;
 			}
 
 			long time1 = System.nanoTime();
@@ -405,7 +412,7 @@ public class Cram2Bam {
 			OutputStream os = new BufferedOutputStream(System.out);
 			if (params.outputBAM) {
 				BAMFileWriter ret = new BAMFileWriter(os, null);
-				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
+				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), false);
 				ret.setHeader(cramHeader.samFileHeader);
 				writer = ret;
 			} else {
@@ -414,7 +421,7 @@ public class Cram2Bam {
 			}
 		} else {
 			writer = samFileWriterFactory.makeSAMOrBAMWriter(
-					cramHeader.samFileHeader, true, params.outputFile);
+					cramHeader.samFileHeader, false, params.outputFile);
 		}
 		return writer;
 	}
