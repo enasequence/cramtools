@@ -62,57 +62,12 @@ public class Bam2Cram {
 		return set;
 	}
 
-	public static List<CramRecord> convert(List<SAMRecord> samRecords,
-			SAMFileHeader samFileHeader, byte[] ref,
-			QualityScorePreservation preservation, boolean captureAllTags,
-			String captureTags, String ignoreTags) {
-
-		int sequenceId = samRecords.get(0).getReferenceIndex();
-		String sequenceName = samRecords.get(0).getReferenceName();
-
-		log.debug(String.format("Writing %d records for sequence %d, %s",
-				samRecords.size(), sequenceId, sequenceName));
-
-		int alStart = Integer.MAX_VALUE;
-		int alEnd = Integer.MIN_VALUE;
+	public static void updateTracks(List<SAMRecord> samRecords,
+			ReferenceTracks tracks) {
 		for (SAMRecord samRecord : samRecords) {
-			int start = samRecord.getAlignmentStart();
-			if (start != SAMRecord.NO_ALIGNMENT_START)
-				alStart = alStart > start ? start : alStart;
-
-			int end = samRecord.getAlignmentEnd();
-			if (end != SAMRecord.NO_ALIGNMENT_START)
-				alEnd = alEnd < end ? end : alEnd;
-		}
-
-		log.debug("Reads start at " + alStart + ", stop at " + alEnd);
-		if (alEnd < alStart)
-			alEnd = alStart + 1000;
-
-		ReferenceTracks tracks = null;
-		if (alStart < Integer.MAX_VALUE
-				&& alStart != SAMRecord.NO_ALIGNMENT_START) {
-			tracks = new ReferenceTracks(sequenceId, sequenceName, ref, 1000);
-			tracks.moveForwardTo(alStart);
-		}
-
-		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref, samFileHeader);
-		f.captureUnmappedBases = true;
-		f.captureUnmappedScores = true;
-		f.captureAllTags = captureAllTags;
-		f.captureTags = tagsNamesToSet(captureTags);
-		f.ignoreTags.addAll(tagsNamesToSet(ignoreTags));
-
-		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
-		int prevAlStart = samRecords.get(0).getAlignmentStart();
-		int index = 0;
-
-		for (SAMRecord samRecord : samRecords) {
-			int refPos = samRecord.getAlignmentStart();
-			int readPos = 0;
 			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
-				tracks.ensure(samRecord.getAlignmentStart(),
-						samRecord.getAlignmentStart());
+				int refPos = samRecord.getAlignmentStart();
+				int readPos = 0;
 				for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
 					if (ce.getOperator().consumesReferenceBases()) {
 						for (int i = 0; i < ce.getLength(); i++)
@@ -142,14 +97,36 @@ public class Bam2Cram {
 				}
 			}
 		}
+	}
 
+	public static List<CramRecord> convert(List<SAMRecord> samRecords,
+			SAMFileHeader samFileHeader, byte[] ref, ReferenceTracks tracks,
+			QualityScorePreservation preservation, boolean captureAllTags,
+			String captureTags, String ignoreTags) {
+
+		int sequenceId = samRecords.get(0).getReferenceIndex();
+		String sequenceName = samRecords.get(0).getReferenceName();
+
+		log.debug(String.format("Writing %d records for sequence %d, %s",
+				samRecords.size(), sequenceId, sequenceName));
+
+		Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref, samFileHeader);
+		f.captureUnmappedBases = true;
+		f.captureUnmappedScores = true;
+		f.captureAllTags = captureAllTags;
+		f.captureTags = tagsNamesToSet(captureTags);
+		f.ignoreTags.addAll(tagsNamesToSet(ignoreTags));
+
+		List<CramRecord> cramRecords = new ArrayList<CramRecord>();
+		int prevAlStart = samRecords.get(0).getAlignmentStart();
+		int index = 0;
+
+		long tracksNanos = System.nanoTime();
+		updateTracks (samRecords, tracks) ;
+		tracksNanos = System.nanoTime() - tracksNanos;
+
+		long createNanos = System.nanoTime();
 		for (SAMRecord samRecord : samRecords) {
-			if (samRecord.getAlignmentStart() > 0
-					&& alStart > samRecord.getAlignmentStart())
-				alStart = samRecord.getAlignmentStart();
-			if (alEnd < samRecord.getAlignmentEnd())
-				alEnd = samRecord.getAlignmentEnd();
-
 			CramRecord cramRecord = f.createCramRecord(samRecord);
 			cramRecord.index = ++index;
 			cramRecord.alignmentDelta = samRecord.getAlignmentStart()
@@ -161,8 +138,10 @@ public class Bam2Cram {
 
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
+		createNanos = System.nanoTime() - createNanos;
 
 		// mating:
+		long mateNanos = System.nanoTime();
 		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
 		for (CramRecord r : cramRecords) {
 			String name = r.readName;
@@ -190,6 +169,11 @@ public class Bam2Cram {
 			r.next = null;
 			r.previous = null;
 		}
+		mateNanos = System.nanoTime() - mateNanos;
+		log.info(String.format(
+				"create: tracks %dms, records %dms, mating %dms.",
+				tracksNanos / 1000000, createNanos / 1000000,
+				mateNanos / 1000000));
 
 		return cramRecords;
 	}
@@ -227,7 +211,7 @@ public class Bam2Cram {
 
 		Log.setGlobalLogLevel(params.logLevel);
 
-		if (params.referenceFasta == null) 
+		if (params.referenceFasta == null)
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
 		ReferenceSource referenceSource = new ReferenceSource(
 				params.referenceFasta);
@@ -277,23 +261,17 @@ public class Bam2Cram {
 		else
 			preservation = new QualityScorePreservation(params.qsSpec);
 
-		byte[] ref = samSequenceRecord == null ? new byte[0] : referenceSource
-				.getReferenceBases(samSequenceRecord, true);
-
-		{
-			// hack:
-			int newLines = 0;
-			for (byte b : ref)
-				if (b == 10)
-					newLines++;
-			byte[] ref2 = new byte[ref.length - newLines];
-			int j = 0;
-			for (int i = 0; i < ref.length; i++)
-				if (ref[i] == 10)
-					continue;
-				else
-					ref2[j++] = ref[i];
-			ref = ref2;
+		byte[] ref = null;
+		ReferenceTracks tracks = null;
+		if (samSequenceRecord == null) {
+			ref = new byte[0];
+			tracks = new ReferenceTracks(
+					SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX,
+					SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref, ref.length);
+		} else {
+			ref = referenceSource.getReferenceBases(samSequenceRecord, true);
+			tracks = new ReferenceTracks(samSequenceRecord.getSequenceIndex(),
+					samSequenceRecord.getSequenceName(), ref, ref.length);
 		}
 
 		OutputStream os;
@@ -334,11 +312,14 @@ public class Bam2Cram {
 				break;
 			if (samRecord.getReferenceIndex() != prevSeqId
 					|| samRecords.size() >= params.maxContainerSize) {
+				long convertNanos = 0;
 				if (!samRecords.isEmpty()) {
+					convertNanos = System.nanoTime();
 					List<CramRecord> records = convert(samRecords,
-							samFileReader.getFileHeader(), ref, preservation,
-							params.captureAllTags, params.captureTags,
-							params.ignoreTags);
+							samFileReader.getFileHeader(), ref, tracks,
+							preservation, params.captureAllTags,
+							params.captureTags, params.ignoreTags);
+					convertNanos = System.nanoTime() - convertNanos;
 					samRecords.clear();
 
 					Container container = cf.buildContainer(records);
@@ -353,8 +334,6 @@ public class Bam2Cram {
 
 						int span = Math.min(s.alignmentSpan, ref.length
 								- s.alignmentStart);
-						if (s.alignmentStart == 0)
-							System.out.println("gotcha");
 
 						md5_MessageDigest.update(ref, s.alignmentStart - 1,
 								span);
@@ -373,7 +352,8 @@ public class Bam2Cram {
 					offset += len;
 
 					log.info(String
-							.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
+							.format("CONTAINER WRITE TIMES: records build time %dms, header build time %dms, slices build time %dms, io time %dms.",
+									convertNanos / 1000000,
 									container.buildHeaderTime / 1000000,
 									container.buildSlicesTime / 1000000,
 									container.writeTime / 1000000));
@@ -393,23 +373,18 @@ public class Bam2Cram {
 							.getSequence(samRecord.getReferenceName());
 					ref = referenceSource.getReferenceBases(samSequenceRecord,
 							true);
-					{
-						// hack:
-						int newLines = 0;
-						for (byte b : ref)
-							if (b == 10)
-								newLines++;
-						byte[] ref2 = new byte[ref.length - newLines];
-						int j = 0;
-						for (int i = 0; i < ref.length; i++)
-							if (ref[i] == 10)
-								continue;
-							else
-								ref2[j++] = ref[i];
-						ref = ref2;
-					}
-				} else
+					tracks = new ReferenceTracks(
+							samSequenceRecord.getSequenceIndex(),
+							samSequenceRecord.getSequenceName(), ref,
+							ref.length);
+
+				} else {
 					ref = new byte[] {};
+					tracks = new ReferenceTracks(
+							SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX,
+							SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref,
+							ref.length);
+				}
 				prevSeqId = samRecord.getReferenceIndex();
 			}
 
@@ -423,9 +398,9 @@ public class Bam2Cram {
 		{ // copied for now, should be a subroutine:
 			if (!samRecords.isEmpty()) {
 				List<CramRecord> records = convert(samRecords,
-						samFileReader.getFileHeader(), ref, preservation,
-						params.captureAllTags, params.captureTags,
-						params.ignoreTags);
+						samFileReader.getFileHeader(), ref, tracks,
+						preservation, params.captureAllTags,
+						params.captureTags, params.ignoreTags);
 				samRecords.clear();
 				Container container = cf.buildContainer(records);
 				for (Slice s : container.slices) {

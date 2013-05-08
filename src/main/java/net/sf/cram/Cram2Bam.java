@@ -412,7 +412,7 @@ public class Cram2Bam {
 			OutputStream os = new BufferedOutputStream(System.out);
 			if (params.outputBAM) {
 				BAMFileWriter ret = new BAMFileWriter(os, null);
-				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), false);
+				ret.setSortOrder(cramHeader.samFileHeader.getSortOrder(), true);
 				ret.setHeader(cramHeader.samFileHeader);
 				writer = ret;
 			} else {
@@ -421,7 +421,7 @@ public class Cram2Bam {
 			}
 		} else {
 			writer = samFileWriterFactory.makeSAMOrBAMWriter(
-					cramHeader.samFileHeader, false, params.outputFile);
+					cramHeader.samFileHeader, true, params.outputFile);
 		}
 		return writer;
 	}
