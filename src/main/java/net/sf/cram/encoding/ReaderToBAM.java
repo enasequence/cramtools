@@ -73,9 +73,14 @@ public class ReaderToBAM extends AbstractReader {
 
 	public byte[] ref;
 	private int readFeatureSize;
-	private byte[] bases = new byte[1024], scores = new byte[1024];
+	private byte[] bases = new byte[1024*1024], scores = new byte[1024*1024];
+
+	private int[] names = new int[4 * 100000];
+	
+	private static int counter = 0 ;
 
 	public void read() throws IOException {
+		counter++ ;
 
 		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 0, 247)));
 		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 247,
@@ -113,8 +118,18 @@ public class ReaderToBAM extends AbstractReader {
 				view.setMateAlStart(malsc.readData());
 				view.setInsertSize(tsc.readData());
 				detachedCount++;
-			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0)
+			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0) {
 				distances[recordCounter] = distanceC.readData();
+				names[recordCounter + distances[recordCounter]] = recordCounter;
+			}
+
+			if (!view.isReadNameSet()) {
+				if (names[recordCounter] == 0)
+					view.setReadName(String.valueOf(recordCounter).getBytes());
+				else
+					view.setReadName(String.valueOf(names[recordCounter])
+							.getBytes());
+			}
 
 			Integer tagIdList = tagIdListCodec.readData();
 			byte[][] ids = tagIdDictionary[tagIdList];
@@ -137,20 +152,19 @@ public class ReaderToBAM extends AbstractReader {
 					System.arraycopy(data, 0, tagData, tagDataLen, data.length);
 					tagDataLen += data.length;
 				}
-//				System.out.println(new String(tagData, 0, tagDataLen));
+				// System.out.println(new String(tagData, 0, tagDataLen));
 			}
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				readReadFeatures();
-				bases = restoreReadBases();
+				restoreReadBases();
 
 				// mapping quality:
 				view.setMappingScore(mqc.readData());
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
 					qcArray.readByteArrayInto(scores, 0, readLength);
 			} else {
-				bases = new byte[readLength];
-				for (int i = 0; i < bases.length; i++)
+				for (int i = 0; i < readLength; i++)
 					bases[i] = bc.readData();
 
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
@@ -167,7 +181,7 @@ public class ReaderToBAM extends AbstractReader {
 			view.setBases(bases, 0, readLength);
 			view.setQualityScores(scores, 0, readLength);
 
-			tagDataLen =0 ;
+			tagDataLen = 0;
 			view.setTagData(tagData, 0, tagDataLen);
 
 			recordCounter++;
@@ -244,7 +258,7 @@ public class ReaderToBAM extends AbstractReader {
 		int posInSeq = 0;
 		if (!readFeatureBuffer.hasRemaining()) {
 			if (ref.length < alignmentStart + readLength) {
-				Arrays.fill(bases, (byte) 'N');
+				Arrays.fill(bases, 0, readLength, (byte) 'N');
 				System.arraycopy(ref, alignmentStart, bases, 0,
 						Math.min(readLength, ref.length - alignmentStart));
 			} else
@@ -252,12 +266,29 @@ public class ReaderToBAM extends AbstractReader {
 			return bases;
 		}
 
+//		if (recordCounter == 3988) {
+//			System.out.println();
+//		}
+//		if (counter == 1363989) {
+//			System.out.println("breakpoint");
+//		}
 		for (int r = 0; r < readFeatureSize; r++) {
+//			int bufPos = readFeatureBuffer.position() ;
 			byte op = readFeatureBuffer.get();
 			int rfPos = readFeatureBuffer.getInt();
+			
+//			if (recordCounter == 3988) {
+//				System.out.printf("RFops: %d (%c) at %d, buf pos before: %d, after: %d\n", op, (char)op, rfPos, bufPos, readFeatureBuffer.position());
+//				
+//			}
 
-			for (; posInRead < rfPos; posInRead++)
+			for (; posInRead < rfPos; posInRead++){
+//				if (posInRead > readLength) {
+//					System.out.println("gotcha" + counter);
+//					System.exit(1);
+//				}
 				bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
+			}
 
 			switch (op) {
 			case Substitution.operator:
@@ -288,6 +319,9 @@ public class ReaderToBAM extends AbstractReader {
 				break;
 			case ReadBase.operator:
 				bases[posInRead++ - 1] = readFeatureBuffer.get();
+				break;
+			case BaseQualityScore.operator:
+				readFeatureBuffer.get();
 				break;
 			}
 		}
@@ -398,6 +432,9 @@ public class ReaderToBAM extends AbstractReader {
 				rfLen = 1;
 				readFeatureBuffer.get();
 				break;
+			case BaseQualityScore.operator:
+				readFeatureBuffer.get();
+				continue ;
 			default:
 				continue;
 			}
@@ -443,8 +480,8 @@ public class ReaderToBAM extends AbstractReader {
 
 	public static void main(String[] args) throws IOException,
 			IllegalArgumentException, IllegalAccessException {
-		Log.setGlobalLogLevel(LogLevel.INFO) ;
-		
+		Log.setGlobalLogLevel(LogLevel.INFO);
+
 		File cramFile = new File(args[0]);
 		File refFile = new File(args[1]);
 		File bamFile = new File(cramFile.getAbsolutePath() + ".bam");
@@ -478,10 +515,20 @@ public class ReaderToBAM extends AbstractReader {
 
 		Container container = null;
 		ReaderToBAM reader = new ReaderToBAM();
-		while ((container = CramIO.readContainer(is)) != null) {
-			DataReaderFactory f = new DataReaderFactory();
+		DataReaderFactory f = new DataReaderFactory();
+		while (true) {
+			long containerReadNanos = System.nanoTime() ;
+			container = CramIO.readContainer(is);
+			if (container == null) break ;
+			containerReadNanos = System.nanoTime() -containerReadNanos;
+					
 
+			long unknownNanos = 0 ;
+			long viewBuildNanos= 0 ;
+			long bamWriteNanos = 0 ;
+			long delta = 0 ;
 			for (Slice s : container.slices) {
+				delta = System.nanoTime() ;
 				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(s.sequenceId);
@@ -502,17 +549,27 @@ public class ReaderToBAM extends AbstractReader {
 				f.buildReader(reader, new DefaultBitInputStream(
 						new ByteArrayInputStream(s.coreBlock.getRawContent())),
 						inputMap, container.h, s.sequenceId);
+				
+				delta = System.nanoTime() -delta;
+				unknownNanos += delta ;
 
+				delta = System.nanoTime() ;
 				int len = 0;
 				for (int i = 0; i < s.nofRecords; i++) {
 					reader.read();
 					len += reader.view.finish();
 				}
+				delta = System.nanoTime() -delta;
+				viewBuildNanos+=delta ;
 
 				// System.out.println(Arrays.toString(Arrays.copyOfRange(reader.buf,
 				// 0, len)));
+				delta = System.nanoTime() ;
 				bcos.write(reader.buf, 0, len);
+				delta = System.nanoTime() -delta;
+				bamWriteNanos += delta ;
 			}
+			System.out.printf("Container read in %dms, views build in %dms, bam written in %dms, unknown %dms.\n", containerReadNanos/1000000, viewBuildNanos/1000000, bamWriteNanos/1000000, unknownNanos/1000000);
 		}
 		// os.close();
 		bcos.close();

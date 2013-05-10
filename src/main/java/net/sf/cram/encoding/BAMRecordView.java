@@ -48,6 +48,10 @@ public class BAMRecordView {
 		writeUByte((short) (readName.length() + 1), READ_NAME_LEN);
 		CIGAR = READ_NAME + wrteZString(readName, READ_NAME);
 	}
+	
+	public boolean isReadNameSet () {
+		return CIGAR > -1;
+	}
 
 	public void setReadName(byte[] readName) {
 		writeUByte((short) (readName.length + 1), READ_NAME_LEN);
