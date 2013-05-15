@@ -19,37 +19,37 @@ public class ReferenceTracks {
 		this.sequenceId = sequenceId;
 		this.sequenceName = sequenceName;
 		this.reference = reference;
-
+		
 		bases = new byte[Math.min(windowSize, reference.length)];
 		coverage = new short[Math.min(windowSize, reference.length)];
 		mismatches = new short[Math.min(windowSize, reference.length)];
 		position = 1;
 
-		for (int i = 0; i < reference.length; i++) {
-			switch (reference[i]) {
-			case 'A':
-			case 'C':
-			case 'G':
-			case 'T':
-			case 'N':
-				break;
-			case 'a':
-				reference[i] = 'A';
-				break;
-			case 'c':
-				reference[i] = 'C';
-				break;
-			case 'g':
-				reference[i] = 'G';
-				break;
-			case 't':
-				reference[i] = 'T';
-				break;
-			default:
-				reference[i] = 'N';
-				break;
-			}
-		}
+//		for (int i = 0; i < reference.length; i++) {
+//			switch (reference[i]) {
+//			case 'A':
+//			case 'C':
+//			case 'G':
+//			case 'T':
+//			case 'N':
+//				break;
+//			case 'a':
+//				reference[i] = 'A';
+//				break;
+//			case 'c':
+//				reference[i] = 'C';
+//				break;
+//			case 'g':
+//				reference[i] = 'G';
+//				break;
+//			case 't':
+//				reference[i] = 'T';
+//				break;
+//			default:
+//				reference[i] = 'N';
+//				break;
+//			}
+//		}
 
 		reset();
 	}

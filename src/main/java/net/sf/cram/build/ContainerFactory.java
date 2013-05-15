@@ -127,16 +127,19 @@ public class ContainerFactory {
 		int[] seqIds = new int[fileHeader.getSequenceDictionary().size()];
 		int minAlStart = Integer.MAX_VALUE;
 		int maxAlEnd = SAMRecord.NO_ALIGNMENT_START;
+		
 		for (CramRecord r : records) {
-			if (r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+			slice.bases += r.readLength;
+
+			if (!r.isSegmentUnmapped() && r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				seqIds[r.sequenceId]++;
 
-			int alStart = r.alignmentStart;
-			if (alStart != SAMRecord.NO_ALIGNMENT_START) {
-				minAlStart = Math.min(alStart, minAlStart);
-				maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+				int alStart = r.alignmentStart;
+				if (alStart != SAMRecord.NO_ALIGNMENT_START) {
+					minAlStart = Math.min(alStart, minAlStart);
+					maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+				}
 			}
-			slice.bases += r.readLength;
 		}
 
 		int seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
@@ -162,7 +165,7 @@ public class ContainerFactory {
 			slice.alignmentStart = minAlStart;
 			slice.alignmentSpan = maxAlEnd - minAlStart;
 		}
-
+		
 		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);
 		int prevAlStart = slice.alignmentStart;
 		for (CramRecord r : records) {

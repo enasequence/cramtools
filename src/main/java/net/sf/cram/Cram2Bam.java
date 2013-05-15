@@ -9,11 +9,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.bouncycastle.util.Arrays;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.ContainerParser;
@@ -28,6 +32,7 @@ import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
+import net.sf.cram.structure.Slice;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -158,9 +163,11 @@ public class Cram2Bam {
 		long samTime = 0;
 		long writeTime = 0;
 		long time = 0;
+		int containerCounter = 0;
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(10000);
 
-		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader, referenceSource);
+		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
+				referenceSource);
 
 		byte[] ref = null;
 		int prevSeqId = -1;
@@ -173,7 +180,10 @@ public class Cram2Bam {
 				break;
 			readTime += System.nanoTime() - time;
 
-			// for random access check if the sequence is the one we are looking for:
+			containerCounter++;
+
+			// for random access check if the sequence is the one we are looking
+			// for:
 			if (location != null
 					&& cramHeader.samFileHeader.getSequence(location.sequence)
 							.getSequenceIndex() != c.sequenceId)
@@ -204,10 +214,36 @@ public class Cram2Bam {
 				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(c.sequenceId);
-					ref = referenceSource.getReferenceBases(sequence, true) ;
+					ref = referenceSource.getReferenceBases(sequence, true);
 					prevSeqId = c.sequenceId;
 				}
 				break;
+			}
+
+			try {
+				for (int i = 0; i < c.slices.length; i++) {
+					Slice s = c.slices[i];
+					if (s.sequenceId < 0)
+						continue;
+					if (!s.validateRefMD5(ref)) {
+						String md5 = Utils.calculateMD5(
+								ref,
+								s.alignmentStart - 1,
+								Math.min(s.alignmentSpan, ref.length
+										- s.alignmentStart + 1));
+						String sliceMD5 = String.format("%032x",
+								new BigInteger(1, s.refMD5));
+						if (!md5.equals(sliceMD5)) {
+							log.error(String
+									.format("MD5 mismatch in slice %d container %d, seq %d, start %d, span %d, slice md5 %s, calculated md5 %s.",
+											i, containerCounter, s.sequenceId,
+											s.alignmentStart, s.alignmentSpan,
+											sliceMD5, md5));
+						}
+					}
+				}
+			} catch (NoSuchAlgorithmException e1) {
+				throw new RuntimeException(e1);
 			}
 
 			long time1 = System.nanoTime();
@@ -377,7 +413,7 @@ public class Cram2Bam {
 		}
 		return null;
 	}
-	
+
 	private static SAMFileWriter createSAMFileWriter(Params params,
 			CramHeader cramHeader, SAMFileWriterFactory samFileWriterFactory)
 			throws IOException {

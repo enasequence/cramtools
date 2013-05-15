@@ -293,7 +293,7 @@ public class Utils {
 				.calcualteAlignmentEnd() : firstEnd.alignmentStart;
 		final int secondEnd5PrimePosition = secondEnd.isNegativeStrand() ? secondEnd
 				.calcualteAlignmentEnd() : secondEnd.alignmentStart;
-
+				
 		int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition) ? +1
 				: -1;
 		return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
@@ -466,21 +466,12 @@ public class Utils {
 			throws NoSuchAlgorithmException {
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 		md5_MessageDigest.reset();
+
+//		System.out.println(new String (Arrays.copyOfRange(data, offset, offset+len)));
+		
 		md5_MessageDigest.update(data, offset, len);
 		return String.format("%032x",
 				new BigInteger(1, md5_MessageDigest.digest()));
-
-		// String s = new BigInteger(1,
-		// md5_MessageDigest.digest()).toString(16);
-		// if (s.length() != 32) {
-		// final String zeros = "00000000000000000000000000000000";
-		// s = zeros.substring(0, 32 - s.length()) + s;
-		// }
-		// return s ;
-
-		// BigInteger value = new BigInteger( 1, md5_MessageDigest.digest() );
-		// return String.format( String.format( "%%0%dx",
-		// md5_MessageDigest.digest().length << 1 ), value );
 	}
 
 	public static void main(String[] args) throws NoSuchAlgorithmException {
