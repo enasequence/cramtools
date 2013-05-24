@@ -48,6 +48,8 @@ public class CramRecord {
 	public int index = 0;
 	public int alignmentStart;
 	public int alignmentDelta;
+	private int alignmentEnd = -1;
+	private int alignmentSpan = -1;
 
 	public int readLength;
 
@@ -173,31 +175,45 @@ public class CramRecord {
 		return sb.toString();
 	}
 
-	public int calcualteAlignmentEnd() {
-		if (readFeatures == null || readFeatures.isEmpty())
-			return alignmentStart + readLength;
+	public int getAlignmentSpan() {
+		if (alignmentSpan < 0)
+			calculateAlignmentBoundaries();
+		return alignmentSpan;
+	}
 
-		int len = readLength;
-		for (ReadFeature f : readFeatures) {
-			switch (f.getOperator()) {
-			case InsertBase.operator:
-				len--;
-				break;
-			case Insertion.operator:
-				len -= ((Insertion) f).getSequence().length;
-				break;
-			case SoftClip.operator:
-				len -= ((SoftClip) f).getSequence().length;
-				break;
-			case Deletion.operator:
-				len += ((Deletion) f).getLength();
-				break;
+	public void calculateAlignmentBoundaries() {
+		if (readFeatures == null || readFeatures.isEmpty()) {
+			alignmentSpan = readLength;
+			alignmentEnd = alignmentStart + alignmentSpan - 1;
+		} else {
+			alignmentSpan = readLength;
+			for (ReadFeature f : readFeatures) {
+				switch (f.getOperator()) {
+				case InsertBase.operator:
+					alignmentSpan--;
+					break;
+				case Insertion.operator:
+					alignmentSpan -= ((Insertion) f).getSequence().length;
+					break;
+				case SoftClip.operator:
+					alignmentSpan -= ((SoftClip) f).getSequence().length;
+					break;
+				case Deletion.operator:
+					alignmentSpan += ((Deletion) f).getLength();
+					break;
 
-			default:
-				break;
+				default:
+					break;
+				}
 			}
+			alignmentEnd = alignmentStart + alignmentSpan - 1;
 		}
-		return alignmentStart + len;
+	}
+
+	public int getAlignmentEnd() {
+		if (alignmentEnd < 0)
+			calculateAlignmentBoundaries();
+		return alignmentEnd;
 	}
 
 	public boolean isMultiFragment() {

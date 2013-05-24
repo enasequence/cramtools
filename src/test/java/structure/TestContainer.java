@@ -112,15 +112,15 @@ public class TestContainer {
 				CramRecord first = list.get(0);
 				CramRecord last = list.get(list.size() - 1);
 				assertEquals(s.alignmentStart, first.alignmentStart);
-				int end = last.calcualteAlignmentEnd();
+				int end = last.getAlignmentEnd();
 				System.out.println(end);
-				if (s.alignmentSpan != last.calcualteAlignmentEnd()
+				if (s.alignmentSpan != last.getAlignmentEnd()
 						- first.alignmentStart)
 					fail(String
 							.format("Slice %d alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
 									i, s.alignmentStart, s.alignmentSpan,
 									first.alignmentStart, last.alignmentStart,
-									last.calcualteAlignmentEnd(),
+									last.getAlignmentEnd(),
 									first.readName, last.readName));
 
 			}
@@ -129,14 +129,14 @@ public class TestContainer {
 		CramRecord firstRecord1 = records.get(0);
 		CramRecord lastRecord1 = records.get(records.size() - 1);
 		assertEquals(container.alignmentStart, firstRecord1.alignmentStart);
-		if (container.alignmentSpan != lastRecord1.calcualteAlignmentEnd()
+		if (container.alignmentSpan != lastRecord1.getAlignmentEnd()
 				- firstRecord1.alignmentStart)
 			fail(String
 					.format("Container alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
 							container.alignmentStart, container.alignmentSpan,
 							firstRecord1.alignmentStart,
 							lastRecord1.alignmentStart,
-							lastRecord1.calcualteAlignmentEnd(),
+							lastRecord1.getAlignmentEnd(),
 							firstRecord1.readName, lastRecord1.readName));
 	}
 

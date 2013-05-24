@@ -137,7 +137,7 @@ public class ContainerFactory {
 				int alStart = r.alignmentStart;
 				if (alStart != SAMRecord.NO_ALIGNMENT_START) {
 					minAlStart = Math.min(alStart, minAlStart);
-					maxAlEnd = Math.max(r.calcualteAlignmentEnd(), maxAlEnd);
+					maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
 				}
 			}
 		}

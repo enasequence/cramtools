@@ -122,7 +122,7 @@ public class Bam2Cram {
 		int index = 0;
 
 		long tracksNanos = System.nanoTime();
-		updateTracks (samRecords, tracks) ;
+		updateTracks(samRecords, tracks);
 		tracksNanos = System.nanoTime() - tracksNanos;
 
 		long createNanos = System.nanoTime();
@@ -233,6 +233,7 @@ public class Bam2Cram {
 			samFileReader = new SAMFileReader(System.in);
 		} else
 			samFileReader = new SAMFileReader(bamFile);
+		SAMFileHeader samFileHeader = samFileReader.getFileHeader().clone();
 
 		SAMSequenceRecord samSequenceRecord = null;
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(
@@ -251,8 +252,7 @@ public class Bam2Cram {
 			if (SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(seqName))
 				samSequenceRecord = null;
 			else
-				samSequenceRecord = samFileReader.getFileHeader().getSequence(
-						seqName);
+				samSequenceRecord = samFileHeader.getSequence(seqName);
 		}
 
 		QualityScorePreservation preservation;
@@ -289,8 +289,30 @@ public class Bam2Cram {
 			os = cos.getCipherOutputStream();
 		}
 
+		String version = Bam2Cram.class.getPackage().getImplementationVersion();
+		if (version == null)
+			version = "2.0";
+		String cmd = null;
+		{
+			StringBuffer sb = new StringBuffer();
+			for (String arg : args)
+				sb.append(sb).append(" ");
+			if (sb.charAt(sb.length() - 1) == ' ') {
+				sb.setLength(sb.length() - 1);
+				sb.trimToSize();
+			}
+			cmd = sb.toString();
+		}
+
+		FixBAMFileHeader fixBAMFileHeader = new FixBAMFileHeader(
+				referenceSource);
+		fixBAMFileHeader.setConfirmMD5(true) ;
+		fixBAMFileHeader.fixSequences(samFileHeader.getSequenceDictionary()
+				.getSequences());
+		fixBAMFileHeader.addPG(samFileHeader, "cramtools", cmd, version);
+
 		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN"
-				: params.bamFile.getName(), samFileReader.getFileHeader());
+				: params.bamFile.getName(), samFileHeader);
 		long offset = CramIO.writeCramHeader(h, os);
 
 		long bases = 0;
@@ -298,9 +320,8 @@ public class Bam2Cram {
 		long[] externalBytes = new long[10];
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 
-		ContainerFactory cf = new ContainerFactory(
-				samFileReader.getFileHeader(), params.maxContainerSize,
-				params.preserveReadNames);
+		ContainerFactory cf = new ContainerFactory(samFileHeader,
+				params.maxContainerSize, params.preserveReadNames);
 
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
@@ -316,33 +337,37 @@ public class Bam2Cram {
 				if (!samRecords.isEmpty()) {
 					convertNanos = System.nanoTime();
 					List<CramRecord> records = convert(samRecords,
-							samFileReader.getFileHeader(), ref, tracks,
-							preservation, params.captureAllTags,
-							params.captureTags, params.ignoreTags);
+							samFileHeader, ref, tracks, preservation,
+							params.captureAllTags, params.captureTags,
+							params.ignoreTags);
 					convertNanos = System.nanoTime() - convertNanos;
 					samRecords.clear();
 
 					Container container = cf.buildContainer(records);
 					for (Slice s : container.slices) {
-						s.setRefMD5(ref) ;
+						s.setRefMD5(ref);
 
-//						md5_MessageDigest.reset();
-//
-//						int span = Math.min(s.alignmentSpan, ref.length
-//								- s.alignmentStart+1);
-//						
-//						if (s.alignmentStart + s.alignmentSpan > ref.length+1)
-//							throw new RuntimeException("INvalid alignment boundaries.") ;
-//
-//						md5_MessageDigest.update(ref, s.alignmentStart - 1,
-//								span);
-//
-//						String sliceRef = new String(ref, s.alignmentStart - 1,
-//								Math.min(span, 30));
-//						s.refMD5 = md5_MessageDigest.digest();
-//						log.debug("Slice ref starts with: " + sliceRef);
-//						log.debug("Slice ref md5: "
-//								+ (String.format("%032x", new BigInteger(1,s.refMD5))));
+						// md5_MessageDigest.reset();
+						//
+						// int span = Math.min(s.alignmentSpan, ref.length
+						// - s.alignmentStart+1);
+						//
+						// if (s.alignmentStart + s.alignmentSpan >
+						// ref.length+1)
+						// throw new
+						// RuntimeException("INvalid alignment boundaries.") ;
+						//
+						// md5_MessageDigest.update(ref, s.alignmentStart - 1,
+						// span);
+						//
+						// String sliceRef = new String(ref, s.alignmentStart -
+						// 1,
+						// Math.min(span, 30));
+						// s.refMD5 = md5_MessageDigest.digest();
+						// log.debug("Slice ref starts with: " + sliceRef);
+						// log.debug("Slice ref md5: "
+						// + (String.format("%032x", new
+						// BigInteger(1,s.refMD5))));
 					}
 					records.clear();
 					long len = CramIO.writeContainer(container, os);
@@ -367,8 +392,8 @@ public class Bam2Cram {
 
 			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					samSequenceRecord = samFileReader.getFileHeader()
-							.getSequence(samRecord.getReferenceName());
+					samSequenceRecord = samFileHeader.getSequence(samRecord
+							.getReferenceName());
 					ref = referenceSource.getReferenceBases(samSequenceRecord,
 							true);
 					tracks = new ReferenceTracks(
@@ -395,9 +420,8 @@ public class Bam2Cram {
 
 		{ // copied for now, should be a subroutine:
 			if (!samRecords.isEmpty()) {
-				List<CramRecord> records = convert(samRecords,
-						samFileReader.getFileHeader(), ref, tracks,
-						preservation, params.captureAllTags,
+				List<CramRecord> records = convert(samRecords, samFileHeader,
+						ref, tracks, preservation, params.captureAllTags,
 						params.captureTags, params.ignoreTags);
 				samRecords.clear();
 				Container container = cf.buildContainer(records);

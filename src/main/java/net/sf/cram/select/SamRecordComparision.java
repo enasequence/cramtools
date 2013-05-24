@@ -275,9 +275,9 @@ public class SamRecordComparision {
 			throws SQLException {
 		System.out.println(tableName);
 		PreparedStatement ps = c
-				.prepareStatement("CREATE TABLE "
+				.prepareStatement("CREATE TABLE IF NOT EXISTS "
 						+ tableName
-						+ "(counter INT PRIMARY KEY, field VARCHAR, tag VARCHAR, premature int, value1 VARCHAR, value2 VARCHAR, name1 VARCHAR, name2 VARCHAR, record1 VARCHAR, record2 VARCHAR);");
+						+ "(counter INT, field VARCHAR, tag VARCHAR, premature int, value1 VARCHAR, value2 VARCHAR, name1 VARCHAR, name2 VARCHAR, record1 VARCHAR, record2 VARCHAR);");
 		ps.executeUpdate();
 		c.commit();
 	}

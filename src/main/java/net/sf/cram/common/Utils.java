@@ -280,6 +280,10 @@ public class Utils {
 
 	}
 
+	public static final void setInsertSize(CramRecord record) {
+
+	}
+
 	public static int computeInsertSize(CramRecord firstEnd,
 			CramRecord secondEnd) {
 		if (firstEnd.isSegmentUnmapped() || secondEnd.isSegmentUnmapped()) {
@@ -289,14 +293,43 @@ public class Utils {
 			return 0;
 		}
 
-		final int firstEnd5PrimePosition = firstEnd.isNegativeStrand() ? firstEnd
-				.calcualteAlignmentEnd() : firstEnd.alignmentStart;
-		final int secondEnd5PrimePosition = secondEnd.isNegativeStrand() ? secondEnd
-				.calcualteAlignmentEnd() : secondEnd.alignmentStart;
-				
-		int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition) ? +1
-				: -1;
-		return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
+		final int right = Math
+				.max(Math.max(firstEnd.alignmentStart,
+						firstEnd.getAlignmentEnd()),
+						Math.max(secondEnd.alignmentStart,
+								secondEnd.getAlignmentEnd()));
+		final int left = Math
+				.min(Math.min(firstEnd.alignmentStart,
+						firstEnd.getAlignmentEnd()),
+						Math.min(secondEnd.alignmentStart,
+								secondEnd.getAlignmentEnd()));
+		final int tlen = right - left + 1;
+
+		if (firstEnd.alignmentStart == left) {
+			if (firstEnd.getAlignmentEnd() != right)
+				firstEnd.templateSize = tlen;
+			else if (firstEnd.isFirstSegment())
+				firstEnd.templateSize = tlen;
+			else
+				firstEnd.templateSize = -tlen;
+		} else {
+			firstEnd.templateSize = -tlen;
+		}
+		secondEnd.templateSize = -firstEnd.templateSize;
+
+		return tlen;
+
+		// final int firstEnd5PrimePosition = firstEnd.isNegativeStrand() ?
+		// firstEnd
+		// .calcualteAlignmentEnd() : firstEnd.alignmentStart;
+		// final int secondEnd5PrimePosition = secondEnd.isNegativeStrand() ?
+		// secondEnd
+		// .calcualteAlignmentEnd() : secondEnd.alignmentStart;
+		//
+		// int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition)
+		// ? +1
+		// : -1;
+		// return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
 	}
 
 	public static IndexedFastaSequenceFile createIndexedFastaSequenceFile(
@@ -457,6 +490,14 @@ public class Utils {
 		}
 	}
 
+	public static String calculateMD5_RTE(byte[] data) {
+		try {
+			return calculateMD5(data, 0, data.length);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public static String calculateMD5(byte[] data)
 			throws NoSuchAlgorithmException {
 		return calculateMD5(data, 0, data.length);
@@ -467,8 +508,9 @@ public class Utils {
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 		md5_MessageDigest.reset();
 
-//		System.out.println(new String (Arrays.copyOfRange(data, offset, offset+len)));
-		
+		// System.out.println(new String (Arrays.copyOfRange(data, offset,
+		// offset+len)));
+
 		md5_MessageDigest.update(data, offset, len);
 		return String.format("%032x",
 				new BigInteger(1, md5_MessageDigest.digest()));
