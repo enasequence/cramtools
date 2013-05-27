@@ -232,7 +232,8 @@ public class ReaderToFastQ extends AbstractReader {
 				break;
 			}
 		}
-		for (; posInRead <= readLength && alignmentStart + posInSeq < ref.length; posInRead++) 
+		for (; posInRead <= readLength
+				&& alignmentStart + posInSeq < ref.length; posInRead++)
 			bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
 		return bases;
