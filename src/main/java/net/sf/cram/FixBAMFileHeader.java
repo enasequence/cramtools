@@ -12,7 +12,6 @@ import net.sf.samtools.SAMSequenceRecord;
 public class FixBAMFileHeader {
 	private static Log log = Log.getInstance(FixBAMFileHeader.class);
 	private boolean confirmMD5 = false;
-	private boolean replaceSequenceURL = false;
 	private String sequenceUrlPattern = "http://www.ebi.ac.uk/ena/cram/md5/%s";
 
 	private ReferenceSource referenceSource;
@@ -50,7 +49,7 @@ public class FixBAMFileHeader {
 									sequenceRecord.getSequenceName(),
 									sequenceRecord.getSequenceLength(),
 									bytes.length));
-					sequenceRecord.setSequenceLength(bytes.length) ;
+					sequenceRecord.setSequenceLength(bytes.length);
 				}
 			}
 		} else {
@@ -60,7 +59,7 @@ public class FixBAMFileHeader {
 			sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 		}
 
-		if (replaceSequenceURL) {
+		if (sequenceRecord.getAttribute(SAMSequenceRecord.URI_TAG) == null) {
 			sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG, String
 					.format(sequenceUrlPattern, sequenceRecord
 							.getAttribute(SAMSequenceRecord.MD5_TAG)));
@@ -73,7 +72,6 @@ public class FixBAMFileHeader {
 		programRecord.setCommandLine(cmd);
 		programRecord.setProgramName(program);
 		programRecord.setProgramName(version);
-		header.addProgramRecord(programRecord);
 	}
 
 	public boolean isConfirmMD5() {
@@ -82,14 +80,6 @@ public class FixBAMFileHeader {
 
 	public void setConfirmMD5(boolean confirmMD5) {
 		this.confirmMD5 = confirmMD5;
-	}
-
-	public boolean isReplaceSequenceURL() {
-		return replaceSequenceURL;
-	}
-
-	public void setReplaceSequenceURL(boolean replaceSequenceURL) {
-		this.replaceSequenceURL = replaceSequenceURL;
 	}
 
 	public String getSequenceUrlPattern() {
