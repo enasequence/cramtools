@@ -20,6 +20,7 @@ import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.ContainerFactory;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.build.Sam2CramRecordFactory;
+import net.sf.cram.common.Utils;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.ref.ReferenceTracks;
@@ -267,11 +268,13 @@ public class Bam2Cram {
 			ref = new byte[0];
 			tracks = new ReferenceTracks(
 					SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX,
-					SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref, ref.length);
+					SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref);
 		} else {
 			ref = referenceSource.getReferenceBases(samSequenceRecord, true);
+			Utils.upperCase(ref) ;
+			log.debug(String.format("Creating tracks for reference: name=%s, length=%d.\n", samSequenceRecord.getSequenceName(), ref.length)) ;
 			tracks = new ReferenceTracks(samSequenceRecord.getSequenceIndex(),
-					samSequenceRecord.getSequenceName(), ref, ref.length);
+					samSequenceRecord.getSequenceName(), ref);
 		}
 
 		OutputStream os;
@@ -346,28 +349,6 @@ public class Bam2Cram {
 					Container container = cf.buildContainer(records);
 					for (Slice s : container.slices) {
 						s.setRefMD5(ref);
-
-						// md5_MessageDigest.reset();
-						//
-						// int span = Math.min(s.alignmentSpan, ref.length
-						// - s.alignmentStart+1);
-						//
-						// if (s.alignmentStart + s.alignmentSpan >
-						// ref.length+1)
-						// throw new
-						// RuntimeException("INvalid alignment boundaries.") ;
-						//
-						// md5_MessageDigest.update(ref, s.alignmentStart - 1,
-						// span);
-						//
-						// String sliceRef = new String(ref, s.alignmentStart -
-						// 1,
-						// Math.min(span, 30));
-						// s.refMD5 = md5_MessageDigest.digest();
-						// log.debug("Slice ref starts with: " + sliceRef);
-						// log.debug("Slice ref md5: "
-						// + (String.format("%032x", new
-						// BigInteger(1,s.refMD5))));
 					}
 					records.clear();
 					long len = CramIO.writeContainer(container, os);
@@ -396,17 +377,16 @@ public class Bam2Cram {
 							.getReferenceName());
 					ref = referenceSource.getReferenceBases(samSequenceRecord,
 							true);
+					Utils.upperCase(ref) ;
 					tracks = new ReferenceTracks(
 							samSequenceRecord.getSequenceIndex(),
-							samSequenceRecord.getSequenceName(), ref,
-							ref.length);
+							samSequenceRecord.getSequenceName(), ref);
 
 				} else {
 					ref = new byte[] {};
 					tracks = new ReferenceTracks(
 							SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX,
-							SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref,
-							ref.length);
+							SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref);
 				}
 				prevSeqId = samRecord.getReferenceIndex();
 			}
@@ -426,26 +406,7 @@ public class Bam2Cram {
 				samRecords.clear();
 				Container container = cf.buildContainer(records);
 				for (Slice s : container.slices) {
-					if (s.alignmentStart < 1) {
-						s.refMD5 = new byte[16];
-						Arrays.fill(s.refMD5, (byte) 0);
-						continue;
-					}
-
-					md5_MessageDigest.reset();
-
-					int span = Math.min(s.alignmentSpan, ref.length
-							- s.alignmentStart);
-
-					md5_MessageDigest.update(ref, s.alignmentStart - 1, span);
-
-					String sliceRef = new String(ref, s.alignmentStart - 1,
-							Math.min(span, 30));
-					s.refMD5 = md5_MessageDigest.digest();
-					log.debug("Slice ref starts with: " + sliceRef);
-					log.debug("Slice ref md5: "
-							+ (String.format("%032x", new BigInteger(1,
-									s.refMD5))));
+					s.setRefMD5(ref);
 				}
 				records.clear();
 				CramIO.writeContainer(container, os);

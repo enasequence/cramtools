@@ -86,14 +86,15 @@ public class CramNormalizer {
 						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 					Utils.computeInsertSize(r, downMate);
-//					if (r.isFirstSegment() && downMate.isLastSegment()) {
-//						r.templateSize = Utils.computeInsertSize(r, downMate);
-//						downMate.templateSize = -r.templateSize;
-//					} else if (r.isLastSegment() && downMate.isFirstSegment()) {
-//						downMate.templateSize = Utils.computeInsertSize(
-//								downMate, r);
-//						r.templateSize = -downMate.templateSize;
-//					}
+					// if (r.isFirstSegment() && downMate.isLastSegment()) {
+					// r.templateSize = Utils.computeInsertSize(r, downMate);
+					// downMate.templateSize = -r.templateSize;
+					// } else if (r.isLastSegment() &&
+					// downMate.isFirstSegment()) {
+					// downMate.templateSize = Utils.computeInsertSize(
+					// downMate, r);
+					// r.templateSize = -downMate.templateSize;
+					// }
 				}
 			}
 		}
@@ -119,8 +120,25 @@ public class CramNormalizer {
 			if (referenceSource != null)
 				refBases = referenceSource.getReferenceBases(
 						header.getSequence(r.sequenceId), true);
+			
+			if (r.alignmentStart == 132111
+					&& "gi|256821038|gb|AC234917.3|FOSMID_clone_ABC12-46663800M24_chrunknown.1"
+							.equals(r.readName)) {
+				ReadFeature f = r.readFeatures.get(0);
+				if (((SoftClip) f).getSequence().length == 31784 && "hs37d5".equals(r.sequenceName))
+					System.out.print("gotcha");
+			}
+			
 			byte[] bases = restoreReadBases(r, refBases, substitutionMatrix);
 			r.readBases = bases;
+
+			if (r.alignmentStart == 132111
+					&& "gi|256821038|gb|AC234917.3|FOSMID_clone_ABC12-46663800M24_chrunknown.1"
+							.equals(r.readName)) {
+				ReadFeature f = r.readFeatures.get(0);
+				if (((SoftClip) f).getSequence().length == 31784)
+					System.out.printf("base at 32132-1=%c\n", bases[32132 - 1]);
+			}
 		}
 
 		// restore quality scores:
@@ -266,26 +284,7 @@ public class CramNormalizer {
 		}
 
 		for (int i = 0; i < bases.length; i++) {
-			switch (bases[i]) {
-			case 'a':
-				bases[i] = 'A';
-				break;
-			case 'c':
-				bases[i] = 'C';
-				break;
-			case 'g':
-				bases[i] = 'G';
-				break;
-			case 't':
-				bases[i] = 'T';
-				break;
-			case 'n':
-				bases[i] = 'N';
-				break;
-
-			default:
-				break;
-			}
+			bases[i] = Utils.normalizeBase(bases[i]) ;
 		}
 
 		return bases;

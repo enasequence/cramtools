@@ -23,8 +23,8 @@ import net.sf.cram.CramTools.LevelConverter;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMRecordIterator;
 
@@ -405,7 +405,13 @@ public class SamRecordComparision {
 
 	public void summary(List<SamRecordDiscrepancy> list, PrintStream ps) {
 		Map<String, MutableInt> map = new HashMap<String, SamRecordComparision.MutableInt>();
+		int prematureEndOfFile = -1;
 		for (SamRecordDiscrepancy d : list) {
+			if (d.field == null) {
+				prematureEndOfFile = d.prematureEnd;
+				continue;
+			}
+
 			String id = d.field == FIELD_TYPE.TAG ? d.tagId : d.field.name();
 			MutableInt m = map.get(id);
 			if (m == null) {
@@ -415,6 +421,8 @@ public class SamRecordComparision {
 			m.value++;
 		}
 
+		if (prematureEndOfFile > -1)
+			ps.printf("premature end of file: %d\n", prematureEndOfFile);
 		for (FIELD_TYPE f : FIELD_TYPE.values()) {
 			if (f == FIELD_TYPE.TAG)
 				continue;
@@ -514,7 +522,8 @@ public class SamRecordComparision {
 			System.setProperty("reference",
 					params.referenceFasta.getAbsolutePath());
 
-		SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT) ;
+		SAMFileReader
+				.setDefaultValidationStringency(ValidationStringency.SILENT);
 		SAMFileReader r1 = new SAMFileReader(params.file1);
 		SAMFileReader r2 = new SAMFileReader(params.file2);
 
@@ -538,7 +547,7 @@ public class SamRecordComparision {
 		c.compareTags = params.compareTags;
 		c.ignoreFlags = params.ignoreFalgs;
 		c.ignoreTLENDiff = params.ignoreTLENDiff;
-		c.maxValueLen = params.maxValueLength ;
+		c.maxValueLen = params.maxValueLength;
 
 		if (params.ignoreTags != null) {
 			String chunks[] = params.ignoreTags.split(":");
@@ -567,14 +576,15 @@ public class SamRecordComparision {
 		else if (params.dbDumpFile == null) {
 			if (discrepancies.isEmpty())
 				System.out.println("No discrepancies found");
-			else
-				System.out.println("Found discrepansies: "
-						+ discrepancies.size());
-			if (params.dumpDiscrepancies)
-				for (SamRecordDiscrepancy d : discrepancies)
-					c.log(d, params.dumpRecords, System.out);
+			else {
+				if (params.dumpDiscrepancies || params.dumpRecords) {
+					for (SamRecordDiscrepancy d : discrepancies)
+						c.log(d, params.dumpRecords, System.out);
+				} else
+					c.summary(discrepancies, System.out);
 
-			c.summary(discrepancies, System.out);
+			}
+
 		} else {
 			db(params.dbDumpFile, "discrepancy".toUpperCase(),
 					discrepancies.iterator());
@@ -582,7 +592,8 @@ public class SamRecordComparision {
 
 		r1.close();
 		r2.close();
-
+		if (!discrepancies.isEmpty())
+			System.exit(1);
 	}
 
 	private static void db(File dbFile, String tableName,

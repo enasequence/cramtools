@@ -215,6 +215,7 @@ public class Cram2Bam {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(c.sequenceId);
 					ref = referenceSource.getReferenceBases(sequence, true);
+					Utils.upperCase(ref) ;
 					prevSeqId = c.sequenceId;
 				}
 				break;

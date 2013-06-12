@@ -68,8 +68,11 @@ public abstract class AbstractReader {
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataReader<byte[]> softClipCodec;
 
-	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.BYTE_ARRAY)
-	public DataReader<byte[]> hardClipCodec;
+	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.INT)
+	public DataReader<Integer> hardClipCodec;
+	
+	@DataSeries(key = EncodingKey.PD_padding, type = DataSeriesType.INT)
+	public DataReader<Integer> paddingCodec;
 
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataReader<Integer> dlc;

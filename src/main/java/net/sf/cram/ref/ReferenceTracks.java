@@ -13,7 +13,13 @@ public class ReferenceTracks {
 	private final byte[] bases;
 	private final short[] coverage;
 	private final short[] mismatches;
-
+	
+	
+	public ReferenceTracks(int sequenceId, String sequenceName,
+			byte[] reference) {
+		this (sequenceId, sequenceName, reference, 1000000) ;
+	}
+	
 	public ReferenceTracks(int sequenceId, String sequenceName,
 			byte[] reference, int windowSize) {
 		this.sequenceId = sequenceId;
@@ -24,32 +30,6 @@ public class ReferenceTracks {
 		coverage = new short[Math.min(windowSize, reference.length)];
 		mismatches = new short[Math.min(windowSize, reference.length)];
 		position = 1;
-
-//		for (int i = 0; i < reference.length; i++) {
-//			switch (reference[i]) {
-//			case 'A':
-//			case 'C':
-//			case 'G':
-//			case 'T':
-//			case 'N':
-//				break;
-//			case 'a':
-//				reference[i] = 'A';
-//				break;
-//			case 'c':
-//				reference[i] = 'C';
-//				break;
-//			case 'g':
-//				reference[i] = 'G';
-//				break;
-//			case 't':
-//				reference[i] = 'T';
-//				break;
-//			default:
-//				reference[i] = 'N';
-//				break;
-//			}
-//		}
 
 		reset();
 	}

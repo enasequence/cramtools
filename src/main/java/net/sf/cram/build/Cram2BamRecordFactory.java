@@ -139,7 +139,7 @@ public class Cram2BamRecordFactory {
 				break;
 			case HardClip.operator:
 				co = CigarOperator.HARD_CLIP ;
-				rfLen = ((HardClip) f).getSequence().length;
+				rfLen = ((HardClip) f).getLength();
 				break;
 			case InsertBase.operator:
 				co = CigarOperator.INSERTION;

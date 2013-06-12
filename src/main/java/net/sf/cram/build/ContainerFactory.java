@@ -163,7 +163,7 @@ public class ContainerFactory {
 			slice.alignmentSpan = 0;
 		} else {
 			slice.alignmentStart = minAlStart;
-			slice.alignmentSpan = maxAlEnd - minAlStart;
+			slice.alignmentSpan = maxAlEnd - minAlStart+1;
 		}
 		
 		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);

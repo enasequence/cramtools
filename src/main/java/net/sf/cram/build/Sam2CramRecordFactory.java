@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.cram.common.Utils;
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
@@ -248,8 +249,8 @@ public class Sam2CramRecordFactory {
 						cigarElementLength));
 				break;
 			case H:
-				addHardClip(features, zeroBasedPositionInRead,
-						cigarElementLength, bases, qualityScore);
+				features.add(new HardClip(zeroBasedPositionInRead + 1,
+						cigarElementLength));
 				break;
 			case S:
 				addSoftClip(features, zeroBasedPositionInRead,
@@ -299,7 +300,7 @@ public class Sam2CramRecordFactory {
 				zeroBasedPositionInRead, zeroBasedPositionInRead
 						+ cigarElementLength);
 
-		HardClip v = new HardClip(zeroBasedPositionInRead + 1, insertedBases);
+		HardClip v = new HardClip(zeroBasedPositionInRead + 1, insertedBases.length);
 		features.add(v);
 	}
 
@@ -350,14 +351,13 @@ public class Sam2CramRecordFactory {
 				refBase = 'N';
 			else
 				refBase = refBases[refCoord];
+			refBase = Utils.normalizeBase(refBase) ;
 
 			if (bases[i + fromPosInRead] != refBase) {
 				Substitution sv = new Substitution();
 				sv.setPosition(oneBasedPositionInRead);
 				sv.setBase(bases[i + fromPosInRead]);
 				sv.setRefernceBase(refBase);
-				// sv.setBaseChange(new BaseChange(sv.getRefernceBase(), sv
-				// .getBase()));
 				sv.setBaseChange(null);
 
 				features.add(sv);

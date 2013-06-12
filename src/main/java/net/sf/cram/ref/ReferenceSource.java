@@ -51,7 +51,7 @@ public class ReferenceSource {
 		}
 		return null;
 	}
-
+	
 	public byte[] getReferenceBases(SAMSequenceRecord record,
 			boolean tryNameVariants) {
 		{ // check cache by sequence name:

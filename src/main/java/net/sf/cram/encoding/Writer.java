@@ -6,8 +6,10 @@ import java.util.Map;
 
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
+import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.Insertion;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
@@ -80,6 +82,12 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> softClipCodec;
+	
+	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.INT)
+	public DataWriter<Integer> hardClipCodec;
+	
+	@DataSeries(key = EncodingKey.PD_padding, type = DataSeriesType.INT)
+	public DataWriter<Integer> paddingCodec;
 
 	@DataSeries(key = EncodingKey.DL_DeletionLength, type = DataSeriesType.INT)
 	public DataWriter<Integer> dlc;
@@ -201,6 +209,14 @@ public class Writer {
 				case SoftClip.operator:
 					SoftClip fv = (SoftClip) f;
 					softClipCodec.writeData(fv.getSequence());
+					break;
+				case HardClip.operator:
+					HardClip hv = (HardClip) f;
+					hardClipCodec.writeData(hv.getLength());
+					break;
+				case Padding.operator:
+					Padding pv = (Padding) f;
+					paddingCodec.writeData(pv.getLength());
 					break;
 				case Deletion.operator:
 					Deletion dv = (Deletion) f;

@@ -6,8 +6,10 @@ import java.util.LinkedList;
 
 import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.Deletion;
+import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.Insertion;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
@@ -111,6 +113,15 @@ public class Reader extends AbstractReader {
 						SoftClip fv = new SoftClip(pos,
 								softClipCodec.readData());
 						rf.add(fv);
+						break;
+					case HardClip.operator:
+						HardClip hv = new HardClip(pos,
+								hardClipCodec.readData());
+						rf.add(hv);
+						break;
+					case Padding.operator:
+						Padding pv = new Padding(pos, dlc.readData());
+						rf.add(pv);
 						break;
 					case Deletion.operator:
 						Deletion dv = new Deletion(pos, dlc.readData());

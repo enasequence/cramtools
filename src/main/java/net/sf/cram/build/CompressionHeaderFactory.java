@@ -25,6 +25,7 @@ import net.sf.cram.encoding.HuffmanIntegerEncoding;
 import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
 import net.sf.cram.encoding.read_features.Deletion;
+import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.huffman.HuffmanCode;
@@ -475,6 +476,21 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
+					.toParam(calculator.values, calculator.bitLens));
+		}
+		
+		{ // hard clip length
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				if (r.readFeatures == null)
+					continue;
+				else
+					for (ReadFeature rf : r.readFeatures)
+						if (rf.getOperator() == HardClip.operator)
+							calculator.add(((HardClip) rf).getLength());
+			calculator.calculate();
+
+			h.eMap.put(EncodingKey.HC_HardClip, HuffmanIntegerEncoding
 					.toParam(calculator.values, calculator.bitLens));
 		}
 

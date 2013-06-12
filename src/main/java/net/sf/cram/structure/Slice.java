@@ -1,5 +1,8 @@
 package net.sf.cram.structure;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -50,17 +53,17 @@ public class Slice {
 	public boolean validateRefMD5(byte[] ref) {
 		try {
 			int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
-//			System.out.println(new String (ref, alignmentStart-1, span));
-			String md5 = Utils.calculateMD5(ref, alignmentStart - 1,span);
+			// System.out.println(new String (ref, alignmentStart-1, span));
+			String md5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
 			String sliceMD5 = String.format("%032x", new BigInteger(1, refMD5));
 			if (!md5.equals(sliceMD5)) {
 				StringBuffer sb = new StringBuffer();
 				int shoulder = 10;
-				sb.append(new String(Arrays.copyOfRange(ref, alignmentStart-1,
-						alignmentStart + shoulder)));
+				sb.append(new String(Arrays.copyOfRange(ref,
+						alignmentStart - 1, alignmentStart + shoulder)));
 				sb.append("...");
-				sb.append(new String(Arrays.copyOfRange(ref, alignmentStart-1 + span
-						- shoulder, alignmentStart + span)));
+				sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
+						+ span - shoulder, alignmentStart + span)));
 
 				log.info(String
 						.format("Slice md5 %s does not match calculated %s, %d:%d-%d, %s",
@@ -92,7 +95,6 @@ public class Slice {
 			md5_MessageDigest.reset();
 
 			int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
-//			System.out.println(new String (ref, alignmentStart-1, span));
 
 			if (alignmentStart + alignmentSpan > ref.length + 1)
 				throw new RuntimeException("Invalid alignment boundaries.");
@@ -100,33 +102,36 @@ public class Slice {
 			md5_MessageDigest.update(ref, alignmentStart - 1, span);
 
 			refMD5 = md5_MessageDigest.digest();
-			try {
-				String md5 = Utils.calculateMD5(ref, alignmentStart-1, span) ;
-				if (!md5.equals(String.format("%032x", new BigInteger(1, refMD5)))) {
-					System.out.println("gotcha");
-				}
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 
 			StringBuffer sb = new StringBuffer();
 			int shoulder = 10;
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart-1,
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1,
 					alignmentStart + shoulder)));
 			sb.append("...");
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart-1 + span
-					- shoulder, alignmentStart + span)));
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
+					+ span - shoulder, alignmentStart + span)));
 
+			// log.info
+			// (String.format("ref len=%d, alstart=%d, alspan=%d, span=%d.\n",
+			// ref.length, alignmentStart, alignmentSpan, span)) ;
 			log.info(String.format("Slice md5: %s for %d:%d-%d, %s",
 					String.format("%032x", new BigInteger(1, refMD5)),
-					sequenceId, alignmentStart, span, sb.toString()));
-		}
+					sequenceId, alignmentStart, alignmentStart + span - 1,
+					sb.toString()));
 
-		// String sliceRef = new String(ref, alignmentStart - 1,
-		// Math.min(span, 30));
-		// log.debug("Slice ref starts with: " + sliceRef);
-		// log.debug("Slice ref md5: "
-		// + (String.format("%032x", new BigInteger(1,s.refMD5))));
+//			System.out.println("Dumping sequence to file: seq.dump");
+//			try {
+//				FileOutputStream fos = new FileOutputStream(String.format(
+//						"seq_%s.dump", sequenceId));
+//				fos.write(ref, alignmentStart - 1, span);
+//				fos.close();
+//			} catch (FileNotFoundException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+		}
 	}
 }

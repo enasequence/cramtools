@@ -4,27 +4,18 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class HardClip implements Serializable, ReadFeature {
+	public static final byte operator = 'H';
 
 	private int position;
-	private byte[] sequence;
-
-	public byte[] getSequence() {
-		return sequence;
-	}
-
-	public void setSequence(byte[] sequence) {
-		this.sequence = sequence;
-	}
+	private int length;
 
 	public HardClip() {
 	}
 
-	public HardClip(int position, byte[] sequence) {
+	public HardClip(int position, int len) {
 		this.position = position;
-		this.sequence = sequence;
+		this.length = len;
 	}
-
-	public static final byte operator = 'H';
 
 	@Override
 	public byte getOperator() {
@@ -38,6 +29,14 @@ public class HardClip implements Serializable, ReadFeature {
 	public void setPosition(int position) {
 		this.position = position;
 	}
+	
+	public int getLength() {
+		return length;
+	}
+
+	public void setLength(int length) {
+		this.length = length;
+	}
 
 	@Override
 	public boolean equals(Object obj) {
@@ -48,7 +47,7 @@ public class HardClip implements Serializable, ReadFeature {
 
 		if (position != v.position)
 			return false;
-		if (Arrays.equals(sequence, v.sequence))
+		if (length != v.length)
 			return false;
 
 		return true;
@@ -58,7 +57,7 @@ public class HardClip implements Serializable, ReadFeature {
 	public String toString() {
 		StringBuffer sb = new StringBuffer(getClass().getSimpleName() + "[");
 		sb.append("position=").append(position);
-		sb.append("; bases=").append(new String(sequence));
+		sb.append("; len=").append(length);
 		sb.append("] ");
 		return sb.toString();
 	}

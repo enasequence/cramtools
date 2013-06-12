@@ -38,6 +38,9 @@ public class DataReaderFactory {
 				if (h.eMap.get(key) == null) {
 					System.err.println("Encoding not found for key: " + key);
 				}
+				if (type == DataSeriesType.BYTE_ARRAY &&  h.eMap.get(key).id == EncodingID.BETA) {
+					System.out.println("BYTE_ARRAY and BETA for field: "+f.getName());
+				}
 				f.set(reader,
 						createReader(type, h.eMap.get(key), bis, inputMap));
 			}

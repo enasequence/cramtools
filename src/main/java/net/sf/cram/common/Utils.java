@@ -83,6 +83,45 @@ public class Utils {
 		}
 	}
 
+	public static final byte upperCase(byte base) {
+		return base >= 'a' ? (byte) (base - ('a'-'A')) : base;
+	}
+
+	public static final byte[] upperCase(byte[] bases) {
+		for (int i = 0; i < bases.length; i++)
+			bases[i] = upperCase(bases[i]);
+		return bases;
+	}
+
+	public static final byte normalizeBase(byte base) {
+		switch (base) {
+		case 'a':
+		case 'A':
+			return 'A';
+
+		case 'c':
+		case 'C':
+			return 'C';
+
+		case 'g':
+		case 'G':
+			return 'G';
+
+		case 't':
+		case 'T':
+			return 'T';
+
+		default:
+			return 'N';
+		}
+	}
+
+	public static final byte[] normalizeBases(byte[] bases) {
+		for (int i = 0; i < bases.length; i++)
+			bases[i] = normalizeBase(bases[i]);
+		return bases;
+	}
+
 	public static Byte[] autobox(byte[] array) {
 		Byte[] newArray = new Byte[array.length];
 		for (int i = 0; i < array.length; i++)
@@ -305,6 +344,10 @@ public class Utils {
 								secondEnd.getAlignmentEnd()));
 		final int tlen = right - left + 1;
 
+		if ("80C3GABXX110103:2:66:20751:14602".equals(firstEnd.readName)) {
+			System.out.println("gotcha");
+		}
+		
 		if (firstEnd.alignmentStart == left) {
 			if (firstEnd.getAlignmentEnd() != right)
 				firstEnd.templateSize = tlen;
@@ -315,21 +358,19 @@ public class Utils {
 		} else {
 			firstEnd.templateSize = -tlen;
 		}
-		secondEnd.templateSize = -firstEnd.templateSize;
+//		secondEnd.templateSize = -firstEnd.templateSize;
+		if (secondEnd.alignmentStart == left) {
+			if (secondEnd.getAlignmentEnd() != right)
+				secondEnd.templateSize = tlen;
+			else if (secondEnd.isFirstSegment())
+				secondEnd.templateSize = tlen;
+			else
+				secondEnd.templateSize = -tlen;
+		} else {
+			secondEnd.templateSize = -tlen;
+		}
 
 		return tlen;
-
-		// final int firstEnd5PrimePosition = firstEnd.isNegativeStrand() ?
-		// firstEnd
-		// .calcualteAlignmentEnd() : firstEnd.alignmentStart;
-		// final int secondEnd5PrimePosition = secondEnd.isNegativeStrand() ?
-		// secondEnd
-		// .calcualteAlignmentEnd() : secondEnd.alignmentStart;
-		//
-		// int adjustment = (secondEnd5PrimePosition >= firstEnd5PrimePosition)
-		// ? +1
-		// : -1;
-		// return secondEnd5PrimePosition - firstEnd5PrimePosition + adjustment;
 	}
 
 	public static IndexedFastaSequenceFile createIndexedFastaSequenceFile(
@@ -517,6 +558,10 @@ public class Utils {
 	}
 
 	public static void main(String[] args) throws NoSuchAlgorithmException {
+		byte b = 'a';
+		byte u = upperCase((byte) 'a');
+		System.out.printf("%d=%d, %c\n", b, u, u);
+
 		System.out.println(calculateMD5("363".getBytes()));
 		System.out.println(calculateMD5("a".getBytes()));
 		System.out.println(calculateMD5("Ჾ蠇".getBytes()));
