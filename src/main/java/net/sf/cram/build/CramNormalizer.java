@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.build;
 
 import java.util.ArrayList;
@@ -121,24 +136,8 @@ public class CramNormalizer {
 				refBases = referenceSource.getReferenceBases(
 						header.getSequence(r.sequenceId), true);
 			
-			if (r.alignmentStart == 132111
-					&& "gi|256821038|gb|AC234917.3|FOSMID_clone_ABC12-46663800M24_chrunknown.1"
-							.equals(r.readName)) {
-				ReadFeature f = r.readFeatures.get(0);
-				if (((SoftClip) f).getSequence().length == 31784 && "hs37d5".equals(r.sequenceName))
-					System.out.print("gotcha");
-			}
-			
 			byte[] bases = restoreReadBases(r, refBases, substitutionMatrix);
 			r.readBases = bases;
-
-			if (r.alignmentStart == 132111
-					&& "gi|256821038|gb|AC234917.3|FOSMID_clone_ABC12-46663800M24_chrunknown.1"
-							.equals(r.readName)) {
-				ReadFeature f = r.readFeatures.get(0);
-				if (((SoftClip) f).getSequence().length == 31784)
-					System.out.printf("base at 32132-1=%c\n", bases[32132 - 1]);
-			}
 		}
 
 		// restore quality scores:

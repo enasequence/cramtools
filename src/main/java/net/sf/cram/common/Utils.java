@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2012 EMBL-EBI, Hinxton outstation
+ * Copyright 2013 EMBL-EBI
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -344,10 +344,6 @@ public class Utils {
 								secondEnd.getAlignmentEnd()));
 		final int tlen = right - left + 1;
 
-		if ("80C3GABXX110103:2:66:20751:14602".equals(firstEnd.readName)) {
-			System.out.println("gotcha");
-		}
-		
 		if (firstEnd.alignmentStart == left) {
 			if (firstEnd.getAlignmentEnd() != right)
 				firstEnd.templateSize = tlen;
@@ -358,7 +354,6 @@ public class Utils {
 		} else {
 			firstEnd.templateSize = -tlen;
 		}
-//		secondEnd.templateSize = -firstEnd.templateSize;
 		if (secondEnd.alignmentStart == left) {
 			if (secondEnd.getAlignmentEnd() != right)
 				secondEnd.templateSize = tlen;
@@ -548,9 +543,6 @@ public class Utils {
 			throws NoSuchAlgorithmException {
 		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 		md5_MessageDigest.reset();
-
-		// System.out.println(new String (Arrays.copyOfRange(data, offset,
-		// offset+len)));
 
 		md5_MessageDigest.update(data, offset, len);
 		return String.format("%032x",

@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.build;
 
 import java.nio.charset.Charset;
@@ -26,7 +41,9 @@ import net.sf.cram.encoding.NullEncoding;
 import net.sf.cram.encoding.SubexpIntegerEncoding;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.huffman.HuffmanCode;
 import net.sf.cram.huffman.HuffmanTree;
@@ -44,7 +61,8 @@ public class CompressionHeaderFactory {
 	private static final int oqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 	private static final int bqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 
-	public CompressionHeader build(List<CramRecord> records, SubstitutionMatrix substitutionMatrix) {
+	public CompressionHeader build(List<CramRecord> records,
+			SubstitutionMatrix substitutionMatrix) {
 		CompressionHeader h = new CompressionHeader();
 		h.externalIds = new ArrayList<Integer>();
 		int exCounter = 0;
@@ -336,7 +354,8 @@ public class CompressionHeaderFactory {
 		{ // number of read features
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				calculator.add(r.readFeatures == null ? 0 : r.readFeatures.size());
+				calculator.add(r.readFeatures == null ? 0 : r.readFeatures
+						.size());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures,
@@ -428,7 +447,8 @@ public class CompressionHeaderFactory {
 				}
 
 				h.substitutionMatrix = new SubstitutionMatrix(freqs);
-			} else h.substitutionMatrix = substitutionMatrix ;
+			} else
+				h.substitutionMatrix = substitutionMatrix;
 
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
@@ -478,7 +498,7 @@ public class CompressionHeaderFactory {
 			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
 					.toParam(calculator.values, calculator.bitLens));
 		}
-		
+
 		{ // hard clip length
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
@@ -490,8 +510,38 @@ public class CompressionHeaderFactory {
 							calculator.add(((HardClip) rf).getLength());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.HC_HardClip, HuffmanIntegerEncoding
-					.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.HC_HardClip, HuffmanIntegerEncoding.toParam(
+					calculator.values, calculator.bitLens));
+		}
+
+		{ // padding length
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				if (r.readFeatures == null)
+					continue;
+				else
+					for (ReadFeature rf : r.readFeatures)
+						if (rf.getOperator() == Padding.operator)
+							calculator.add(((Padding) rf).getLength());
+			calculator.calculate();
+
+			h.eMap.put(EncodingKey.PD_padding, HuffmanIntegerEncoding.toParam(
+					calculator.values, calculator.bitLens));
+		}
+
+		{ // ref skip length
+			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			for (CramRecord r : records)
+				if (r.readFeatures == null)
+					continue;
+				else
+					for (ReadFeature rf : r.readFeatures)
+						if (rf.getOperator() == RefSkip.operator)
+							calculator.add(((RefSkip) rf).getLength());
+			calculator.calculate();
+
+			h.eMap.put(EncodingKey.RS_RefSkip, HuffmanIntegerEncoding.toParam(
+					calculator.values, calculator.bitLens));
 		}
 
 		{ // mapping quality score

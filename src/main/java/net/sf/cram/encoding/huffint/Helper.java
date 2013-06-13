@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.encoding.huffint;
 
 import static org.junit.Assert.fail;
@@ -58,26 +73,14 @@ class Helper {
 		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list
 				.size()]);
 
-//		System.out.println("Sorted codes:");
-//		for (HuffmanBitCode code : sortedCodes)
-//			System.out.println(code);
-
 		sortedValues = Arrays.copyOf(values, values.length);
 		Arrays.sort(sortedValues);
-//		System.out.println("Sorted values:");
-//		for (int value : sortedValues)
-//			System.out.println(value);
-
 		{
 			int i = 0;
 			sortedByValue = new HuffmanBitCode[sortedValues.length];
 			for (int value : sortedValues)
 				sortedByValue[i++] = codes.get(value);
 		}
-
-//		System.out.println("Sorted by value:");
-//		for (HuffmanBitCode code : sortedByValue)
-//			System.out.println(code);
 
 		sortedBitCodes = new int[sortedCodes.length];
 		sortedValuesByBitCode = new int[sortedCodes.length];
@@ -147,7 +150,6 @@ class Helper {
 			throw new RuntimeException(String.format(
 					"Searching for %d but found %s.", value, code.toString()));
 		bos.write(code.bitCode, code.bitLentgh);
-		// System.out.println("Writing: " + code.toString());
 		return code.bitLentgh;
 	}
 
@@ -239,9 +241,6 @@ class Helper {
 
 		cal.calculate();
 
-		// CanonicalHuffmanIntegerCodec helper = new
-		// CanonicalHuffmanIntegerCodec(
-		// cal.values(), cal.bitLens());
 		Helper helper = new Helper(cal.values(), cal.bitLens());
 		long time6 = System.nanoTime();
 
@@ -280,36 +279,6 @@ class Helper {
 								/ cal.values().length,
 						(time6 - time5) / 1000000, (time2 - time1) / 1000000,
 						(time4 - time3) / 1000000);
-
-		// String message = "12341111111111111122222223334";
-		//
-		// ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		// DefaultBitOutputStream bos = new DefaultBitOutputStream(baos);
-		// HuffmanParamsCalculator c = new HuffmanParamsCalculator();
-		// for (byte b : message.getBytes())
-		// c.add(b);
-		// c.calculate();
-		//
-		// CanonicalHuffmanIntegerCodec codec = new
-		// CanonicalHuffmanIntegerCodec(
-		// c.values(), c.bitLens());
-		// for (byte b : message.getBytes())
-		// codec.write(bos, new Integer(b));
-		//
-		// bos.close();
-		//
-		// ByteArrayInputStream bais = new
-		// ByteArrayInputStream(baos.toByteArray());
-		// DefaultBitInputStream bis = new DefaultBitInputStream(bais);
-		// Helper helper = new Helper(c.values(), c.bitLens());
-		//
-		// for (byte b : message.getBytes()) {
-		// int value = helper.read(bis);
-		// if (b != value)
-		// throw new RuntimeException(String.format(
-		// "Expecting %d but got %d.", b, value));
-		// }
-		// System.out.println("Done.");
 	}
 
 }

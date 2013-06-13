@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram;
 
 import java.io.BufferedOutputStream;
@@ -145,20 +160,29 @@ public class Bam2Cram {
 		long mateNanos = System.nanoTime();
 		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
 		for (CramRecord r : cramRecords) {
-			String name = r.readName;
-			CramRecord mate = mateMap.get(name);
-			if (mate == null) {
-				mateMap.put(name, r);
-			} else {
-				mate.recordsToNextFragment = r.index - mate.index - 1;
-				mate.next = r;
-				r.previous = mate;
-				r.previous.setHasMateDownStream(true);
-				r.setHasMateDownStream(false);
-				r.setDetached(false);
-				r.previous.setDetached(false);
+			if (!r.isMultiFragment()) {
+				r.setDetached(true);
 
-				mateMap.remove(name);
+				r.setHasMateDownStream(false);
+				r.recordsToNextFragment = -1;
+				r.next = null;
+				r.previous = null;
+			} else {
+				String name = r.readName;
+				CramRecord mate = mateMap.get(name);
+				if (mate == null) {
+					mateMap.put(name, r);
+				} else {
+					mate.recordsToNextFragment = r.index - mate.index - 1;
+					mate.next = r;
+					r.previous = mate;
+					r.previous.setHasMateDownStream(true);
+					r.setHasMateDownStream(false);
+					r.setDetached(false);
+					r.previous.setDetached(false);
+
+					mateMap.remove(name);
+				}
 			}
 		}
 
@@ -271,8 +295,10 @@ public class Bam2Cram {
 					SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref);
 		} else {
 			ref = referenceSource.getReferenceBases(samSequenceRecord, true);
-			Utils.upperCase(ref) ;
-			log.debug(String.format("Creating tracks for reference: name=%s, length=%d.\n", samSequenceRecord.getSequenceName(), ref.length)) ;
+			Utils.upperCase(ref);
+			log.debug(String.format(
+					"Creating tracks for reference: name=%s, length=%d.\n",
+					samSequenceRecord.getSequenceName(), ref.length));
 			tracks = new ReferenceTracks(samSequenceRecord.getSequenceIndex(),
 					samSequenceRecord.getSequenceName(), ref);
 		}
@@ -309,7 +335,8 @@ public class Bam2Cram {
 
 		FixBAMFileHeader fixBAMFileHeader = new FixBAMFileHeader(
 				referenceSource);
-		fixBAMFileHeader.setConfirmMD5(true) ;
+		fixBAMFileHeader.setConfirmMD5(true);
+		fixBAMFileHeader.setInjectURI(false);
 		fixBAMFileHeader.fixSequences(samFileHeader.getSequenceDictionary()
 				.getSequences());
 		fixBAMFileHeader.addPG(samFileHeader, "cramtools", cmd, version);
@@ -377,7 +404,7 @@ public class Bam2Cram {
 							.getReferenceName());
 					ref = referenceSource.getReferenceBases(samSequenceRecord,
 							true);
-					Utils.upperCase(ref) ;
+					Utils.upperCase(ref);
 					tracks = new ReferenceTracks(
 							samSequenceRecord.getSequenceIndex(),
 							samSequenceRecord.getSequenceName(), ref);

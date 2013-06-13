@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.encoding;
 
 import java.io.IOException;
@@ -29,17 +44,11 @@ public class DataReaderFactory {
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
-				// debug hook:
-				// if (f.getName().equals("fc"))
-				// System.out.println("qwe");
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
 				if (h.eMap.get(key) == null) {
 					System.err.println("Encoding not found for key: " + key);
-				}
-				if (type == DataSeriesType.BYTE_ARRAY &&  h.eMap.get(key).id == EncodingID.BETA) {
-					System.out.println("BYTE_ARRAY and BETA for field: "+f.getName());
 				}
 				f.set(reader,
 						createReader(type, h.eMap.get(key), bis, inputMap));
@@ -49,7 +58,6 @@ public class DataReaderFactory {
 				DataSeriesMap dsm = f.getAnnotation(DataSeriesMap.class);
 				String name = dsm.name();
 				if ("TAG".equals(name)) {
-//					Map<Integer, DataReader<byte[]>> map = new HashMap<Integer, DataReader<byte[]>>();
 					IntHashMap map = new IntHashMap();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);

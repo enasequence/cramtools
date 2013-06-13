@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram;
 
 import java.util.List;
@@ -13,6 +28,7 @@ public class FixBAMFileHeader {
 	private static Log log = Log.getInstance(FixBAMFileHeader.class);
 	private boolean confirmMD5 = false;
 	private String sequenceUrlPattern = "http://www.ebi.ac.uk/ena/cram/md5/%s";
+	private boolean injectURI = false ;
 
 	private ReferenceSource referenceSource;
 
@@ -59,7 +75,7 @@ public class FixBAMFileHeader {
 			sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 		}
 
-		if (sequenceRecord.getAttribute(SAMSequenceRecord.URI_TAG) == null) {
+		if (injectURI) {
 			sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG, String
 					.format(sequenceUrlPattern, sequenceRecord
 							.getAttribute(SAMSequenceRecord.MD5_TAG)));
@@ -92,5 +108,13 @@ public class FixBAMFileHeader {
 
 	public ReferenceSource getReferenceSource() {
 		return referenceSource;
+	}
+	
+	public boolean isInjectURI() {
+		return injectURI;
+	}
+
+	public void setInjectURI(boolean injectURI) {
+		this.injectURI = injectURI;
 	}
 }

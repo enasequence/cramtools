@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.encoding;
 
 import java.io.BufferedOutputStream;
@@ -82,9 +97,6 @@ public class ReaderToBAM extends AbstractReader {
 	public void read() throws IOException {
 		counter++ ;
 
-		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 0, 247)));
-		// System.out.println(Arrays.toString(Arrays.copyOfRange(buf, 247,
-		// 514)));
 		try {
 			flags = bitFlagsC.readData();
 			view.setFlags(flags);
@@ -147,12 +159,9 @@ public class ReaderToBAM extends AbstractReader {
 					tagData[tagDataLen++] = (byte) ((id >> 16) & 0xFF);
 					tagData[tagDataLen++] = (byte) ((id >> 8) & 0xFF);
 					tagData[tagDataLen++] = (byte) (id & 0xFF);
-					// System.out.println(ReadTag.intToNameType3Bytes(id) + ": "
-					// + Arrays.toString(data)) ;
 					System.arraycopy(data, 0, tagData, tagDataLen, data.length);
 					tagDataLen += data.length;
 				}
-				// System.out.println(new String(tagData, 0, tagDataLen));
 			}
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
@@ -237,9 +246,10 @@ public class ReaderToBAM extends AbstractReader {
 				readFeatureBuffer.put(qc.readData());
 				break;
 			case HardClip.operator:
-				byte[] hardClip = hardClipCodec.readData();
-				readFeatureBuffer.putInt(hardClip.length);
-				readFeatureBuffer.put(hardClip);
+				readFeatureBuffer.putInt(hardClipCodec.readData());
+				break;
+			case Padding.operator:
+				readFeatureBuffer.putInt(paddingCodec.readData());
 				break;
 			default:
 				throw new RuntimeException("Unknown read feature operator: "
@@ -266,27 +276,11 @@ public class ReaderToBAM extends AbstractReader {
 			return bases;
 		}
 
-//		if (recordCounter == 3988) {
-//			System.out.println();
-//		}
-//		if (counter == 1363989) {
-//			System.out.println("breakpoint");
-//		}
 		for (int r = 0; r < readFeatureSize; r++) {
-//			int bufPos = readFeatureBuffer.position() ;
 			byte op = readFeatureBuffer.get();
 			int rfPos = readFeatureBuffer.getInt();
 			
-//			if (recordCounter == 3988) {
-//				System.out.printf("RFops: %d (%c) at %d, buf pos before: %d, after: %d\n", op, (char)op, rfPos, bufPos, readFeatureBuffer.position());
-//				
-//			}
-
 			for (; posInRead < rfPos; posInRead++){
-//				if (posInRead > readLength) {
-//					System.out.println("gotcha" + counter);
-//					System.exit(1);
-//				}
 				bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 			}
 
@@ -308,8 +302,15 @@ public class ReaderToBAM extends AbstractReader {
 						readFeatureBuffer.getInt());
 				break;
 			case HardClip.operator:
-				readFeatureBuffer.get(bases, posInRead++ - 1,
-						readFeatureBuffer.getInt());
+				posInSeq += readFeatureBuffer.getInt();
+				break;
+			case RefSkip.operator:
+				int len = readFeatureBuffer.getInt();
+				posInSeq += len ;
+				posInSeq += len ;
+				break;
+			case Padding.operator:
+				posInSeq += readFeatureBuffer.getInt();
 				break;
 			case Deletion.operator:
 				posInSeq += readFeatureBuffer.getInt();
@@ -562,8 +563,6 @@ public class ReaderToBAM extends AbstractReader {
 				delta = System.nanoTime() -delta;
 				viewBuildNanos+=delta ;
 
-				// System.out.println(Arrays.toString(Arrays.copyOfRange(reader.buf,
-				// 0, len)));
 				delta = System.nanoTime() ;
 				bcos.write(reader.buf, 0, len);
 				delta = System.nanoTime() -delta;
@@ -571,7 +570,6 @@ public class ReaderToBAM extends AbstractReader {
 			}
 			System.out.printf("Container read in %dms, views build in %dms, bam written in %dms, unknown %dms.\n", containerReadNanos/1000000, viewBuildNanos/1000000, bamWriteNanos/1000000, unknownNanos/1000000);
 		}
-		// os.close();
 		bcos.close();
 
 		// SAMFileReader samFileReader = new SAMFileReader(

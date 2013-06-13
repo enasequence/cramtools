@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.encoding;
 
 import java.io.EOFException;
@@ -10,6 +25,7 @@ import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.Insertion;
+import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
@@ -164,9 +180,10 @@ public class ReaderToFastQ extends AbstractReader {
 				readFeatureBuffer.put(qc.readData());
 				break;
 			case HardClip.operator:
-				byte[] hardClip = hardClipCodec.readData();
-				readFeatureBuffer.putInt(hardClip.length);
-				readFeatureBuffer.put(hardClip);
+				readFeatureBuffer.putInt(hardClipCodec.readData());
+				break;
+			case Padding.operator:
+				readFeatureBuffer.putInt(paddingCodec.readData());
 				break;
 			default:
 				throw new RuntimeException("Unknown read feature operator: "
@@ -218,8 +235,15 @@ public class ReaderToFastQ extends AbstractReader {
 						readFeatureBuffer.getInt());
 				break;
 			case HardClip.operator:
-				readFeatureBuffer.get(bases, posInRead++ - 1,
-						readFeatureBuffer.getInt());
+				posInSeq += readFeatureBuffer.getInt();
+				break;
+			case RefSkip.operator:
+				int len = readFeatureBuffer.getInt();
+				posInSeq += len ;
+				posInSeq += len ;
+				break;
+			case Padding.operator:
+				posInSeq += readFeatureBuffer.getInt();
 				break;
 			case Deletion.operator:
 				posInSeq += readFeatureBuffer.getInt();

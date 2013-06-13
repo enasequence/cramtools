@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.build;
 
 import java.io.IOException;
@@ -127,18 +142,18 @@ public class ContainerFactory {
 		int[] seqIds = new int[fileHeader.getSequenceDictionary().size()];
 		int minAlStart = Integer.MAX_VALUE;
 		int maxAlEnd = SAMRecord.NO_ALIGNMENT_START;
-		
+
 		for (CramRecord r : records) {
 			slice.bases += r.readLength;
 
-			if (!r.isSegmentUnmapped() && r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+			int alStart = r.alignmentStart;
+			if (alStart != SAMRecord.NO_ALIGNMENT_START && r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				seqIds[r.sequenceId]++;
 
-				int alStart = r.alignmentStart;
-				if (alStart != SAMRecord.NO_ALIGNMENT_START) {
+//				if (alStart != SAMRecord.NO_ALIGNMENT_START) {
 					minAlStart = Math.min(alStart, minAlStart);
 					maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
-				}
+//				}
 			}
 		}
 

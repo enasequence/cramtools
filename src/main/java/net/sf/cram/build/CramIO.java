@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.build;
 
 import java.io.ByteArrayInputStream;
@@ -211,7 +226,10 @@ public class CramIO {
 	private static long writeContainer(SAMFileHeader samFileHeader,
 			OutputStream os) throws IOException {
 		Block block = new Block();
-		block.setRawContent(toByteArray(samFileHeader));
+		byte[] data = toByteArray(samFileHeader) ;
+		byte[] blockContent = new byte[data.length + data.length/2] ;
+		System.arraycopy(data, 0, blockContent, 0, data.length) ;
+		block.setRawContent(blockContent);
 		block.method = BlockCompressionMethod.RAW;
 		block.contentId = 0;
 		block.contentType = BlockContentType.FILE_HEADER;

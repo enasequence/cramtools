@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2013 EMBL-EBI
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package net.sf.cram.structure;
 
 import java.io.FileNotFoundException;
@@ -43,17 +58,9 @@ public class Slice {
 	// to pass this to the container:
 	public long bases;
 
-	// private static int sliceCounter = 0 ;
-	// public final int sliceId = createSliceId() ;
-	//
-	// private static synchronized int createSliceId() {
-	// return sliceCounter++ ;
-	// }
-
 	public boolean validateRefMD5(byte[] ref) {
 		try {
 			int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
-			// System.out.println(new String (ref, alignmentStart-1, span));
 			String md5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
 			String sliceMD5 = String.format("%032x", new BigInteger(1, refMD5));
 			if (!md5.equals(sliceMD5)) {
@@ -96,7 +103,7 @@ public class Slice {
 
 			int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
 
-			if (alignmentStart + alignmentSpan > ref.length + 1)
+			if (alignmentStart + span > ref.length + 1)
 				throw new RuntimeException("Invalid alignment boundaries.");
 
 			md5_MessageDigest.update(ref, alignmentStart - 1, span);
@@ -111,27 +118,10 @@ public class Slice {
 			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
 					+ span - shoulder, alignmentStart + span)));
 
-			// log.info
-			// (String.format("ref len=%d, alstart=%d, alspan=%d, span=%d.\n",
-			// ref.length, alignmentStart, alignmentSpan, span)) ;
 			log.info(String.format("Slice md5: %s for %d:%d-%d, %s",
 					String.format("%032x", new BigInteger(1, refMD5)),
 					sequenceId, alignmentStart, alignmentStart + span - 1,
 					sb.toString()));
-
-//			System.out.println("Dumping sequence to file: seq.dump");
-//			try {
-//				FileOutputStream fos = new FileOutputStream(String.format(
-//						"seq_%s.dump", sequenceId));
-//				fos.write(ref, alignmentStart - 1, span);
-//				fos.close();
-//			} catch (FileNotFoundException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
 		}
 	}
 }
