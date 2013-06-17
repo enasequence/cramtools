@@ -295,7 +295,6 @@ public class Bam2Cram {
 					SAMRecord.NO_ALIGNMENT_REFERENCE_NAME, ref);
 		} else {
 			ref = referenceSource.getReferenceBases(samSequenceRecord, true);
-			Utils.upperCase(ref);
 			log.debug(String.format(
 					"Creating tracks for reference: name=%s, length=%d.\n",
 					samSequenceRecord.getSequenceName(), ref.length));
@@ -404,7 +403,6 @@ public class Bam2Cram {
 							.getReferenceName());
 					ref = referenceSource.getReferenceBases(samSequenceRecord,
 							true);
-					Utils.upperCase(ref);
 					tracks = new ReferenceTracks(
 							samSequenceRecord.getSequenceIndex(),
 							samSequenceRecord.getSequenceName(), ref);

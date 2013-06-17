@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import net.sf.cram.common.Utils;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -90,6 +91,7 @@ public class ReferenceSource {
 		{ // try to fetch sequence by name:
 			bases = findBasesByName(record.getSequenceName(), tryNameVariants);
 			if (bases != null) {
+				Utils.upperCase(bases) ;
 				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(
 						bases));
 				return bases;
@@ -104,6 +106,7 @@ public class ReferenceSource {
 					throw new RuntimeException(e);
 				}
 			if (bases != null) {
+				Utils.upperCase(bases) ;
 				cacheW.put(md5, new WeakReference<byte[]>(bases));
 				return bases;
 			}
