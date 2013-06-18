@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import net.sf.cram.encoding.DataReaderFactory;
-import net.sf.cram.encoding.DataReaderFactory.DataReaderWithStats;
-import net.sf.cram.encoding.Reader;
+import net.sf.cram.encoding.reader.DataReaderFactory;
+import net.sf.cram.encoding.reader.CramRecordReader;
+import net.sf.cram.encoding.reader.DataReaderFactory.DataReaderWithStats;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.Container;
@@ -100,7 +100,7 @@ public class ContainerParser {
 		}
 
 		long time = 0;
-		Reader reader = new Reader();
+		CramRecordReader reader = new CramRecordReader();
 		f.buildReader(reader, new DefaultBitInputStream(
 				new ByteArrayInputStream(s.coreBlock.getRawContent())),
 				inputMap, h, s.sequenceId);

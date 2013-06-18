@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import net.sf.cram.build.CramIO;
-import net.sf.cram.encoding.BAMRecordView;
+import net.sf.cram.encoding.reader.BAMRecordView;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.SAMFileHeader;

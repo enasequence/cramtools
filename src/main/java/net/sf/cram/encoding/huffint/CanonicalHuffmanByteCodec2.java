@@ -29,26 +29,25 @@ import net.sf.cram.encoding.BitCodec;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class CanonicalHuffmanByteCodec2 extends AbstractBitCodec<Byte> {
-	private final HelperByte helper ;
+	private final HelperByte helper;
 
 	/*
 	 * values[]: the alphabet (provided as Integers) bitLengths[]: the number of
 	 * bits of symbil's huffman code
 	 */
 	public CanonicalHuffmanByteCodec2(byte[] values, int[] bitLengths) {
-		helper = new HelperByte(values, bitLengths) ;
+		helper = new HelperByte(values, bitLengths);
 	}
-	
+
 	@Override
 	public Byte read(BitInputStream bis) throws IOException {
-		return helper.read(bis) ;
+		return helper.read(bis);
 	}
 
 	@Override
 	public long write(BitOutputStream bos, Byte object) throws IOException {
-		return helper.write(bos, object) ;
+		return helper.write(bos, object);
 	}
 
 	@Override
@@ -56,14 +55,21 @@ public class CanonicalHuffmanByteCodec2 extends AbstractBitCodec<Byte> {
 		HuffmanBitCode bitCode;
 		try {
 			bitCode = helper.codes.get(object);
-			return bitCode.bitLentgh ;
+			return bitCode.bitLentgh;
 		} catch (NullPointerException e) {
-			throw new RuntimeException("Value " + object + " not found.", e) ;
+			throw new RuntimeException("Value " + object + " not found.", e);
 		}
 	}
-	
+
 	@Override
 	public Byte read(BitInputStream bis, int len) throws IOException {
 		throw new RuntimeException("Not implemented");
+	}
+
+	@Override
+	public void readInto(BitInputStream bis, byte[] array, int offset,
+			int valueLen) throws IOException {
+		for (int i = 0; i < valueLen; i++)
+			array[offset + i] = helper.read(bis);
 	}
 }

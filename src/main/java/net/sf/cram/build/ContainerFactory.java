@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.sf.cram.encoding.DataWriterFactory;
-import net.sf.cram.encoding.Writer;
+import net.sf.cram.encoding.writer.DataWriterFactory;
+import net.sf.cram.encoding.writer.Writer;
 import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;

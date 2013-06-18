@@ -15,18 +15,22 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.CramIO;
-import net.sf.cram.encoding.DataReaderFactory;
-import net.sf.cram.encoding.ReaderToFastQ;
+import net.sf.cram.encoding.reader.DataReaderFactory;
+import net.sf.cram.encoding.reader.ReaderToFastQ;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
@@ -81,8 +85,17 @@ public class Cram2Fastq {
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
 		ReferenceSource referenceSource = new ReferenceSource(params.reference);
 
-		// OutputStream os = (new BufferedOutputStream(new FileOutputStream(
-		// fqgzFile)));
+		OutputStream os = null;
+		if (params.outputFile == null)
+			os = System.out;
+		else {
+			if (params.outputFile.getName().endsWith(".gz"))
+				os = (new GZIPOutputStream(new BufferedOutputStream(
+						new FileOutputStream(params.outputFile))));
+			else
+				os = (new BufferedOutputStream(new FileOutputStream(
+						params.outputFile)));
+		}
 
 		byte[] ref = null;
 
@@ -119,15 +132,11 @@ public class Cram2Fastq {
 					reader.read();
 				}
 				reader.buf.flip();
-				long sum = 0;
-				for (int i = 0; i < reader.buf.limit(); i++)
-					sum += reader.buf.get(i);
-				System.out.println(sum);
-				// os.write(reader.buf.array(), 0, reader.buf.limit());
+				os.write(reader.buf.array(), 0, reader.buf.limit());
 				reader.buf.clear();
 			}
 		}
-		// os.close();
+		os.close();
 	}
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
