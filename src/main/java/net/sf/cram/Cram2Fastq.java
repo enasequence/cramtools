@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -30,7 +31,7 @@ import java.util.zip.GZIPOutputStream;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.encoding.reader.DataReaderFactory;
-import net.sf.cram.encoding.reader.ReaderToFastQ;
+import net.sf.cram.encoding.reader.FastqReader;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
@@ -85,16 +86,31 @@ public class Cram2Fastq {
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
 		ReferenceSource referenceSource = new ReferenceSource(params.reference);
 
-		OutputStream os = null;
-		if (params.outputFile == null)
-			os = System.out;
-		else {
-			if (params.outputFile.getName().endsWith(".gz"))
-				os = (new GZIPOutputStream(new BufferedOutputStream(
-						new FileOutputStream(params.outputFile))));
-			else
-				os = (new BufferedOutputStream(new FileOutputStream(
-						params.outputFile)));
+		OutputStream joinedOS = null;
+		OutputStream[] streams = null;
+		if (params.fastqBaseName == null) {
+			joinedOS = System.out;
+			if (params.gzip)
+				joinedOS = (new GZIPOutputStream(joinedOS));
+		} else {
+			int maxFiles = 3;
+			streams = new OutputStream[maxFiles];
+			String extension = ".fastq" + (params.gzip ? ".gz" : "");
+			String path;
+			for (int index = 0; index < streams.length; index++) {
+				if (index == 0)
+					path = params.fastqBaseName + extension;
+				else
+					path = params.fastqBaseName + "_" + index + extension;
+
+				OutputStream os = new BufferedOutputStream(
+						new FileOutputStream(path));
+
+				if (params.gzip)
+					os = new GZIPOutputStream(os);
+
+				streams[index] = os;
+			}
 		}
 
 		byte[] ref = null;
@@ -103,7 +119,7 @@ public class Cram2Fastq {
 
 		CramHeader cramHeader = CramIO.readCramHeader(is);
 		Container container = null;
-		ReaderToFastQ reader = new ReaderToFastQ();
+		FastqReader reader = new FastqReader();
 		while ((container = CramIO.readContainer(is)) != null) {
 			DataReaderFactory f = new DataReaderFactory();
 
@@ -120,10 +136,11 @@ public class Cram2Fastq {
 									.getRawContent()));
 				}
 
-				reader.ref = ref;
+				reader.referenceSequence = ref;
 				reader.prevAlStart = s.alignmentStart;
 				reader.substitutionMatrix = container.h.substitutionMatrix;
 				reader.recordCounter = 0;
+				reader.appendSegmentIndexToReadNames = params.appendSegmentIndexToReadNames;
 				f.buildReader(reader, new DefaultBitInputStream(
 						new ByteArrayInputStream(s.coreBlock.getRawContent())),
 						inputMap, container.h, s.sequenceId);
@@ -131,12 +148,30 @@ public class Cram2Fastq {
 				for (int i = 0; i < s.nofRecords; i++) {
 					reader.read();
 				}
-				reader.buf.flip();
-				os.write(reader.buf.array(), 0, reader.buf.limit());
-				reader.buf.clear();
+
+				if (joinedOS != null) {
+					for (ByteBuffer buf : reader.bufs) {
+						buf.flip();
+						joinedOS.write(buf.array(), 0, buf.limit());
+						buf.clear();
+					}
+				} else {
+					for (int i = 0; i < streams.length; i++) {
+						ByteBuffer buf = reader.bufs[i];
+						OutputStream os = streams[i];
+						buf.flip();
+						os.write(buf.array(), 0, buf.limit());
+						buf.clear();
+					}
+				}
 			}
 		}
-		os.close();
+
+		if (streams != null) {
+			for (OutputStream os : streams)
+				if (os != null)
+					os.close();
+		}
 	}
 
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
@@ -153,8 +188,17 @@ public class Cram2Fastq {
 		@Parameter(names = { "--reference-fasta-file", "-R" }, converter = FileConverter.class, description = "Path to the reference fasta file, it must be uncompressed and indexed (use 'samtools faidx' for example). ")
 		File reference;
 
-		@Parameter(names = { "--output-fastq-file", "-O" }, converter = FileConverter.class, description = "The path to the output fastq file.")
-		File outputFile;
+		@Parameter(names = { "--fastq-base-name", "-F" }, description = "'_number.fastq[.gz] will be appended to this string to obtain output fastq file name. If this parameter is omitted then all reads are printed with no garanteed order.")
+		String fastqBaseName;
+
+		@Parameter(names = { "--gzip", "-z" }, description = "Compress fastq files with gzip.")
+		boolean gzip;
+
+		@Parameter(names = { "--reverse" }, description = "Re-reverse reads mapped to negative strand.")
+		boolean reverse;
+
+		@Parameter(names = { "--enumerate" }, description = "Append read names with read index (/1 for first in pair, /2 for second in pair).")
+		boolean appendSegmentIndexToReadNames;
 	}
 
 }

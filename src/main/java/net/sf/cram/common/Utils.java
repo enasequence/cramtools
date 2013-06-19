@@ -51,35 +51,60 @@ import net.sf.samtools.SAMTextWriter;
 public class Utils {
 
 	private static Log log = Log.getInstance(Utils.class);
+	
+	
+	public static void reverse(final byte[] array, int offset, int len) {
+		final int lastIndex = len - 1;
 
-	public static byte[] transformSequence(byte[] bases, boolean compliment,
-			boolean reverse) {
-		byte[] result = new byte[bases.length];
-		for (int i = 0; i < bases.length; i++) {
-			byte base = bases[i];
-
-			int index = reverse ? bases.length - i - 1 : i;
-
-			result[index] = compliment ? complimentBase(base) : base;
+		int i, j;
+		for (i = offset, j = offset + lastIndex; i < j; ++i, --j) {
+			final byte tmp = array[i];
+			array[i] = array[j];
+			array[j] = tmp;
 		}
-		return result;
+		if (len % 2 == 1) {
+			array[i] = array[i];
+		}
 	}
 
-	public static final byte complimentBase(byte base) {
-		switch (base) {
-		case 'A':
-			return 'T';
-		case 'C':
-			return 'G';
-		case 'G':
-			return 'C';
-		case 'T':
-			return 'A';
-		case 'N':
-			return 'N';
+	public static void reverseComplement(final byte[] bases, int offset,
+			int len) {
+		final int lastIndex = len - 1;
 
+		int i, j;
+		for (i = offset, j = offset + lastIndex; i < j; ++i, --j) {
+			final byte tmp = complement(bases[i]);
+			bases[i] = complement(bases[j]);
+			bases[j] = tmp;
+		}
+		if (len % 2 == 1) {
+			bases[i] = complement(bases[i]);
+		}
+	}
+
+	public static final byte a = 'a', c = 'c', g = 'g', t = 't', n = 'n',
+			A = 'A', C = 'C', G = 'G', T = 'T', N = 'N';
+
+	public static byte complement(final byte b) {
+		switch (b) {
+		case a:
+			return t;
+		case c:
+			return g;
+		case g:
+			return c;
+		case t:
+			return a;
+		case A:
+			return T;
+		case C:
+			return G;
+		case G:
+			return C;
+		case T:
+			return A;
 		default:
-			throw new RuntimeException("Unkown base: " + base);
+			return b;
 		}
 	}
 

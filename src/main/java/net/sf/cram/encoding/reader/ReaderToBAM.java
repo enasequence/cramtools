@@ -46,9 +46,9 @@ import net.sf.samtools.TextCigarCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
 public class ReaderToBAM extends AbstractReader {
-	public static int detachedCount = 0;
-	private int recordCounter = 0;
-	private CramRecord prevRecord;
+	protected static int detachedCount = 0;
+	protected int recordCounter = 0;
+	protected CramRecord prevRecord;
 
 	public int refId;
 	public SubstitutionMatrix substitutionMatrix;

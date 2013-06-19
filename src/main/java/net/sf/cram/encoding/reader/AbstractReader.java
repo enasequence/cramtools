@@ -128,5 +128,4 @@ public abstract class AbstractReader {
 	public int refId;
 	public SubstitutionMatrix substitutionMatrix;
 	public boolean AP_delta = true;
-
 }
