@@ -101,15 +101,6 @@ public class CramNormalizer {
 						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 
 					Utils.computeInsertSize(r, downMate);
-					// if (r.isFirstSegment() && downMate.isLastSegment()) {
-					// r.templateSize = Utils.computeInsertSize(r, downMate);
-					// downMate.templateSize = -r.templateSize;
-					// } else if (r.isLastSegment() &&
-					// downMate.isFirstSegment()) {
-					// downMate.templateSize = Utils.computeInsertSize(
-					// downMate, r);
-					// r.templateSize = -downMate.templateSize;
-					// }
 				}
 			}
 		}

@@ -24,6 +24,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,6 +40,7 @@ import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.util.Log;
+import net.sf.picard.util.RExecutor;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMRecord;
@@ -57,6 +60,10 @@ public class ReaderToBAM extends AbstractReader {
 	public byte[] buf = new byte[1024 * 1024 * 100];
 	public int[] index = new int[4 * 100000];
 	public int[] distances = new int[4 * 100000];
+	private int[] names = new int[4 * 100000];
+	private int[] next = new int[distances.length];
+	private int[] prev = new int[distances.length];
+
 	private BAMRecordView view = new BAMRecordView(buf);
 
 	private int flags;
@@ -73,14 +80,14 @@ public class ReaderToBAM extends AbstractReader {
 	private byte[] bases = new byte[1024 * 1024],
 			scores = new byte[1024 * 1024];
 
-	private int[] names = new int[4 * 100000];
-
 	private static int counter = 0;
 
 	private ReadFeatureBuffer rfBuf = new ReadFeatureBuffer();
 
 	public void read() throws IOException {
 		counter++;
+
+		index[recordCounter] = view.position();
 
 		try {
 			flags = bitFlagsC.readData();
@@ -115,9 +122,17 @@ public class ReaderToBAM extends AbstractReader {
 				view.setMateAlStart(malsc.readData());
 				view.setInsertSize(tsc.readData());
 				detachedCount++;
+				distances[recordCounter] = 0;
+				next[recordCounter] = -1;
+				prev[recordCounter] = -1;
 			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0) {
 				distances[recordCounter] = distanceC.readData();
+				next[recordCounter] = recordCounter + distances[recordCounter]
+						+ 1;
+				prev[next[recordCounter]] = recordCounter;
 				names[recordCounter + distances[recordCounter]] = recordCounter;
+				if (next[recordCounter] == recordCounter)
+					System.out.println("gotcha");
 			}
 
 			if (!view.isReadNameSet()) {
@@ -187,6 +202,150 @@ public class ReaderToBAM extends AbstractReader {
 								recordCounter, prevRecord.toString());
 			throw new RuntimeException(e);
 		}
+	}
+
+	private int getFlagsForRecord(int record) {
+		view.start = index[record];
+		return view.getFlags();
+	}
+
+	private int getAlignmentStartForRecord(int record) {
+		view.start = index[record];
+		return view.getAlignmentStart();
+	}
+
+	private int getAlignmentEndForRecord(int record) {
+		view.start = index[record];
+		return view.calculateAlignmentEnd();
+	}
+
+	private int getRefIDForRecord(int record) {
+		view.start = index[record];
+		return view.getRefID();
+	}
+
+	private void setInsertSizeForRecord(int record, int insertSize) {
+		view.start = index[record];
+		view.setInsertSize(insertSize);
+	}
+
+	private void setMateRefIDForRecord(int record, int refId) {
+		view.start = index[record];
+		view.setMateRefID(refId);
+	}
+
+	private void setMateAlignmentStartForRecord(int record, int astart) {
+		view.start = index[record];
+		view.setMateAlStart(astart);
+	}
+
+	private boolean recordHasMoreMates(int record) {
+		return next[record] > 0;
+	}
+
+	private int nextRecord(int record) {
+		if (next[record] > 0)
+			return next[record];
+
+		return -1;
+	}
+
+	private boolean isFirstInPairBitOnForRecord(int record) {
+		return (getFlagsForRecord(record) & CramRecord.FIRST_SEGMENT_FLAG) != 0;
+	}
+
+	public void fixMateInfo() {
+		int fixes = 0;
+		for (int record = 0; record < recordCounter; record++) {
+			if (prev[record] >= 0)
+				// skip non-first reads
+				continue;
+
+			if (recordHasMoreMates(record)) {
+				int id1 = record;
+				int id2 = record;
+				do {
+					id1 = id2;
+					id2 = nextRecord(id1);
+
+					setMateRefIDForRecord(id1, getRefIDForRecord(id2));
+					setMateAlignmentStartForRecord(id1,
+							1 + getAlignmentStartForRecord(id2));
+					fixes++;
+				} while (recordHasMoreMates(id2));
+
+				setMateRefIDForRecord(id2, getRefIDForRecord(record));
+				setMateAlignmentStartForRecord(id2,
+						1 + getAlignmentStartForRecord(record));
+				fixes++;
+			}
+
+			calculateTemplateSize(record);
+
+		}
+	}
+
+	private int calculateTemplateSize(int record) {
+		int aleft = getAlignmentStartForRecord(record);
+		int aright = getAlignmentEndForRecord(record);
+
+		int id1 = record, id2 = record;
+		int tlen = 0;
+		int ref = getRefIDForRecord(id1);
+//		System.out.println("Calculating template size for record " + record);
+
+		while (recordHasMoreMates(id2)) {
+			id2 = nextRecord(id2);
+//			System.out.println("\tnext=" + id2);
+			if (aleft > getAlignmentStartForRecord(id2))
+				aleft = getAlignmentStartForRecord(id2);
+
+			if (aright < getAlignmentEndForRecord(id2))
+				aright = getAlignmentEndForRecord(id2);
+
+			if (ref != getRefIDForRecord(id2))
+				ref = -1;
+		}
+
+		if (ref == -1) {
+			tlen = 0;
+			id1 = id2 = record;
+			setInsertSizeForRecord(id1, tlen);
+
+			while (recordHasMoreMates(id1)) {
+				id1 = nextRecord(id1);
+				setInsertSizeForRecord(id1, tlen);
+			}
+		} else {
+			// positions are 0-based and inclusive, so wee need to substract 1:
+			tlen = aright - aleft - 1;
+			id1 = id2 = record;
+
+			if (getAlignmentStartForRecord(id2) == aleft) {
+				if (getAlignmentEndForRecord(id2) != aright)
+					setInsertSizeForRecord(id2, tlen);
+				else if (!isFirstInPairBitOnForRecord(id2))
+					setInsertSizeForRecord(id2, tlen);
+				else
+					setInsertSizeForRecord(id2, -tlen);
+			} else
+				setInsertSizeForRecord(id2, -tlen);
+
+			while (recordHasMoreMates(id2)) {
+				id2 = nextRecord(id2);
+				if (getAlignmentStartForRecord(id2) == aleft) {
+					if (getAlignmentEndForRecord(id2) != aright)
+						setInsertSizeForRecord(id2, tlen);
+					else if (!isFirstInPairBitOnForRecord(id2))
+						setInsertSizeForRecord(id2, tlen);
+					else
+						setInsertSizeForRecord(id2, -tlen);
+				} else
+					setInsertSizeForRecord(id2, -tlen);
+			}
+		}
+
+		return tlen;
 	}
 
 	public static void main(String[] args) throws IOException,
@@ -259,6 +418,8 @@ public class ReaderToBAM extends AbstractReader {
 				f.buildReader(reader, new DefaultBitInputStream(
 						new ByteArrayInputStream(s.coreBlock.getRawContent())),
 						inputMap, container.h, s.sequenceId);
+				Arrays.fill(reader.prev, -1) ;
+				Arrays.fill(reader.next, -1) ;
 
 				delta = System.nanoTime() - delta;
 				unknownNanos += delta;
@@ -269,6 +430,7 @@ public class ReaderToBAM extends AbstractReader {
 					reader.read();
 					len += reader.view.finish();
 				}
+				reader.fixMateInfo();
 				delta = System.nanoTime() - delta;
 				viewBuildNanos += delta;
 

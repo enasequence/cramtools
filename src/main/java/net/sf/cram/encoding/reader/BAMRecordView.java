@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram.encoding.reader;
 
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.samtools.BinaryCigarCodec;
 import net.sf.samtools.Cigar;
 
@@ -43,7 +44,10 @@ public class BAMRecordView {
 
 	private byte[] buf;
 
-	private int start;
+	/**
+	 * Pointer to the beginning of the currently written record.
+	 */
+	int start;
 
 	private final BinaryCigarCodec cigarCodec = new BinaryCigarCodec();
 
@@ -51,8 +55,26 @@ public class BAMRecordView {
 		this.buf = buf;
 	}
 
+	public void setData(byte[] buf) {
+		this.buf = buf;
+		reset();
+	}
+
+	public void reset() {
+		start = 0;
+		CIGAR = -1;
+		BASES = -1;
+		SCORES = -1;
+		TAGS = -1;
+		END = -1;
+	}
+
 	public void setRefID(int id) {
 		writeInt(id, REF_ID);
+	}
+
+	public int getRefID() {
+		return getInt(REF_ID);
 	}
 
 	public void setAlignmentStart(int alignmenStart) {
@@ -63,8 +85,8 @@ public class BAMRecordView {
 		writeUByte((short) (readName.length() + 1), READ_NAME_LEN);
 		CIGAR = READ_NAME + wrteZString(readName, READ_NAME);
 	}
-	
-	public boolean isReadNameSet () {
+
+	public boolean isReadNameSet() {
 		return CIGAR > -1;
 	}
 
@@ -112,6 +134,10 @@ public class BAMRecordView {
 
 	public void setMateRefID(int mateRefID) {
 		writeInt(mateRefID, MATE_REF_ID);
+	}
+
+	public int getMateRefID() {
+		return getInt(MATE_REF_ID);
 	}
 
 	public void setMateAlStart(int mateAlStart) {
@@ -208,18 +234,22 @@ public class BAMRecordView {
 
 		writeInt(blockSize - 4, BLOCK_SIZE);
 
-		jump(start + END);
+		position(start + END);
 
 		return blockSize;
 	}
 
-	public void jump(int start) {
+	public void position(int start) {
 		this.start = start;
 		CIGAR = -1;
 		BASES = -1;
 		SCORES = -1;
 		TAGS = -1;
 		END = -1;
+	}
+
+	public int position() {
+		return start;
 	}
 
 	private final void writeInt(final int value, final int at) {
@@ -230,8 +260,8 @@ public class BAMRecordView {
 	}
 
 	private final int getInt(final int at) {
-		int value = buf[start + at] | buf[start + at + 1] | buf[start + at + 2]
-				| buf[start + at + 3];
+		int value = (0xFF&buf[start + at]) | ((0xFF&buf[start + at + 1]) << 8) | ((0xFF&buf[start + at + 2]) << 16)
+				| ((0xFF&buf[start + at + 3]) << 24);
 		return value;
 	}
 
@@ -252,6 +282,14 @@ public class BAMRecordView {
 		return 4;
 	}
 
+	private long getUInt(int at) {
+		long value = 0;
+		for (int i = start + at; i < at + 5; i++)
+			value |= 0xFF & buf[i];
+
+		return value;
+	}
+
 	private final int wrteZString(final String value, final int at) {
 		value.getBytes(0, value.length(), buf, start + at);
 		buf[start + at + value.length()] = 0;
@@ -262,6 +300,10 @@ public class BAMRecordView {
 		buf[start + at] = (byte) (value & 0xFF);
 	}
 
+	private int getUByte(int at) {
+		return buf[start + at] & 0xFF;
+	}
+
 	private byte writeByte(int value, int at) {
 		buf[start + at] = (byte) value;
 		return 1;
@@ -270,6 +312,13 @@ public class BAMRecordView {
 	private final void writeUShort(final int value, final int at) {
 		buf[start + at] = (byte) (value & 0xFF);
 		buf[start + at + 1] = (byte) ((value >> 8) & 0xFF);
+	}
+
+	private final int getUShort(int at) {
+		int value = buf[start + at + 1] & 0xFF;
+		value <<= 8;
+		value |= buf[start + at] & 0xFF;
+		return value;
 	}
 
 	private final int writeShort(final short value, final int at) {
@@ -517,4 +566,87 @@ public class BAMRecordView {
 	private static final byte COMPRESSED_K_HIGH = (byte) (COMPRESSED_K_LOW << 4);
 	private static final byte COMPRESSED_D_HIGH = (byte) (COMPRESSED_D_LOW << 4);
 	private static final byte COMPRESSED_B_HIGH = (byte) (COMPRESSED_B_LOW << 4);
+
+	public int getSequenceId() {
+		return getInt(REF_ID);
+	}
+
+	public int getAlignmentStart() {
+		return getInt(POS);
+	}
+
+	public int getFlags() {
+		return getInt(FLAGS);
+	}
+
+	// Representation of CigarOperator in BAM file
+	private static final byte OP_M = 0;
+	private static final byte OP_I = 1;
+	private static final byte OP_D = 2;
+	private static final byte OP_N = 3;
+	private static final byte OP_S = 4;
+	private static final byte OP_H = 5;
+	private static final byte OP_P = 6;
+	private static final byte OP_EQ = 7;
+	private static final byte OP_X = 8;
+
+	public int calculateAlignmentEnd() {
+		int aend = getAlignmentStart();
+
+		int readNamelen = getUByte(READ_NAME_LEN);
+		int cigarLen = getUShort(CIGAR_LEN);
+
+		CIGAR = (int) (READ_NAME + readNamelen);
+
+		for (int i = CIGAR; i < CIGAR + 4 * cigarLen; i += 4) {
+			int e = getInt(i);
+			byte op = (byte) (e & 15);
+			int oplen = e >>> 4;
+
+			switch (op) {
+			case OP_M:
+			case OP_D:
+			case OP_N:
+			case OP_EQ:
+			case OP_X:
+				aend += oplen;
+				break;
+			case OP_I:
+			case OP_S:
+			case OP_H:
+			case OP_P:
+				break;
+
+			default:
+				break;
+			}
+		}
+
+		// for (int i = CIGAR; i < CIGAR + CIGAR_LEN; i++) {
+		// if (start + i < 0)
+		// System.out.println("gotcha ");
+		// symbol = buf[start + i];
+		// switch (symbol) {
+		// case 'M':
+		// case 'D':
+		// case 'N':
+		// case '=':
+		// case 'X':
+		// aend += oplen;
+		// oplen = 0;
+		// break;
+		//
+		// case 'I':
+		// case 'S':
+		// case 'H':
+		// case 'P':
+		// break;
+		//
+		// default:
+		// oplen = oplen * 10 + symbol;
+		// break;
+		// }
+		// }
+		return aend;
+	}
 }
