@@ -17,7 +17,6 @@ package net.sf.cram.encoding.reader;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -43,6 +42,7 @@ import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.Cigar;
+import net.sf.samtools.Defaults;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
@@ -82,8 +82,8 @@ public class ReaderToBAM extends AbstractReader {
 			scores = new byte[1024 * 1024];
 
 	private ReadFeatureBuffer rfBuf = new ReadFeatureBuffer();
-	
-	private byte[][] readGroups = null ;
+
+	private byte[][] readGroups = null;
 
 	public void read() throws IOException {
 		index[recordCounter] = view.position();
@@ -150,10 +150,11 @@ public class ReaderToBAM extends AbstractReader {
 				tagData[tagDataLen++] = (byte) 'R';
 				tagData[tagDataLen++] = (byte) 'G';
 				tagData[tagDataLen++] = (byte) 'Z';
-				
-				System.arraycopy(readGroups[readGroupID], 0, tagData, tagDataLen, readGroups[readGroupID].length) ;
-				tagDataLen += readGroups[readGroupID].length ;
-				
+
+				System.arraycopy(readGroups[readGroupID], 0, tagData,
+						tagDataLen, readGroups[readGroupID].length);
+				tagDataLen += readGroups[readGroupID].length;
+
 				tagData[tagDataLen++] = (byte) 0;
 			}
 			Integer tagIdList = tagIdListCodec.readData();
@@ -162,12 +163,7 @@ public class ReaderToBAM extends AbstractReader {
 				for (int i = 0; i < ids.length; i++) {
 					int id = ReadTag.name3BytesToInt(ids[i]);
 					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
-					byte[] data = null;
-					try {
-						data = dataReader.readData();
-					} catch (EOFException e) {
-						throw e;
-					}
+					byte[] data = dataReader.readData();
 
 					tagData[tagDataLen++] = (byte) ((id >> 16) & 0xFF);
 					tagData[tagDataLen++] = (byte) ((id >> 8) & 0xFF);
@@ -209,7 +205,8 @@ public class ReaderToBAM extends AbstractReader {
 
 			recordCounter++;
 		} catch (Exception e) {
-			System.err.printf("Failed at record %d, read len=%d\n.", recordCounter, readLength);
+			System.err.printf("Failed at record %d, read len=%d\n.",
+					recordCounter, readLength);
 			throw new RuntimeException(e);
 		}
 	}
@@ -432,20 +429,22 @@ public class ReaderToBAM extends AbstractReader {
 
 		File cramFile = new File(args[0]);
 		File refFile = new File(args[1]);
-		File bamFile = new File(cramFile.getAbsolutePath() + ".bam");
+		File bamFile = args.length > 2 ? new File(args[2]) : new File(
+				cramFile.getAbsolutePath() + ".bam");
+
+		System.out.println("Compression level=" + Defaults.COMPRESSION_LEVEL);
 
 		ReferenceSource referenceSource = new ReferenceSource(refFile);
 
-		OutputStream os = (new BufferedOutputStream(new FileOutputStream(
-				bamFile)));
+		OutputStream os = new BufferedOutputStream(
+				new FileOutputStream(bamFile));
 
 		byte[] ref = null;
 
 		InputStream is = new FileInputStream(cramFile);
 
 		CramHeader cramHeader = CramIO.readCramHeader(is);
-		BlockCompressedOutputStream bcos = new BlockCompressedOutputStream(os,
-				null);
+		OutputStream bcos = new BlockCompressedOutputStream(os, null);
 		bcos.write("BAM\1".getBytes());
 		bcos.write(CramIO.toByteArray(cramHeader.samFileHeader));
 		ByteBufferUtils.writeInt32(cramHeader.samFileHeader
@@ -463,12 +462,15 @@ public class ReaderToBAM extends AbstractReader {
 		Container container = null;
 		ReaderToBAM reader = new ReaderToBAM();
 		DataReaderFactory f = new DataReaderFactory();
-		
-		List<SAMReadGroupRecord> groups = cramHeader.samFileHeader.getReadGroups() ;
-		byte[][] rg = new byte[groups.size()][] ;
-		for (int i=0; i<groups.size(); i++) {
-			rg[i] = groups.get(i).getId().getBytes() ;
+
+		List<SAMReadGroupRecord> groups = cramHeader.samFileHeader
+				.getReadGroups();
+		byte[][] rg = new byte[groups.size()][];
+		for (int i = 0; i < groups.size(); i++) {
+			rg[i] = groups.get(i).getId().getBytes();
 		}
+
+		int seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		while (true) {
 			long containerReadNanos = System.nanoTime();
 			container = CramIO.readContainer(is);
@@ -482,11 +484,13 @@ public class ReaderToBAM extends AbstractReader {
 			long delta = 0;
 			for (Slice s : container.slices) {
 				delta = System.nanoTime();
-				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
+						&& s.sequenceId != seqId) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(s.sequenceId);
 					ref = referenceSource.getReferenceBases(sequence, true);
-					Utils.upperCase(ref) ;
+					Utils.upperCase(ref);
+					seqId = s.sequenceId;
 				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {
@@ -495,7 +499,7 @@ public class ReaderToBAM extends AbstractReader {
 									.getRawContent()));
 				}
 
-				reader.readGroups = rg ;
+				reader.readGroups = rg;
 				reader.ref = ref;
 				reader.refId = s.sequenceId;
 				reader.prevAlStart = s.alignmentStart;
