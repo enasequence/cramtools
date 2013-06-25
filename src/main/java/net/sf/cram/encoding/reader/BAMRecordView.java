@@ -15,6 +15,8 @@
  ******************************************************************************/
 package net.sf.cram.encoding.reader;
 
+import java.util.Arrays;
+
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.samtools.BinaryCigarCodec;
 import net.sf.samtools.Cigar;
@@ -91,6 +93,9 @@ public class BAMRecordView {
 	}
 
 	public void setReadName(byte[] readName) {
+		if (Arrays.equals("809RWABXX101220:6:25:17514:25953".getBytes(),
+				readName))
+			System.out.println("gotcha");
 		writeUByte((short) (readName.length + 1), READ_NAME_LEN);
 		System.arraycopy(readName, 0, buf, start + READ_NAME, readName.length);
 		buf[start + READ_NAME + readName.length] = 0;
@@ -121,7 +126,8 @@ public class BAMRecordView {
 	}
 
 	public void setFlags(int flags) {
-		writeInt(flags, FLAGS);
+//		writeInt(flags, FLAGS);
+		writeUShort(flags, FLAGS);
 	}
 
 	public void setReadLength(int readLength) {
@@ -160,7 +166,7 @@ public class BAMRecordView {
 
 		// Last nybble
 		if (i == length)
-			buf[start + BASES + i / 2] |= charToCompressedBaseHigh((char) bases[offset
+			buf[start + BASES + i / 2] = charToCompressedBaseHigh((char) bases[offset
 					+ i - 1]);
 
 		setReadLength(length);
@@ -221,7 +227,11 @@ public class BAMRecordView {
 		if (END < 0)
 			END = TAGS;
 
-		System.arraycopy(data, offset, buf, start + TAGS, length);
+		try {
+			System.arraycopy(data, offset, buf, start + TAGS, length);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			throw e;
+		}
 		END += length;
 	}
 
@@ -260,8 +270,10 @@ public class BAMRecordView {
 	}
 
 	private final int getInt(final int at) {
-		int value = (0xFF&buf[start + at]) | ((0xFF&buf[start + at + 1]) << 8) | ((0xFF&buf[start + at + 2]) << 16)
-				| ((0xFF&buf[start + at + 3]) << 24);
+		int value = (0xFF & buf[start + at])
+				| ((0xFF & buf[start + at + 1]) << 8)
+				| ((0xFF & buf[start + at + 2]) << 16)
+				| ((0xFF & buf[start + at + 3]) << 24);
 		return value;
 	}
 
@@ -576,7 +588,7 @@ public class BAMRecordView {
 	}
 
 	public int getFlags() {
-		return getInt(FLAGS);
+		return getUShort(FLAGS);
 	}
 
 	// Representation of CigarOperator in BAM file
@@ -591,7 +603,7 @@ public class BAMRecordView {
 	private static final byte OP_X = 8;
 
 	public int calculateAlignmentEnd() {
-		int aend = getAlignmentStart();
+		int aend = getAlignmentStart()-1;
 
 		int readNamelen = getUByte(READ_NAME_LEN);
 		int cigarLen = getUShort(CIGAR_LEN);
@@ -621,32 +633,6 @@ public class BAMRecordView {
 				break;
 			}
 		}
-
-		// for (int i = CIGAR; i < CIGAR + CIGAR_LEN; i++) {
-		// if (start + i < 0)
-		// System.out.println("gotcha ");
-		// symbol = buf[start + i];
-		// switch (symbol) {
-		// case 'M':
-		// case 'D':
-		// case 'N':
-		// case '=':
-		// case 'X':
-		// aend += oplen;
-		// oplen = 0;
-		// break;
-		//
-		// case 'I':
-		// case 'S':
-		// case 'H':
-		// case 'P':
-		// break;
-		//
-		// default:
-		// oplen = oplen * 10 + symbol;
-		// break;
-		// }
-		// }
 		return aend;
 	}
 }
