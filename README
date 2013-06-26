@@ -50,21 +50,24 @@ Cram2Bam
 ValidateCramFile (this works similar to ValidateSamFile tool from picard)
 
 Lossy model
-Bam2Cram allows to specify lossy model via a string which can be composed of one or more words separated by '-'. 
-Each word is an instruction about quality score treatment, which can be binning (Illumina 8 bins) or full scale (40 values). 
-Here are some examples: 
-N40-D8		preserve quality scores for non-matching bases with full precision, and bin quality scores for positions flanking deletions. 
-m5			preserve quality scores for reads with mapping quality score lower than 5
-R40X10-N40	preserve non-matching quality scores and those matching with coverage lower than 10
+Bam2Cram allows to specify lossy model via a string which can be composed of one or more words separated by '-'.
+Each word is read or base selector and quality score treatment, which can be binning (Illumina 8 bins) or full scale (40 values).
+Here are some examples:
+N40-D8        preserve quality scores for non-matching bases with full precision, and bin quality scores for positions flanking deletions.
+m5            preserve quality scores for reads with mapping quality score lower than 5
+R40X10-N40    preserve non-matching quality scores and those matching with coverage lower than 10
+*8            bin all quality scores
 
-Definitions:
-R	reference base
-N	non-reference (mis-matched) base
-U	unplaced read base
-P	pileup: capture all bases at a given position on the reference if there are at least 3 mismatches
-D	read positions flanking a deletion
-M	reads with mapping quality score higher than 40
-m	reads with mapping quality score lower than 40
+Selectors:
+R    bases matching the reference sequence
+N    aligned bases mismatching the reference, this only applies to 'M', '=' (EQ) or 'X' BAM cigar elements.
+U    unmapped read
+Pn    pileup: capture all bases at a given position on the reference if there are at least n mismatches
+D    read positions flanking a deletion
+Mn    reads with mapping quality score higher than n
+mn   reads with mapping quality score lower than n
+I       insertions
+*      all
 
 By default no quality scores will be preserved.
 
