@@ -154,6 +154,10 @@ public class Bam2Cram {
 
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
+		
+		if (f.getBaseCount() < 3 * f.getFeatureCount())
+			log.warn("Abnormally high number of mismatches, possibly wrong reference.");
+		
 		createNanos = System.nanoTime() - createNanos;
 
 		// mating:

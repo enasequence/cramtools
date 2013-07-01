@@ -98,6 +98,9 @@ public class Sam2CramRecordFactory {
 	public boolean losslessQS = false;
 
 	private List<ReadTag> readTagList = new ArrayList<ReadTag>();
+	
+	private long baseCount = 0 ;
+	private long featureCount = 0 ;
 
 	public Sam2CramRecordFactory(byte[] refBases, SAMFileHeader samFileHeader) {
 		this.refBases = refBases;
@@ -279,6 +282,9 @@ public class Sam2CramRecordFactory {
 				alignmentStartOffset += cigarElementLength;
 		}
 
+		this.baseCount += bases.length ;
+		this.featureCount += features.size() ;
+		
 		return features;
 	}
 
@@ -494,4 +500,14 @@ public class Sam2CramRecordFactory {
 		this.refPile = refPile;
 	}
 
+
+	public long getBaseCount() {
+		return baseCount;
+	}
+
+	public long getFeatureCount() {
+		return featureCount;
+	}
+
+	
 }
