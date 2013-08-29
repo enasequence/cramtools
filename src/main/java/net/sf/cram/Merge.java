@@ -58,6 +58,8 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Merge {
 
+	public static final String COMMAND = "merge";
+
 	public static void usage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("\n");
@@ -113,6 +115,11 @@ public class Merge {
 
 		resolveCollisions(list);
 		SAMFileHeader header = mergeHeaders(list);
+		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
+		fix.setConfirmMD5(true);
+		fix.setInjectURI(true);
+		fix.fixSequences(header.getSequenceDictionary().getSequences());
+		fix.addCramtoolsPG(header);
 		header.addComment(mergeComment.toString());
 
 		SAMFileWriter writer = null;
@@ -308,13 +315,10 @@ public class Merge {
 				if (header.getReadGroup(rg.getReadGroupId()) == null)
 					header.addReadGroup(rg);
 			}
-
 		}
+
 		return header;
 	}
-
-	// private static class SAMQueue implements BlockingQueue<SAMRecord> {
-	// }
 
 	private static class MergedIterator implements SAMRecordIterator {
 		private static String delim = ".";

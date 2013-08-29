@@ -36,6 +36,24 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 	public byte[] bases = new byte[1024];
 	public byte[] scores = new byte[1024];
+	
+	/**
+	 * For now this is to identify the right buffer to use.
+	 * 
+	 * @param flags
+	 *            read bit flags
+	 * @return 0 for non-paired or other rubbish which could not be reliably
+	 *         paired, 1 for first in pair and 2 for second in pair
+	 */
+	protected int getSegmentIndexInTemplate(int flags) {
+		if ((flags & CramRecord.MULTIFRAGMENT_FLAG) == 0)
+			return 0;
+
+		if ((flags & CramRecord.FIRST_SEGMENT_FLAG) != 0)
+			return 1;
+		else
+			return 2;
+	}
 
 	public void read() throws IOException {
 

@@ -15,6 +15,13 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.TreeMap;
+
+import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndexer;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
@@ -26,13 +33,69 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
 public class CramTools {
-	public static final String CRAM2BAM_COMMAND = "bam";
-	public static final String BAM2CRAM_COMMAND = "cram";
-	public static final String INDEX_COMMAND = "index";
-	public static final String MERGE_COMMAND = "merge";
-	public static final String FASTQ_COMMAND = "fastq";
-
 	private static Log log = Log.getInstance(CramTools.class);
+
+	private static Map<String, Class<?>> classes = new TreeMap<String, Class<?>>();
+
+	private static Field findStaticField(String name, Class<?> klass) {
+		Field[] declaredFields = klass.getDeclaredFields();
+		Field field = null;
+		for (Field f : declaredFields) {
+			if (java.lang.reflect.Modifier.isStatic(f.getModifiers())
+					&& f.getName().equals(name)) {
+				field = f;
+				break;
+			}
+		}
+
+		return field;
+	}
+
+	private static Method findStaticMainMethod(Class<?> klass) {
+		Method[] declaredFields = klass.getDeclaredMethods();
+		Method mainMethod = null;
+		for (Method m : declaredFields) {
+			if (java.lang.reflect.Modifier.isStatic(m.getModifiers())
+					&& m.getName().equals("main")) {
+				mainMethod = m;
+				break;
+			}
+		}
+
+		return mainMethod;
+	}
+
+	private static Class<?> findParamsClass(Class<?> klass) {
+		Class<?> paramsClass = null;
+		for (Class<?> subClass : klass.getDeclaredClasses()) {
+			if ("Params".equals(subClass.getSimpleName())) {
+				paramsClass = subClass;
+				break;
+			}
+		}
+		return paramsClass;
+	}
+
+	private static void addProgram(JCommander jc, Class<?> klass)
+			throws ClassNotFoundException, InstantiationException,
+			IllegalAccessException {
+
+		Class<?> paramsClass = findParamsClass(klass);
+		Object instance = paramsClass.newInstance();
+
+		Field commandField = findStaticField("COMMAND", klass);
+		String command = commandField.get(null).toString();
+
+		jc.addCommand(command, instance);
+		classes.put(command, klass);
+	}
+
+	private static void invoke(String command, String[] args)
+			throws IllegalArgumentException, IllegalAccessException,
+			InvocationTargetException {
+		Method mainMethod = findStaticMainMethod(classes.get(command));
+		mainMethod.invoke(null, (Object) args);
+	}
 
 	public static void main(String[] args) throws Exception {
 
@@ -40,47 +103,26 @@ public class CramTools {
 		JCommander jc = new JCommander(params);
 		jc.setProgramName("cramtools");
 
-		Cram2Bam.Params cram2BamParams = new Cram2Bam.Params();
-		Bam2Cram.Params bam2CramParams = new Bam2Cram.Params();
-		CramIndexer.Params indexParams = new CramIndexer.Params();
-		Merge.Params mergeParams = new Merge.Params();
-		Cram2Fastq.Params fastqParams = new Cram2Fastq.Params();
-
-		jc.addCommand(CRAM2BAM_COMMAND, cram2BamParams);
-		jc.addCommand(BAM2CRAM_COMMAND, bam2CramParams);
-		jc.addCommand(INDEX_COMMAND, indexParams);
-		jc.addCommand(MERGE_COMMAND, mergeParams);
-		jc.addCommand(FASTQ_COMMAND, fastqParams);
+		addProgram(jc, Cram2Bam.class);
+		addProgram(jc, Bam2Cram.class);
+		addProgram(jc, CramIndexer.class);
+		addProgram(jc, Merge.class);
+		addProgram(jc, Cram2Fastq.class);
+		addProgram(jc, CramFixHeader.class);
 
 		jc.parse(args);
 
 		String command = jc.getParsedCommand();
 
 		if (command == null || params.help) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("\n");
-			jc.usage(sb);
-
-			System.out.println("Version "
-					+ CramTools.class.getPackage().getImplementationVersion());
-			System.out.println(sb.toString());
-			return;
+			Utils.printUsage(jc);
+			return ;
 		}
 
 		String[] commandArgs = new String[args.length - 1];
 		System.arraycopy(args, 1, commandArgs, 0, commandArgs.length);
 
-		if (CRAM2BAM_COMMAND.equals(command))
-			Cram2Bam.main(commandArgs);
-		else if (BAM2CRAM_COMMAND.equals(command))
-			Bam2Cram.main(commandArgs);
-		else if (INDEX_COMMAND.equals(command))
-			CramIndexer.main(commandArgs);
-		else if (MERGE_COMMAND.equals(command))
-			Merge.main(commandArgs);
-		else if (FASTQ_COMMAND.equals(command))
-			Cram2Fastq.main(commandArgs);
-
+		invoke(command, commandArgs);
 	}
 
 	@Parameters(commandDescription = "CRAM tools. ")
@@ -97,8 +139,9 @@ public class CramTools {
 		}
 
 	}
-	
-	public static class ValidationStringencyConverter implements IStringConverter<ValidationStringency> {
+
+	public static class ValidationStringencyConverter implements
+			IStringConverter<ValidationStringency> {
 
 		@Override
 		public ValidationStringency convert(String s) {

@@ -99,6 +99,10 @@ public class Block {
 			uncompress();
 		return rawContent;
 	}
+	
+	public int getRawContentSize () {
+		return rawContentSize ;
+	}
 
 	public void setCompressedContent(byte[] compressed) {
 		this.compressedContent = compressed;

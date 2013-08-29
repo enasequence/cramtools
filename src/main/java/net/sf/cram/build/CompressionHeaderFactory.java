@@ -713,7 +713,7 @@ public class CompressionHeaderFactory {
 		}
 	}
 
-	private static class EncodingLengthCalculator {
+	public static class EncodingLengthCalculator {
 		private BitCodec<Integer> codec;
 		private Encoding<Integer> encoding;
 		private long len;
@@ -736,8 +736,8 @@ public class CompressionHeaderFactory {
 		}
 	}
 
-	private static class IntegerEncodingCalculator {
-		private List<EncodingLengthCalculator> calcs = new ArrayList<EncodingLengthCalculator>();
+	public static class IntegerEncodingCalculator {
+		public List<EncodingLengthCalculator> calcs = new ArrayList<EncodingLengthCalculator>();
 		private int max = 0;
 		private int count = 0;
 		private String name;

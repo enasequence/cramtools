@@ -26,7 +26,6 @@ import net.sf.cram.encoding.read_features.BaseQualityScore;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.ref.ReferenceTracks;
 import net.sf.cram.structure.CramRecord;
-import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
@@ -37,29 +36,7 @@ public class QualityScorePreservation {
 
 	public QualityScorePreservation(String specification) {
 		this.specification = specification;
-		policyList = new ArrayList<PreservationPolicy>();
-		for (String s : specification.split("-")) {
-			if (s.length() == 0)
-				continue;
-			PreservationPolicy policy = parseSinglePolicy(s);
-			// System.err.println("Adding preservation policy: "
-			// + policy.toString());
-			policyList.add(policy);
-		}
-
-		Collections.sort(policyList, new Comparator<PreservationPolicy>() {
-
-			@Override
-			public int compare(PreservationPolicy o1, PreservationPolicy o2) {
-				QualityScoreTreatment t1 = o1.treatment;
-				QualityScoreTreatment t2 = o2.treatment;
-				int result = t2.type.ordinal() - t1.type.ordinal();
-				if (result != 0)
-					return result;
-
-				return 0;
-			}
-		});
+		policyList = parsePolicies(specification);
 	}
 
 	public List<PreservationPolicy> getPreservationPolicies() {
@@ -93,6 +70,32 @@ public class QualityScorePreservation {
 
 		}
 		return t;
+	}
+
+	public static final List<PreservationPolicy> parsePolicies(String spec) {
+		List<PreservationPolicy> policyList = new ArrayList<PreservationPolicy>();
+		for (String s : spec.split("-")) {
+			if (s.length() == 0)
+				continue;
+			PreservationPolicy policy = parseSinglePolicy(s);
+			policyList.add(policy);
+		}
+
+		Collections.sort(policyList, new Comparator<PreservationPolicy>() {
+
+			@Override
+			public int compare(PreservationPolicy o1, PreservationPolicy o2) {
+				QualityScoreTreatment t1 = o1.treatment;
+				QualityScoreTreatment t2 = o2.treatment;
+				int result = t2.type.ordinal() - t1.type.ordinal();
+				if (result != 0)
+					return result;
+
+				return 0;
+			}
+		});
+
+		return policyList;
 	}
 
 	private static final PreservationPolicy parseSinglePolicy(String spec) {
@@ -170,7 +173,7 @@ public class QualityScorePreservation {
 	public static final byte applyTreatment(byte score, QualityScoreTreatment t) {
 		switch (t.type) {
 		case BIN:
-			return (byte) (Binning.Illumina_binning_matrix[score]);
+			return Binning.Illumina_binning_matrix[score];
 		case DROP:
 			return -1;
 		case PRESERVE:
@@ -198,13 +201,11 @@ public class QualityScorePreservation {
 				if (scores[i] > -1) {
 					if (r.readFeatures == null)
 						r.readFeatures = new LinkedList<ReadFeature>();
-					r.readFeatures.add(
-							new BaseQualityScore(i + 1, scores[i]));
+					r.readFeatures.add(new BaseQualityScore(i + 1, scores[i]));
 				}
 			}
 			if (r.readFeatures != null)
-				Collections.sort(r.readFeatures,
-						readFeaturePositionComparator);
+				Collections.sort(r.readFeatures, readFeaturePositionComparator);
 		}
 		r.qualityScores = scores;
 	}
@@ -325,28 +326,6 @@ public class QualityScorePreservation {
 					}
 					refPos += ce.getOperator().consumesReferenceBases() ? ce
 							.getLength() : 0;
-
-					// switch (ce.getOperator()) {
-					// case M:
-					// case X:
-					// case EQ:
-					// for (int i = 0; i < ce.getLength(); i++) {
-					// boolean match = s.getReadBases()[pos + i] == t
-					// .baseAt(refPos + i);
-					// if ((c.type == BaseCategoryType.MATCH && match)
-					// || (c.type == BaseCategoryType.MISMATCH && !match)) {
-					// mask[pos + i] = true;
-					// }
-					// }
-					// break;
-					// default:
-					// break;
-					// }
-					//
-					// pos += ce.getOperator().consumesReadBases() ? ce
-					// .getLength() : 0;
-					// refPos += ce.getOperator().consumesReferenceBases() ? ce
-					// .getLength() : 0;
 				}
 				break;
 			case INSERTION:
@@ -374,7 +353,7 @@ public class QualityScorePreservation {
 					case EQ:
 					case X:
 						for (int i = 0; i < ce.getLength(); i++)
-							mask[pos + i-1] = t.coverageAt(refPos + i) < c.param;
+							mask[pos + i - 1] = t.coverageAt(refPos + i) < c.param;
 						break;
 					default:
 						break;
@@ -404,6 +383,18 @@ public class QualityScorePreservation {
 				scores[i] = applyTreatment(qs[i], p.treatment);
 				maskedCount++;
 			}
+
+		if (maskedCount > 0) {
+			System.out.println(p.toString());
+			System.out.println(Arrays.toString(mask));
+			for (byte b : scores)
+				if (b < 0 || b > 93)
+					System.out.print(' ');
+				else
+					System.out.print((char) (b + 33));
+			System.out.println();
+		}
+
 		// safety latch, store all qs if there are too many individual score
 		// to store:
 		if (maskedCount > s.getReadLength() / 2)

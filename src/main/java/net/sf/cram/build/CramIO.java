@@ -18,17 +18,23 @@ package net.sf.cram.build;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;
 import net.sf.cram.structure.BlockCompressionMethod;
@@ -45,6 +51,7 @@ import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BufferedLineReader;
 
 public class CramIO {
+	public static int DEFINITION_LENGTH = 4 + 1 + 1 + 20;
 	private static final byte[] CHECK = "".getBytes();
 	private static Log log = Log.getInstance(CramIO.class);
 
@@ -73,26 +80,32 @@ public class CramIO {
 		os.write(h.minorVersion);
 		os.write(h.id);
 
-		long len = writeContainer(h.samFileHeader, os);
+		long len = writeContainerForSamFileHeader(h.samFileHeader, os);
 
-		return 4 + 1 + 1 + 20 + len;
+		return DEFINITION_LENGTH + len;
 	}
 
-	public static CramHeader readCramHeader(InputStream is) throws IOException {
-		CramHeader h = new CramHeader();
+	public static void readFormatDefinition(InputStream is, CramHeader header)
+			throws IOException {
 		for (byte b : CramHeader.magick) {
 			if (b != is.read())
 				throw new RuntimeException("Unknown file format.");
 		}
 
-		h.majorVersion = (byte) is.read();
-		h.minorVersion = (byte) is.read();
+		header.majorVersion = (byte) is.read();
+		header.minorVersion = (byte) is.read();
 
 		DataInputStream dis = new DataInputStream(is);
-		dis.readFully(h.id);
+		dis.readFully(header.id);
+	}
 
-		h.samFileHeader = readSAMFileHeader(new String(h.id), is);
-		return h;
+	public static CramHeader readCramHeader(InputStream is) throws IOException {
+		CramHeader header = new CramHeader();
+
+		readFormatDefinition(is, header);
+
+		header.samFileHeader = readSAMFileHeader(new String(header.id), is);
+		return header;
 	}
 
 	public static int writeContainer(Container c, OutputStream os)
@@ -111,7 +124,7 @@ public class CramIO {
 			Slice s = c.slices[i];
 			landmarks.add(baos.size());
 			sio.write(s, baos);
-			c.blockCount++ ;
+			c.blockCount++;
 			c.blockCount++;
 			if (s.embeddedRefBlock != null)
 				c.blockCount++;
@@ -145,16 +158,18 @@ public class CramIO {
 			throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		if (!chio.readContainerHeader(c, is)) return null ;
+		if (!chio.readContainerHeader(c, is))
+			return null;
 		return c;
 	}
 
-	public static Container readContainer(InputStream is, int fromSlice, int howManySlices)
-			throws IOException {
+	public static Container readContainer(InputStream is, int fromSlice,
+			int howManySlices) throws IOException {
 
 		long time1 = System.nanoTime();
 		Container c = readContainerHeader(is);
-		if (c == null) return null ;
+		if (c == null)
+			return null;
 
 		CompressionHeaderBLock chb = new CompressionHeaderBLock(is);
 		c.h = chb.getCompressionHeader();
@@ -169,7 +184,7 @@ public class CramIO {
 			Slice slice = new Slice();
 			sio.readSliceHeadBlock(slice, is);
 			sio.readSliceBlocks(slice, true, is);
-			slices.add(slice) ;
+			slices.add(slice);
 		}
 
 		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
@@ -212,7 +227,7 @@ public class CramIO {
 		byte[] bytes = new byte[buf.limit()];
 		buf.get(bytes);
 
-		ByteArrayOutputStream headerOS = new ExposedByteArrayOutputStream();
+		ByteArrayOutputStream headerOS = new ByteArrayOutputStream();
 		try {
 			headerOS.write(bytes);
 			headerOS.write(headerBodyOS.getBuffer(), 0, headerBodyOS.size());
@@ -223,12 +238,19 @@ public class CramIO {
 		return headerOS.toByteArray();
 	}
 
-	private static long writeContainer(SAMFileHeader samFileHeader,
+	private static long writeContainerForSamFileHeader(SAMFileHeader samFileHeader,
+			OutputStream os) throws IOException {
+		byte[] data = toByteArray(samFileHeader);
+		return writeContainerForSamFileHeaderData(data, 0,
+				Math.max(1024, data.length + data.length / 2), os);
+	}
+
+	private static long writeContainerForSamFileHeaderData(byte[] data, int offset, int len,
 			OutputStream os) throws IOException {
 		Block block = new Block();
-		byte[] data = toByteArray(samFileHeader) ;
-		byte[] blockContent = new byte[data.length + data.length/2] ;
-		System.arraycopy(data, 0, blockContent, 0, data.length) ;
+		byte[] blockContent = new byte[len];
+		System.arraycopy(data, 0, blockContent, offset,
+				Math.min(data.length - offset, len));
 		block.setRawContent(blockContent);
 		block.method = BlockCompressionMethod.RAW;
 		block.contentId = 0;
@@ -252,13 +274,13 @@ public class CramIO {
 		c.containerByteSize = baos.size();
 
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		int len = chio.writeContainerHeader(c, os);
+		int containerHeaderByteSize = chio.writeContainerHeader(c, os);
 		os.write(baos.getBuffer(), 0, baos.size());
 
-		return len + baos.size();
+		return containerHeaderByteSize + baos.size();
 	}
 
-	private static SAMFileHeader readSAMFileHeader(String id, InputStream is)
+	public static SAMFileHeader readSAMFileHeader(String id, InputStream is)
 			throws IOException {
 		Container container = readContainerHeader(is);
 		Block b = new Block(is, true, true);
@@ -279,5 +301,51 @@ public class CramIO {
 		BufferedLineReader r = new BufferedLineReader(new ByteArrayInputStream(
 				bytes));
 		return new SAMTextHeaderCodec().decode(r, id);
+	}
+
+	public static boolean replaceCramHeader(File file, CramHeader newHeader)
+			throws IOException {
+
+		int MAP_SIZE = (int) Math.min(1024 * 1024, file.length());
+		FileInputStream inputStream = new FileInputStream(file);
+		CountingInputStream cis = new CountingInputStream(inputStream);
+
+		CramHeader header = new CramHeader();
+		readFormatDefinition(cis, header);
+
+		if (header.majorVersion != newHeader.majorVersion
+				&& header.minorVersion != newHeader.minorVersion) {
+			log.error(String
+					.format("Cannot replace CRAM header because format versions differ: ",
+							header.majorVersion, header.minorVersion,
+							newHeader.majorVersion, header.minorVersion,
+							file.getAbsolutePath()));
+			cis.close();
+			return false;
+		}
+
+		readContainerHeader(cis);
+		Block b = new Block(cis, false, false);
+		long dataStart = cis.getCount();
+		cis.close();
+
+		byte[] data = toByteArray(newHeader.samFileHeader);
+
+		if (data.length > b.getRawContentSize()) {
+			log.error("Failed to replace CRAM header because the new header is bigger.");
+			return false;
+		}
+
+		RandomAccessFile raf = new RandomAccessFile(file, "rw");
+		FileChannel channelOut = raf.getChannel();
+		MappedByteBuffer mapOut = channelOut.map(MapMode.READ_WRITE, dataStart,
+				MAP_SIZE - dataStart);
+		mapOut.put(data);
+		mapOut.force();
+
+		channelOut.close();
+		raf.close();
+
+		return true;
 	}
 }

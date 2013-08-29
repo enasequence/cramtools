@@ -32,13 +32,11 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.bouncycastle.util.Arrays;
-
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.ContainerParser;
 import net.sf.cram.build.Cram2BamRecordFactory;
-import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.build.CramIO;
+import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.index.CramIndex.Entry;
@@ -48,9 +46,6 @@ import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.Slice;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMFileWriter;
@@ -59,7 +54,6 @@ import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMTextWriter;
 import net.sf.samtools.util.SeekableFileStream;
 import net.sf.samtools.util.SeekableStream;
 import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
@@ -72,6 +66,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Cram2Bam {
 	private static Log log = Log.getInstance(Cram2Bam.class);
+	public static final String COMMAND = "bam";
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -142,6 +137,12 @@ public class Cram2Bam {
 		long offset = 0;
 		CountingInputStream cis = new CountingInputStream(is);
 		CramHeader cramHeader = CramIO.readCramHeader(cis);
+		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
+		fix.setConfirmMD5(true);
+		fix.setInjectURI(true);
+		fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
+				.getSequences());
+		fix.addCramtoolsPG(cramHeader.samFileHeader);
 		offset = cis.getCount();
 
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
@@ -230,7 +231,7 @@ public class Cram2Bam {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(c.sequenceId);
 					ref = referenceSource.getReferenceBases(sequence, true);
-					Utils.upperCase(ref) ;
+					Utils.upperCase(ref);
 					prevSeqId = c.sequenceId;
 				}
 				break;
@@ -242,20 +243,11 @@ public class Cram2Bam {
 					if (s.sequenceId < 0)
 						continue;
 					if (!s.validateRefMD5(ref)) {
-						String md5 = Utils.calculateMD5(
-								ref,
-								s.alignmentStart - 1,
-								Math.min(s.alignmentSpan, ref.length
-										- s.alignmentStart + 1));
-						String sliceMD5 = String.format("%032x",
-								new BigInteger(1, s.refMD5));
-						if (!md5.equals(sliceMD5)) {
-							log.error(String
-									.format("MD5 mismatch in slice %d container %d, seq %d, start %d, span %d, slice md5 %s, calculated md5 %s.",
-											i, containerCounter, s.sequenceId,
-											s.alignmentStart, s.alignmentSpan,
-											sliceMD5, md5));
-						}
+						log.error(String
+								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
+										s.sequenceId, s.alignmentStart,
+										s.alignmentSpan, String.format("%032x", new BigInteger(1, s.refMD5))));
+						System.exit(1);
 					}
 				}
 			} catch (NoSuchAlgorithmException e1) {

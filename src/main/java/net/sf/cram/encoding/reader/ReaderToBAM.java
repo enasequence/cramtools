@@ -491,13 +491,14 @@ public class ReaderToBAM extends AbstractReader {
 					ref = referenceSource.getReferenceBases(sequence, true);
 					Utils.upperCase(ref);
 					seqId = s.sequenceId;
+					System.err.println("Loaded ref seq: " + sequence.getSequenceName());
 				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {
 					inputMap.put(exId,
 							new ByteArrayInputStream(s.external.get(exId)
 									.getRawContent()));
-				}
+				}	
 
 				reader.readGroups = rg;
 				reader.ref = ref;

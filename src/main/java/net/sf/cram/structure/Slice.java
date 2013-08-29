@@ -15,9 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.structure;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,30 +55,26 @@ public class Slice {
 	// to pass this to the container:
 	public long bases;
 
-	public boolean validateRefMD5(byte[] ref) {
-		try {
-			int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
-			String md5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
-			String sliceMD5 = String.format("%032x", new BigInteger(1, refMD5));
-			if (!md5.equals(sliceMD5)) {
-				StringBuffer sb = new StringBuffer();
-				int shoulder = 10;
-				sb.append(new String(Arrays.copyOfRange(ref,
-						alignmentStart - 1, alignmentStart + shoulder)));
-				sb.append("...");
-				sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
-						+ span - shoulder, alignmentStart + span)));
+	public boolean validateRefMD5(byte[] ref) throws NoSuchAlgorithmException {
+		int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
+		String md5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
+		String sliceMD5 = String.format("%032x", new BigInteger(1, refMD5));
+		if (!md5.equals(sliceMD5)) {
+			StringBuffer sb = new StringBuffer();
+			int shoulder = 10;
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1,
+					alignmentStart + shoulder)));
+			sb.append("...");
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
+					+ span - shoulder, alignmentStart + span)));
 
-				log.info(String
-						.format("Slice md5 %s does not match calculated %s, %d:%d-%d, %s",
-								sliceMD5, md5, sequenceId, alignmentStart,
-								span, sb.toString()));
-				return false;
-			}
-			return true;
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeEOFException(e);
+			log.info(String.format(
+					"Slice md5 %s does not match calculated %s, %d:%d-%d, %s",
+					sliceMD5, md5, sequenceId, alignmentStart, span,
+					sb.toString()));
+			return false;
 		}
+		return true;
 	}
 
 	public void setRefMD5(byte[] ref) {

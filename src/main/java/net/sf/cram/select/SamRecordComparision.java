@@ -35,13 +35,24 @@ import java.util.TreeSet;
 import net.sf.cram.AlignmentSliceQuery;
 import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.lossy.BaseCategory;
+import net.sf.cram.lossy.Binning;
+import net.sf.cram.lossy.PreservationPolicy;
+import net.sf.cram.lossy.QualityScorePreservation;
+import net.sf.cram.lossy.QualityScoreTreatment;
+import net.sf.cram.lossy.QualityScoreTreatmentType;
+import net.sf.cram.lossy.ReadCategory;
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecord.SAMTagAndValue;
 import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMSequenceRecord;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -49,6 +60,7 @@ import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
 
 public class SamRecordComparision {
+	private static final byte DEFAULT_SCORE = 30;
 	private int maxValueLen = 15;
 	private static Log log = Log.getInstance(SamRecordComparision.class);
 
@@ -583,32 +595,75 @@ public class SamRecordComparision {
 			}
 		}
 
-		List<SamRecordDiscrepancy> discrepancies = c.compareRecords(it1, it2,
-				params.maxDiscrepancies);
+		if (params.scoreDiff) {
+			int diffSize = 0;
+			int recordsChecked = 0;
 
-		if (params.countOnly)
-			System.out.println(discrepancies.size());
-		else if (params.dbDumpFile == null) {
-			if (discrepancies.isEmpty())
-				System.out.println("No discrepancies found");
-			else {
-				if (params.dumpDiscrepancies || params.dumpRecords) {
-					for (SamRecordDiscrepancy d : discrepancies)
-						c.log(d, params.dumpRecords, System.out);
-				} else
-					c.summary(discrepancies, System.out);
+			int seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+			byte[] ref = null;
+			ReferenceSource source = new ReferenceSource(params.referenceFasta);
+			List<PreservationPolicy> policies = params.lossySpec == null ? null
+					: QualityScorePreservation.parsePolicies(params.lossySpec);
 
+			while (diffSize < params.maxDiscrepancies && it1.hasNext()) {
+				if (!it2.hasNext()) {
+					System.err.println("file1 contains more reads than file2.");
+					System.exit(1);
+				}
+
+				SAMRecord record1 = it1.next();
+				SAMRecord record2 = it2.next();
+
+				if (record1.getReferenceIndex() != seqId) {
+					if (record1.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+						ref = new byte[0];
+						seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+					} else {
+						if (record1.getReferenceIndex() != seqId) {
+							seqId = record1.getReferenceIndex();
+							SAMSequenceRecord s = r1.getFileHeader()
+									.getSequence(seqId);
+							ref = source.getReferenceBases(s, true);
+							System.out.println("Starting sequence: "
+									+ s.getSequenceName());
+						}
+					}
+				}
+
+				diffSize += dumpScoreDiffs(record1, record2, ref, policies);
+				recordsChecked++;
+			}
+			System.out.printf("Checked %d records.", recordsChecked);
+		} else {
+			List<SamRecordDiscrepancy> discrepancies = c.compareRecords(it1,
+					it2, params.maxDiscrepancies);
+
+			r1.close();
+			r2.close();
+
+			if (params.countOnly)
+				System.out.println(discrepancies.size());
+			else if (params.dbDumpFile == null) {
+				if (discrepancies.isEmpty())
+					System.out.println("No discrepancies found");
+				else {
+					if (params.dumpDiscrepancies || params.dumpRecords) {
+						for (SamRecordDiscrepancy d : discrepancies)
+							c.log(d, params.dumpRecords, System.out);
+					} else
+						c.summary(discrepancies, System.out);
+
+				}
+
+			} else {
+				db(params.dbDumpFile, "discrepancy".toUpperCase(),
+						discrepancies.iterator());
 			}
 
-		} else {
-			db(params.dbDumpFile, "discrepancy".toUpperCase(),
-					discrepancies.iterator());
+			if (!discrepancies.isEmpty())
+				System.exit(1);
 		}
 
-		r1.close();
-		r2.close();
-		if (!discrepancies.isEmpty())
-			System.exit(1);
 	}
 
 	private static void db(File dbFile, String tableName,
@@ -620,6 +675,204 @@ public class SamRecordComparision {
 		dbLog(tableName, it, connection);
 		connection.commit();
 		connection.close();
+	}
+
+	private static class ScoreDiff {
+		byte base, refBase, oScore, score;
+		int posInRead;
+		byte cigarOp, prevBaseCoP = -1, nextBaseCoP = -1;
+		QualityScoreTreatmentType treatment = QualityScoreTreatmentType.DROP;
+		int coverage = -1, pileup = -1;
+
+		@Override
+		public String toString() {
+			return String.format("%d\t%c\t%c/%c\t%c/%c\t%s", posInRead,
+					cigarOp, base, refBase, score + 33, oScore + 33,
+					treatment.name());
+		}
+	}
+
+	private static ScoreDiff[] findScoreDiffs(SAMRecord r1, SAMRecord r2,
+			byte[] ref, List<PreservationPolicy> policies) {
+		if (!r1.getCigarString().equals(r2.getCigarString()))
+			throw new RuntimeException("CIGAR string are different.");
+
+		List<ScoreDiff> diffs = new ArrayList<SamRecordComparision.ScoreDiff>();
+		int posInRead = 1, posInRef = r1.getAlignmentStart();
+		
+		if ("HS4_110:4:41:16550:113556".equals(r1.getReadName()))
+				System.out.println("gotcha");
+		for (CigarElement ce : r1.getCigar().getCigarElements()) {
+			if (ce.getOperator().consumesReadBases()) {
+				for (int i = 0; i < ce.getLength(); i++) {
+					if (r1.getBaseQualities()[i + posInRead - 1] != r2
+							.getBaseQualities()[i + posInRead - 1]) {
+						ScoreDiff d = new ScoreDiff();
+						d.base = r1.getReadBases()[i + posInRead - 1];
+						d.refBase = ref[i + posInRef - 1];
+						ce.getOperator();
+						d.cigarOp = CigarOperator.enumToCharacter(ce
+								.getOperator());
+						d.oScore = r1.getBaseQualities()[i + posInRead - 1];
+						d.score = r2.getBaseQualities()[i + posInRead - 1];
+						d.posInRead = i + posInRead;
+
+						if (d.score == Binning.Illumina_binning_matrix[d.oScore])
+							d.treatment = QualityScoreTreatmentType.BIN;
+						else if (d.score == DEFAULT_SCORE)
+							d.treatment = QualityScoreTreatmentType.DROP;
+
+						if (policies == null
+								|| !obeysLossyModel(policies, r1, d)) {
+							diffs.add(d);
+							System.out.println(r1.getBaseQualityString());
+							System.out.println(r2.getBaseQualityString());
+							System.exit(1) ;
+						}
+					}
+				}
+			}
+
+			posInRead += ce.getOperator().consumesReadBases() ? ce.getLength()
+					: 0;
+			posInRef += ce.getOperator().consumesReferenceBases() ? ce
+					.getLength() : 0;
+		}
+		return (ScoreDiff[]) diffs.toArray(new ScoreDiff[diffs.size()]);
+	}
+
+	private static interface ByteValueForPosition {
+		public byte value(int at);
+	}
+
+	private static class ArrayByteValueForPosition implements
+			ByteValueForPosition {
+		byte[] array;
+		int offset;
+
+		@Override
+		public byte value(int at) {
+			return array[at - offset];
+		}
+
+		public void setValueAt(byte value, int at) {
+			array[at - offset] = value;
+		}
+
+		public void update(byte[] array, int offset) {
+			this.array = array;
+			this.offset = offset;
+		}
+
+		public void shiftLeft(int size) {
+			System.arraycopy(array, size, array, 0, array.length - size);
+			offset += size;
+		}
+
+		public void shiftRight(int size) {
+			System.arraycopy(array, 0, array, size, array.length - size);
+			offset -= size;
+		}
+
+		public boolean isWithinBounds(int position) {
+			return position - offset >= 0 && position - offset < array.length;
+		}
+	}
+
+	private static int dumpScoreDiffs(SAMRecord r1, SAMRecord r2, byte[] ref,
+			List<PreservationPolicy> policies) {
+		ScoreDiff[] diffs = findScoreDiffs(r1, r2, ref, policies);
+		if (diffs.length == 0)
+			return 0;
+
+		System.out.printf("%s\t%d\t%d\t%s:\n", r1.getReadName(),
+				r1.getAlignmentStart(), r1.getMappingQuality(),
+				(r1.getReadUnmappedFlag() ? "unmapped" : "mapped"));
+		for (ScoreDiff diff : diffs) {
+			System.out.printf("%s\n", diff.toString());
+		}
+
+		return diffs.length;
+	}
+
+	private static boolean testReadCategory(ReadCategory c, SAMRecord record) {
+		switch (c.type) {
+		case ALL:
+			return true;
+		case HIGHER_MAPPING_SCORE:
+			return record.getMappingQuality() > c.param;
+		case LOWER_MAPPING_SCORE:
+			return record.getMappingQuality() < c.param;
+		case UNPLACED:
+			return record.getReadUnmappedFlag();
+
+		default:
+			throw new RuntimeException("Unknown read category: "
+					+ c.type.name());
+		}
+	}
+
+	private static boolean testBaseCategory(BaseCategory c, ScoreDiff diff) {
+		switch (c.type) {
+		case FLANKING_DELETION:
+			return diff.nextBaseCoP == CigarOperator
+					.enumToCharacter(CigarOperator.DELETION)
+					|| diff.prevBaseCoP == CigarOperator
+							.enumToCharacter(CigarOperator.DELETION);
+		case INSERTION:
+			return diff.cigarOp == CigarOperator
+					.enumToCharacter(CigarOperator.INSERTION);
+		case LOWER_COVERAGE:
+			return diff.coverage < c.param;
+		case MATCH:
+			return diff.base == diff.refBase;
+		case MISMATCH:
+			return diff.base != diff.refBase;
+		case PILEUP:
+			return diff.pileup <= c.param;
+
+		default:
+			throw new RuntimeException("Unknown read category: "
+					+ c.type.name());
+		}
+	}
+
+	private static boolean testScoreTreatment(QualityScoreTreatment t,
+			ScoreDiff diff) {
+		switch (t.type) {
+		case BIN:
+			return diff.score == Binning.Illumina_binning_matrix[diff.oScore];
+		case DROP:
+			return diff.score == DEFAULT_SCORE;
+		case PRESERVE:
+			return diff.score == diff.oScore;
+
+		default:
+			throw new RuntimeException(
+					"Unknown quality score treatment category: "
+							+ t.type.name());
+		}
+	}
+
+	private static boolean obeysLossyModel(List<PreservationPolicy> policies,
+			SAMRecord record, ScoreDiff diff) {
+
+		NEXT_POLICY: for (PreservationPolicy policy : policies) {
+			if (policy.readCategory != null
+					&& !testReadCategory(policy.readCategory, record))
+				continue;
+
+			if (policy.baseCategories != null) {
+				for (BaseCategory c : policy.baseCategories) {
+					if (!testBaseCategory(c, diff))
+						continue NEXT_POLICY;
+				}
+			}
+
+			return testScoreTreatment(policy.treatment, diff);
+		}
+
+		return testScoreTreatment(QualityScoreTreatment.drop(), diff);
 	}
 
 	@Parameters(commandDescription = "Compare SAM/BAM/CRAM files.")
@@ -673,5 +926,11 @@ public class SamRecordComparision {
 
 		@Parameter(names = { "--ignore-tlen-diff" }, description = "Ignore TLEN differences less of equal to this value.")
 		int ignoreTLENDiff = 0;
+
+		@Parameter(names = { "--score-diff", "-d" }, description = "Report differences in base quality scores.")
+		boolean scoreDiff = false;
+
+		@Parameter(names = { "--lossy-spec" }, description = "Test if quality scores in file2 obey this lossy spec.")
+		String lossySpec;
 	}
 }

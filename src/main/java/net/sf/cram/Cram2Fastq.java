@@ -23,7 +23,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -31,7 +33,7 @@ import java.util.zip.GZIPOutputStream;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.encoding.reader.DataReaderFactory;
-import net.sf.cram.encoding.reader.FastqReader;
+import net.sf.cram.encoding.reader.ReaderToFastq;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
@@ -49,6 +51,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Cram2Fastq {
 	private static Log log = Log.getInstance(Cram2Fastq.class);
+	public static final String COMMAND = "fastq";
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
@@ -61,7 +64,8 @@ public class Cram2Fastq {
 	}
 
 	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
+			IllegalArgumentException, IllegalAccessException,
+			NoSuchAlgorithmException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
@@ -88,6 +92,7 @@ public class Cram2Fastq {
 
 		OutputStream joinedOS = null;
 		OutputStream[] streams = null;
+		File[] files = null;
 		if (params.fastqBaseName == null) {
 			joinedOS = System.out;
 			if (params.gzip)
@@ -95,6 +100,7 @@ public class Cram2Fastq {
 		} else {
 			int maxFiles = 3;
 			streams = new OutputStream[maxFiles];
+			files = new File[maxFiles];
 			String extension = ".fastq" + (params.gzip ? ".gz" : "");
 			String path;
 			for (int index = 0; index < streams.length; index++) {
@@ -103,8 +109,10 @@ public class Cram2Fastq {
 				else
 					path = params.fastqBaseName + "_" + index + extension;
 
+				File file = new File(path);
+				files[index] = file;
 				OutputStream os = new BufferedOutputStream(
-						new FileOutputStream(path));
+						new FileOutputStream(file));
 
 				if (params.gzip)
 					os = new GZIPOutputStream(os);
@@ -119,7 +127,7 @@ public class Cram2Fastq {
 
 		CramHeader cramHeader = CramIO.readCramHeader(is);
 		Container container = null;
-		FastqReader reader = new FastqReader();
+		ReaderToFastq reader = new ReaderToFastq();
 		while ((container = CramIO.readContainer(is)) != null) {
 			DataReaderFactory f = new DataReaderFactory();
 
@@ -128,6 +136,15 @@ public class Cram2Fastq {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(s.sequenceId);
 					ref = referenceSource.getReferenceBases(sequence, true);
+
+					if (!s.validateRefMD5(ref)) {
+						log.error(String
+								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
+										s.sequenceId, s.alignmentStart,
+										s.alignmentSpan, String.format("%032x",
+												new BigInteger(1, s.refMD5))));
+						System.exit(1);
+					}
 				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {
@@ -161,6 +178,7 @@ public class Cram2Fastq {
 						OutputStream os = streams[i];
 						buf.flip();
 						os.write(buf.array(), 0, buf.limit());
+						if (buf.limit() > 0) files[i] = null ;
 						buf.clear();
 					}
 				}
@@ -171,6 +189,13 @@ public class Cram2Fastq {
 			for (OutputStream os : streams)
 				if (os != null)
 					os.close();
+		}
+
+		if (files != null) {
+			for (File file : files)
+				if (file != null)
+					file.delete();
+
 		}
 	}
 

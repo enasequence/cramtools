@@ -17,10 +17,10 @@ package net.sf.cram.encoding;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import net.sf.cram.common.NullOutputStream;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
@@ -305,14 +305,6 @@ public class ArithCodec extends AbstractBitCodec<byte[]> {
 		}
 
 		return this.bitCount;
-	}
-
-	/** Writes to nowhere */
-	private class NullOutputStream extends OutputStream {
-		@Override
-		public void write(int b) throws IOException {
-			; //
-		}
 	}
 
 	@Override

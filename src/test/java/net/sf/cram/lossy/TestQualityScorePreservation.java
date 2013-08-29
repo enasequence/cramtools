@@ -15,10 +15,28 @@
  ******************************************************************************/
 package net.sf.cram.lossy;
 
-import static org.hamcrest.core.Is.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+
+import net.sf.cram.build.CramNormalizer;
+import net.sf.cram.build.Sam2CramRecordFactory;
+import net.sf.cram.ref.ReferenceTracks;
+import net.sf.cram.structure.CramRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMUtils;
 
 import org.junit.Test;
 
@@ -82,7 +100,7 @@ public class TestQualityScorePreservation {
 			List<BaseCategory> baseCategories = policy1.baseCategories;
 			assertNotNull(baseCategories);
 			assertEquals(baseCategories.size(), 1);
-			
+
 			BaseCategory c0 = baseCategories.get(0);
 			assertEquals(c0.type, BaseCategoryType.MISMATCH);
 			assertEquals(c0.param, -1);
@@ -92,6 +110,101 @@ public class TestQualityScorePreservation {
 
 			assertThat(treatment.type, is(QualityScoreTreatmentType.PRESERVE));
 			assertThat(treatment.param, is(40));
+		}
+	}
+
+	private SAMFileHeader samFileHeader = new SAMFileHeader();
+
+	private SAMRecord buildSAMRecord(String seqName, String line) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			baos.write("@HD\tVN:1.0\tGO:none SO:coordinate\n".getBytes());
+			baos.write(("@SQ\tSN:" + seqName + "\tLN:247249719\n").getBytes());
+			baos.write(line.replaceAll("\\s+", "\t").getBytes());
+			baos.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		SAMFileReader r = new SAMFileReader(bais);
+		try {
+			return r.iterator().next();
+		} finally {
+			r.close();
+		}
+	}
+
+	@Test
+	public void test3() {
+		String line1 = "98573 1107 20 1 60 100M = 999587 -415 CTGGTCTTAGTTCCGCAAGTGGGTATATATAAAGGCTCAAAATCAATCTTTATATTGACATCTCTCTACTTATTTGTGTTGTCTGATGCTCATATTGTAG ::A<<=D@BBC;C9=7DEEBHDEHHACEEBEEEDEE=EFFHEEFFFEHEF@HFBCEFEHFEHEHFEHDHHHFHHHEHHHHDFHHHHHGHHHHHHHHHHHH";
+		String line2 = "98738 1187 20 18 29 99M1S = 1000253 432 AGCGGGGATATATAAAGGCTCAAAATTACTTTTTATATGGACAACTCTCTACTGCTTTGAGATGACTGATACTCATATTGATGGAGCTTTATCAAGAAAT !\"#$%&'()*+-./0'''''''''''#'#'#'''''''#''''#'''''''''##''''#'#''#'''''#'''''''''##''''#''##''''''''?";
+		String seqName = "20";
+		List<String> lines = Arrays.asList(new String[] { line2, line1 });
+
+		byte[] ref = "CTGGTCTTAGTTCCGCAAGTGGGTATATATAAAGGCTCAAAATCAATCTTTATATTGACATCTCTCTACTTATTTGTGTTGTCTGATGCTCATATTGTAGGAGATTCCTCAAGAAAGG"
+				.getBytes();
+		ReferenceTracks tracks = new ReferenceTracks(0, seqName, ref);
+		QualityScorePreservation p = new QualityScorePreservation(
+				"R8-N40-M40-D40");
+
+		for (String line : lines) {
+			SAMRecord record = buildSAMRecord(seqName, line);
+
+			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref,
+					record.getHeader());
+			CramRecord cramRecord = f.createCramRecord(record);
+
+			p.addQualityScores(record, cramRecord, tracks);
+			if (!cramRecord.isForcePreserveQualityScores()) {
+				CramNormalizer.restoreQualityScores((byte) 30,
+						Collections.singletonList(cramRecord));
+			}
+
+			StringBuffer sb = new StringBuffer();
+			sb.append(record.getBaseQualityString());
+			sb.append("\n");
+			sb.append(SAMUtils.phredToFastq(cramRecord.qualityScores));
+
+			assertArrayEquals(sb.toString(), record.getBaseQualities(),
+					cramRecord.qualityScores);
+		}
+	}
+
+	@Test
+	public void test4() {
+		String line2 = "98738 1187 20 18 29 99M1S = 1000253 432 AGCGGGGATATATAAAGGCTCAAAATTACTTTTTATATGGACAACTCTCTACTGCTTTGAGATGACTGATACTCATATTGATGGAGCTTTATCAAGAAAT !\"#$%&'()*+-./0'''''''''''#'#'#'''''''#''''#'''''''''##''''#'#''#'''''#'''''''''##''''#''##''''''''?";
+		String seqName = "20";
+		List<String> lines = Arrays.asList(new String[] { line2 });
+
+		byte[] ref = "CTGGTCTTAGTTCCGCAAGTGGGTATATATAAAGGCTCAAAATCAATCTTTATATTGACATCTCTCTACTTATTTGTGTTGTCTGATGCTCATATTGTAGGAGATTCCTCAAGAAAGG"
+				.getBytes();
+		ReferenceTracks tracks = new ReferenceTracks(0, seqName, ref);
+		QualityScorePreservation p = new QualityScorePreservation(
+				"R40X10-N40-U40");
+		for (int i = 0; i < ref.length; i++)
+			tracks.addCoverage(i+1, 66);
+
+		for (String line : lines) {
+			SAMRecord record = buildSAMRecord(seqName, line);
+
+			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref,
+					record.getHeader());
+			CramRecord cramRecord = f.createCramRecord(record);
+
+			p.addQualityScores(record, cramRecord, tracks);
+			if (!cramRecord.isForcePreserveQualityScores()) {
+				CramNormalizer.restoreQualityScores((byte) 30,
+						Collections.singletonList(cramRecord));
+			}
+
+			StringBuffer sb = new StringBuffer();
+			sb.append(record.getBaseQualityString());
+			sb.append("\n");
+			sb.append(SAMUtils.phredToFastq(cramRecord.qualityScores));
+
+			assertArrayEquals(sb.toString(), record.getBaseQualities(),
+					cramRecord.qualityScores);
 		}
 	}
 

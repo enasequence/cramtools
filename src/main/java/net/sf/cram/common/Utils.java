@@ -28,6 +28,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import com.beust.jcommander.JCommander;
+
+import net.sf.cram.CramFixHeader;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.structure.CramRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -50,9 +53,10 @@ import net.sf.samtools.SAMTextWriter;
 
 public class Utils {
 
+	public static final String CRAM_FORMAT_VERSION = "2.0";
+
 	private static Log log = Log.getInstance(Utils.class);
-	
-	
+
 	public static void reverse(final byte[] array, int offset, int len) {
 		final int lastIndex = len - 1;
 
@@ -67,8 +71,7 @@ public class Utils {
 		}
 	}
 
-	public static void reverseComplement(final byte[] bases, int offset,
-			int len) {
+	public static void reverseComplement(final byte[] bases, int offset, int len) {
 		final int lastIndex = len - 1;
 
 		int i, j;
@@ -109,7 +112,7 @@ public class Utils {
 	}
 
 	public static final byte upperCase(byte base) {
-		return base >= 'a' ? (byte) (base - ('a'-'A')) : base;
+		return base >= 'a' ? (byte) (base - ('a' - 'A')) : base;
 	}
 
 	public static final byte[] upperCase(byte[] bases) {
@@ -642,5 +645,38 @@ public class Utils {
 			if (delegate != null)
 				delegate.close();
 		}
+	}
+
+	public static String getVersion() {
+		String version = CramFixHeader.class.getPackage()
+				.getImplementationVersion();
+		if (version == null)
+			return CRAM_FORMAT_VERSION;
+		else
+			return version;
+	}
+
+	public static String join(String[] words, String delimiter) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < words.length; i++) {
+			sb.append(words[i]);
+			if (i < words.length - 1)
+				sb.append(delimiter);
+		}
+
+		return sb.toString();
+	}
+	
+	public static String getJavaCommand () {
+		return System.getProperty("sun.java.command") ;
+	}
+	
+	public static void printUsage( JCommander jc) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("\n");
+		jc.usage(sb);
+
+		System.out.println("Version " + Utils.getVersion());
+		System.out.println(sb.toString());
 	}
 }

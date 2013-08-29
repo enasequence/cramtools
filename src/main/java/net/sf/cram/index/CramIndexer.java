@@ -42,6 +42,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class CramIndexer {
 	private static Log log = Log.getInstance(CramIndexer.class);
+	public static final String COMMAND = "index" ;
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();

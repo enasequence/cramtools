@@ -61,6 +61,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Bam2Cram {
 	private static Log log = Log.getInstance(Bam2Cram.class);
+	public static final String COMMAND = "cram" ;
 
 	private static Set<String> tagsNamesToSet(String tags) {
 		Set<String> set = new TreeSet<String>();
@@ -321,29 +322,14 @@ public class Bam2Cram {
 			os = cos.getCipherOutputStream();
 		}
 
-		String version = Bam2Cram.class.getPackage().getImplementationVersion();
-		if (version == null)
-			version = "2.0";
-		String cmd = null;
-		{
-			StringBuffer sb = new StringBuffer();
-			for (String arg : args)
-				sb.append(sb).append(" ");
-			if (sb.charAt(sb.length() - 1) == ' ') {
-				sb.setLength(sb.length() - 1);
-				sb.trimToSize();
-			}
-			cmd = sb.toString();
-		}
-
 		FixBAMFileHeader fixBAMFileHeader = new FixBAMFileHeader(
 				referenceSource);
 		fixBAMFileHeader.setConfirmMD5(true);
-		fixBAMFileHeader.setInjectURI(false);
+		fixBAMFileHeader.setInjectURI(true);
 		fixBAMFileHeader.fixSequences(samFileHeader.getSequenceDictionary()
 				.getSequences());
-		fixBAMFileHeader.addPG(samFileHeader, "cramtools", cmd, version);
-
+		fixBAMFileHeader.addCramtoolsPG(samFileHeader);
+		
 		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN"
 				: params.bamFile.getName(), samFileHeader);
 		long offset = CramIO.writeCramHeader(h, os);
@@ -351,7 +337,6 @@ public class Bam2Cram {
 		long bases = 0;
 		long coreBytes = 0;
 		long[] externalBytes = new long[10];
-		MessageDigest md5_MessageDigest = MessageDigest.getInstance("MD5");
 
 		ContainerFactory cf = new ContainerFactory(samFileHeader,
 				params.maxContainerSize, params.preserveReadNames);

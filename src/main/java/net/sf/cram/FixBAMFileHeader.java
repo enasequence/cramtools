@@ -15,10 +15,15 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 
+import net.sf.cram.build.CramIO;
 import net.sf.cram.common.Utils;
 import net.sf.cram.ref.ReferenceSource;
+import net.sf.cram.structure.CramHeader;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
@@ -28,7 +33,7 @@ public class FixBAMFileHeader {
 	private static Log log = Log.getInstance(FixBAMFileHeader.class);
 	private boolean confirmMD5 = false;
 	private String sequenceUrlPattern = "http://www.ebi.ac.uk/ena/cram/md5/%s";
-	private boolean injectURI = false ;
+	private boolean injectURI = false;
 
 	private ReferenceSource referenceSource;
 
@@ -45,7 +50,7 @@ public class FixBAMFileHeader {
 		String found_md5 = sequenceRecord
 				.getAttribute(SAMSequenceRecord.MD5_TAG);
 		if (found_md5 != null) {
-			if (!confirmMD5) {
+			if (confirmMD5) {
 				byte[] bytes = referenceSource.getReferenceBases(
 						sequenceRecord, true);
 				String md5 = Utils.calculateMD5_RTE(bytes);
@@ -87,7 +92,14 @@ public class FixBAMFileHeader {
 		SAMProgramRecord programRecord = header.createProgramRecord();
 		programRecord.setCommandLine(cmd);
 		programRecord.setProgramName(program);
-		programRecord.setProgramName(version);
+		programRecord.setProgramVersion(version);
+	}
+
+	public void addCramtoolsPG(SAMFileHeader header) {
+		String cmd = "java " + Utils.getJavaCommand();
+		String version = Utils.getVersion();
+		
+		addPG(header, "cramtools", cmd, version);
 	}
 
 	public boolean isConfirmMD5() {
@@ -109,12 +121,27 @@ public class FixBAMFileHeader {
 	public ReferenceSource getReferenceSource() {
 		return referenceSource;
 	}
-	
+
 	public boolean isInjectURI() {
 		return injectURI;
 	}
 
 	public void setInjectURI(boolean injectURI) {
 		this.injectURI = injectURI;
+	}
+
+	public boolean fixHeaderInFile(File cramFile) throws IOException {
+		FileInputStream fis = new FileInputStream(cramFile);
+		CramHeader cramHeader = CramIO.readCramHeader(fis);
+
+		fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
+				.getSequences());
+		String cmd = "fixheader";
+		String version = getClass().getPackage().getImplementationVersion();
+		addPG(cramHeader.samFileHeader, "cramtools", cmd, version);
+
+		CramHeader newHeader = cramHeader.clone();
+
+		return CramIO.replaceCramHeader(cramFile, newHeader);
 	}
 }

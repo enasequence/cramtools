@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import net.sf.cram.common.NullOutputStream;
 import net.sf.cram.io.ByteBufferUtils;
 
 public class ContainerHeaderIO {
@@ -59,5 +60,10 @@ public class ContainerHeaderIO {
 		len += ByteBufferUtils.write(c.landmarks, os);
 
 		return len;
+	}
+	
+	public int sizeOfContainerHeader (Container c) throws IOException {
+		NullOutputStream nos = new NullOutputStream() ;
+		return writeContainerHeader(c, nos) ;
 	}
 }

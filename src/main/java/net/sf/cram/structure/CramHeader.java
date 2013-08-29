@@ -47,5 +47,16 @@ public final class CramHeader {
 		System.arraycopy(stringID.getBytes(), 0, this.id, 0,
 				Math.min(this.id.length, stringID.length()));
 	}
+	
+	@Override
+	public CramHeader clone() {
+		CramHeader clone = new CramHeader() ;
+		clone.majorVersion = majorVersion ;
+		clone.minorVersion = minorVersion ;
+		System.arraycopy(id, 0, clone.id, 0, id.length) ;
+		clone.samFileHeader = samFileHeader.clone() ;
+		
+		return clone;
+	}
 
 }
