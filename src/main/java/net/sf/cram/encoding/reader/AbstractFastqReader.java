@@ -25,6 +25,7 @@ import net.sf.cram.structure.ReadTag;
 public abstract class AbstractFastqReader extends AbstractReader {
 	private ReadFeatureBuffer rfBuf = new ReadFeatureBuffer();
 	public boolean reverseNegativeReads = true;
+	public boolean appendSegmentIndexToReadNames = true;
 
 	public byte[] referenceSequence;
 	public int flags;
@@ -36,7 +37,7 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 	public byte[] bases = new byte[1024];
 	public byte[] scores = new byte[1024];
-	
+
 	/**
 	 * For now this is to identify the right buffer to use.
 	 * 
@@ -104,8 +105,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				rfBuf.readReadFeatures(this);
-				rfBuf.restoreReadBases(readLength, prevAlStart, referenceSequence,
-						substitutionMatrix, bases);
+				rfBuf.restoreReadBases(readLength, prevAlStart,
+						referenceSequence, substitutionMatrix, bases);
 
 				mqc.skip();
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
@@ -134,4 +135,6 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 	protected abstract void writeRead(byte[] name, int flags, byte[] bases,
 			byte[] scores);
+
+	public abstract void finish();
 }

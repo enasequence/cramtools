@@ -18,14 +18,14 @@ package net.sf.cram.encoding.reader;
 import java.nio.ByteBuffer;
 
 public class ReaderToFasta extends AbstractFastqReader {
-	
-	public static final int BUF_SIZE = 1024 * 1024 * 10 ;
+
+	public static final int BUF_SIZE = 1024 * 1024 * 10;
 
 	public ByteBuffer[] bufs;
 	public boolean appendSegmentIndexToReadNames = true;
 
 	public ReaderToFasta() {
-		this (BUF_SIZE) ;
+		this(BUF_SIZE);
 	}
 
 	public ReaderToFasta(int bufSize) {
@@ -34,6 +34,7 @@ public class ReaderToFasta extends AbstractFastqReader {
 			bufs[i] = ByteBuffer.allocate(bufSize);
 	}
 
+	@Override
 	protected void writeRead(byte[] name, int flags, byte[] bases, byte[] scores) {
 		int indexInTemplate = getSegmentIndexInTemplate(flags);
 		ByteBuffer buf = bufs[indexInTemplate];
@@ -48,5 +49,11 @@ public class ReaderToFasta extends AbstractFastqReader {
 		buf.put((byte) '\n');
 		buf.put(bases, 0, readLength);
 		buf.put((byte) '\n');
+	}
+
+	@Override
+	public void finish() {
+		// TODO Auto-generated method stub
+
 	}
 }

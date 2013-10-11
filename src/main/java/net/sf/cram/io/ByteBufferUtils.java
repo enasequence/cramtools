@@ -108,7 +108,7 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 16) == 0) {
-			long result = ((long)(b1 & 31) << 24);
+			long result = ((long) (b1 & 31) << 24);
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
@@ -116,8 +116,8 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 8) == 0) {
-			long value = ((long)(b1 & 15) << 32);
-			value |= ((0xFF & ((long)is.read())) << 24);
+			long value = ((long) (b1 & 15) << 32);
+			value |= ((0xFF & ((long) is.read())) << 24);
 			value |= (is.read() << 16);
 			value |= (is.read() << 8);
 			value |= is.read();
@@ -125,9 +125,9 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 4) == 0) {
-			long result = ((long)(b1 & 7) << 40);
-			result |= (0xFF & ((long)is.read())) << 32;
-			result |= (0xFF & ((long)is.read())) << 24;
+			long result = ((long) (b1 & 7) << 40);
+			result |= (0xFF & ((long) is.read())) << 32;
+			result |= (0xFF & ((long) is.read())) << 24;
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
@@ -135,32 +135,32 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 2) == 0) {
-			long result = ((long)(b1 & 3) << 48);
-			result |= (0xFF & ((long)is.read())) << 40;
-			result |= (0xFF & ((long)is.read())) << 32;
-			result |= (0xFF & ((long)is.read())) << 24;
+			long result = ((long) (b1 & 3) << 48);
+			result |= (0xFF & ((long) is.read())) << 40;
+			result |= (0xFF & ((long) is.read())) << 32;
+			result |= (0xFF & ((long) is.read())) << 24;
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
 			return result;
 		}
-		
+
 		if ((b1 & 1) == 0) {
-			long result = (0xFF & ((long)is.read())) << 48;
-			result |= (0xFF & ((long)is.read())) << 40;
-			result |= (0xFF & ((long)is.read())) << 32;
-			result |= (0xFF & ((long)is.read())) << 24;
+			long result = (0xFF & ((long) is.read())) << 48;
+			result |= (0xFF & ((long) is.read())) << 40;
+			result |= (0xFF & ((long) is.read())) << 32;
+			result |= (0xFF & ((long) is.read())) << 24;
 			result |= is.read() << 16;
 			result |= is.read() << 8;
 			result |= is.read();
 			return result;
 		}
-		
-		long result = (0xFF & ((long)is.read())) << 56;
-		result |= (0xFF & ((long)is.read())) << 48;
-		result |= (0xFF & ((long)is.read())) << 40;
-		result |= (0xFF & ((long)is.read())) << 32;
-		result |= (0xFF & ((long)is.read())) << 24;
+
+		long result = (0xFF & ((long) is.read())) << 56;
+		result |= (0xFF & ((long) is.read())) << 48;
+		result |= (0xFF & ((long) is.read())) << 40;
+		result |= (0xFF & ((long) is.read())) << 32;
+		result |= (0xFF & ((long) is.read())) << 24;
 		result |= is.read() << 16;
 		result |= is.read() << 8;
 		result |= is.read();
@@ -246,7 +246,7 @@ public class ByteBufferUtils {
 		}
 
 		// eight control bits
-		os.write((int) (0xFF));
+		os.write((0xFF));
 		os.write((int) ((value >> 56) & 0xFF));
 		os.write((int) ((value >> 48) & 0xFF));
 		os.write((int) ((value >> 40) & 0xFF));
@@ -343,10 +343,10 @@ public class ByteBufferUtils {
 	private static boolean testLTF8(long value) throws IOException {
 		ltf8TestBAOS.reset();
 		int len = writeUnsignedLTF8(value, ltf8TestBAOS);
-		
-		if (len > 8 *9) {
-			System.out.println("Written length is too big: "+ len);
-			return false ;
+
+		if (len > 8 * 9) {
+			System.out.println("Written length is too big: " + len);
+			return false;
 		}
 
 		ltf8TestBAIS.reset();
@@ -363,14 +363,20 @@ public class ByteBufferUtils {
 
 		{
 			// test LTF8
-			
-			if (!testLTF8(1125899906842622l)) return  ;
-			if (!testLTF8(562949953421312l)) return  ;
-			if (!testLTF8(4294967296l)) return  ;
-			if (!testLTF8(-1l)) return  ;
-			if (!testLTF8(268435456L)) return  ;
-			if (!testLTF8(2147483648L)) return  ;
-			
+
+			if (!testLTF8(1125899906842622l))
+				return;
+			if (!testLTF8(562949953421312l))
+				return;
+			if (!testLTF8(4294967296l))
+				return;
+			if (!testLTF8(-1l))
+				return;
+			if (!testLTF8(268435456L))
+				return;
+			if (!testLTF8(2147483648L))
+				return;
+
 			testLTF8(0);
 			testLTF8(0);
 			testLTF8(1);
@@ -385,7 +391,7 @@ public class ByteBufferUtils {
 				testLTF8((1L << i) + 1);
 				testLTF8((1L << i) + 1);
 			}
-			
+
 			System.out.println("===========  LTF8 tests ok ================");
 		}
 
@@ -469,10 +475,12 @@ public class ByteBufferUtils {
 	public static int int32(InputStream is) throws IOException {
 		return is.read() | is.read() << 8 | is.read() << 16 | is.read() << 24;
 	}
-	
+
 	public static int int32(byte[] data) throws IOException {
-		if (data.length != 4) throw new IllegalArgumentException("Expecting a 4-byte integer. ") ;
-		return (0xFF&data[0]) | ((0xFF&data[1]) << 8) | ((0xFF&data[2]) << 16) | ((0xFF&data[3]) << 24);
+		if (data.length != 4)
+			throw new IllegalArgumentException("Expecting a 4-byte integer. ");
+		return (0xFF & data[0]) | ((0xFF & data[1]) << 8)
+				| ((0xFF & data[2]) << 16) | ((0xFF & data[3]) << 24);
 	}
 
 	public static int writeInt32(int value, OutputStream os) throws IOException {
@@ -557,13 +565,19 @@ public class ByteBufferUtils {
 		return readFully(gis);
 	}
 
+	public static int GZIP_COMPRESSION_LEVEL = Integer.valueOf(System.getProperty(
+			"gzip.compression.level", "5"));
+
 	public static byte[] gzip(byte[] data) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		GZIPOutputStream gos = new GZIPOutputStream(baos);
+		GZIPOutputStream gos = new GZIPOutputStream(baos) {
+			{
+				def.setLevel(GZIP_COMPRESSION_LEVEL);
+			}
+		};
 		long count = copyLarge(new ByteArrayInputStream(data), gos);
 		gos.close();
 
 		return baos.toByteArray();
 	}
-
 }

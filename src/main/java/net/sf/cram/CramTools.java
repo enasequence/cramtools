@@ -109,6 +109,7 @@ public class CramTools {
 		addProgram(jc, Merge.class);
 		addProgram(jc, Cram2Fastq.class);
 		addProgram(jc, CramFixHeader.class);
+		addProgram(jc, DownloadReferences.class);
 
 		jc.parse(args);
 

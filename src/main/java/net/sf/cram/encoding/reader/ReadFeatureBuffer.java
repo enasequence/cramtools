@@ -22,7 +22,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 
 class ReadFeatureBuffer {
-	private ByteBuffer readFeatureBuffer = ByteBuffer.allocate(1024*1024);
+	private ByteBuffer readFeatureBuffer = ByteBuffer.allocate(1024 * 1024);
 	private int readFeatureSize;
 
 	public final void readReadFeatures(AbstractReader reader)
@@ -104,11 +104,12 @@ class ReadFeatureBuffer {
 			byte op = readFeatureBuffer.get();
 			int rfPos = readFeatureBuffer.getInt();
 
+			// TODO: bases mapped beyond the reference:
 			for (; posInRead < rfPos; posInRead++) {
 				bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 			}
 
-			int len = 0 ;
+			int len = 0;
 			switch (op) {
 			case Substitution.operator:
 				byte refBase = ref[alignmentStart + posInSeq];
@@ -119,16 +120,14 @@ class ReadFeatureBuffer {
 				posInSeq++;
 				break;
 			case Insertion.operator:
-				len = readFeatureBuffer.getInt() ;
-				readFeatureBuffer.get(bases, posInRead - 1,
-						len);
-				posInRead += len ;
+				len = readFeatureBuffer.getInt();
+				readFeatureBuffer.get(bases, posInRead - 1, len);
+				posInRead += len;
 				break;
 			case SoftClip.operator:
-				len = readFeatureBuffer.getInt() ;
-				readFeatureBuffer.get(bases, posInRead - 1,
-						len);
-				posInRead += len ;
+				len = readFeatureBuffer.getInt();
+				readFeatureBuffer.get(bases, posInRead - 1, len);
+				posInRead += len;
 				break;
 			case HardClip.operator:
 				readFeatureBuffer.getInt();

@@ -32,7 +32,9 @@ import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.CramIO;
+import net.sf.cram.encoding.reader.AbstractFastqReader;
 import net.sf.cram.encoding.reader.DataReaderFactory;
+import net.sf.cram.encoding.reader.MultiFastqOutputter;
 import net.sf.cram.encoding.reader.ReaderToFastq;
 import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.ref.ReferenceSource;
@@ -41,7 +43,10 @@ import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.Slice;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
 
 import com.beust.jcommander.JCommander;
@@ -63,9 +68,7 @@ public class Cram2Fastq {
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException,
-			NoSuchAlgorithmException {
+	public static void main(String[] args) throws Exception {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
@@ -88,114 +91,311 @@ public class Cram2Fastq {
 
 		if (params.reference == null)
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
-		ReferenceSource referenceSource = new ReferenceSource(params.reference);
 
-		OutputStream joinedOS = null;
-		OutputStream[] streams = null;
-		File[] files = null;
-		if (params.fastqBaseName == null) {
-			joinedOS = System.out;
-			if (params.gzip)
-				joinedOS = (new GZIPOutputStream(joinedOS));
-		} else {
-			int maxFiles = 3;
-			streams = new OutputStream[maxFiles];
-			files = new File[maxFiles];
-			String extension = ".fastq" + (params.gzip ? ".gz" : "");
-			String path;
-			for (int index = 0; index < streams.length; index++) {
-				if (index == 0)
-					path = params.fastqBaseName + extension;
-				else
-					path = params.fastqBaseName + "_" + index + extension;
+		// SimpleDumper d = new SimpleDumper(new
+		// FileInputStream(params.cramFile),
+		// new ReferenceSource(params.reference), 3, params.fastqBaseName,
+		// params.gzip, params.maxParams);
 
-				File file = new File(path);
-				files[index] = file;
-				OutputStream os = new BufferedOutputStream(
-						new FileOutputStream(file));
+		CollatingDumper d = new CollatingDumper(new FileInputStream(
+				params.cramFile), new ReferenceSource(params.reference), 3,
+				params.fastqBaseName, params.gzip, params.maxRecords);
+		d.run();
 
-				if (params.gzip)
-					os = new GZIPOutputStream(os);
+		if (d.exception != null)
+			throw d.exception;
+	}
 
-				streams[index] = os;
+	private static abstract class Dumper implements Runnable {
+		protected InputStream cramIS;
+		protected byte[] ref = null;
+		protected ReferenceSource referenceSource;
+		protected FileOutput[] outputs;
+		protected long maxRecords = -1;
+		protected CramHeader cramHeader;
+		protected Container container;
+		protected AbstractFastqReader reader;
+		protected Exception exception;
+
+		public Dumper(InputStream cramIS, ReferenceSource referenceSource,
+				int nofStreams, String fastqBaseName, boolean gzip,
+				long maxRecords) throws IOException {
+
+			this.cramIS = cramIS;
+			this.referenceSource = referenceSource;
+			this.maxRecords = maxRecords;
+			outputs = new FileOutput[nofStreams];
+			for (int index = 0; index < outputs.length; index++)
+				outputs[index] = new FileOutput();
+
+			if (fastqBaseName == null) {
+				OutputStream joinedOS = System.out;
+				if (gzip)
+					joinedOS = (new GZIPOutputStream(joinedOS));
+				for (int index = 0; index < outputs.length; index++)
+					outputs[index].outputStream = joinedOS;
+			} else {
+				String extension = ".fastq" + (gzip ? ".gz" : "");
+				String path;
+				for (int index = 0; index < outputs.length; index++) {
+					if (index == 0)
+						path = fastqBaseName + extension;
+					else
+						path = fastqBaseName + "_" + index + extension;
+
+					outputs[index].file = new File(path);
+					OutputStream os = new BufferedOutputStream(
+							new FileOutputStream(outputs[index].file));
+
+					if (gzip)
+						os = new GZIPOutputStream(os);
+
+					outputs[index].outputStream = os;
+				}
 			}
 		}
 
-		byte[] ref = null;
+		protected abstract AbstractFastqReader newReader();
 
-		InputStream is = new FileInputStream(params.cramFile);
+		protected abstract void containerHasBeenRead() throws IOException;
 
-		CramHeader cramHeader = CramIO.readCramHeader(is);
-		Container container = null;
-		ReaderToFastq reader = new ReaderToFastq();
-		while ((container = CramIO.readContainer(is)) != null) {
-			DataReaderFactory f = new DataReaderFactory();
+		protected void doRun() throws IOException {
+			cramHeader = CramIO.readCramHeader(cramIS);
+			reader = newReader();
+			MAIN_LOOP: while ((container = CramIO.readContainer(cramIS)) != null) {
+				DataReaderFactory f = new DataReaderFactory();
 
-			for (Slice s : container.slices) {
-				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					SAMSequenceRecord sequence = cramHeader.samFileHeader
-							.getSequence(s.sequenceId);
-					ref = referenceSource.getReferenceBases(sequence, true);
+				for (Slice s : container.slices) {
+					if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+						SAMSequenceRecord sequence = cramHeader.samFileHeader
+								.getSequence(s.sequenceId);
+						ref = referenceSource.getReferenceBases(sequence, true);
 
-					if (!s.validateRefMD5(ref)) {
-						log.error(String
-								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
-										s.sequenceId, s.alignmentStart,
-										s.alignmentSpan, String.format("%032x",
-												new BigInteger(1, s.refMD5))));
-						System.exit(1);
+						try {
+							if (!s.validateRefMD5(ref)) {
+								log.error(String
+										.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
+												s.sequenceId, s.alignmentStart,
+												s.alignmentSpan, String.format(
+														"%032x",
+														new BigInteger(1,
+																s.refMD5))));
+								throw new RuntimeException(
+										"Reference checksum mismatch.");
+							}
+						} catch (NoSuchAlgorithmException e) {
+							throw new RuntimeException(e);
+						}
 					}
-				}
-				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
-				for (Integer exId : s.external.keySet()) {
-					inputMap.put(exId,
-							new ByteArrayInputStream(s.external.get(exId)
-									.getRawContent()));
-				}
-
-				reader.referenceSequence = ref;
-				reader.prevAlStart = s.alignmentStart;
-				reader.substitutionMatrix = container.h.substitutionMatrix;
-				reader.recordCounter = 0;
-				reader.appendSegmentIndexToReadNames = params.appendSegmentIndexToReadNames;
-				f.buildReader(reader, new DefaultBitInputStream(
-						new ByteArrayInputStream(s.coreBlock.getRawContent())),
-						inputMap, container.h, s.sequenceId);
-
-				for (int i = 0; i < s.nofRecords; i++) {
-					reader.read();
-				}
-
-				if (joinedOS != null) {
-					for (ByteBuffer buf : reader.bufs) {
-						buf.flip();
-						joinedOS.write(buf.array(), 0, buf.limit());
-						buf.clear();
+					Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
+					for (Integer exId : s.external.keySet()) {
+						inputMap.put(exId, new ByteArrayInputStream(s.external
+								.get(exId).getRawContent()));
 					}
+
+					reader.referenceSequence = ref;
+					reader.prevAlStart = s.alignmentStart;
+					reader.substitutionMatrix = container.h.substitutionMatrix;
+					reader.recordCounter = 0;
+					try {
+						f.buildReader(
+								reader,
+								new DefaultBitInputStream(
+										new ByteArrayInputStream(s.coreBlock
+												.getRawContent())), inputMap,
+								container.h, s.sequenceId);
+					} catch (IllegalArgumentException e) {
+						throw new RuntimeException(e);
+					} catch (IllegalAccessException e) {
+						throw new RuntimeException(e);
+					}
+
+					for (int i = 0; i < s.nofRecords; i++) {
+						reader.read();
+						if (maxRecords > -1) {
+							if (maxRecords == 0)
+								break MAIN_LOOP;
+							maxRecords--;
+						}
+					}
+
+					containerHasBeenRead();
+				}
+			}
+			reader.finish();
+		}
+
+		@Override
+		public void run() {
+			try {
+				doRun();
+
+				if (outputs != null) {
+					for (FileOutput os : outputs)
+						os.close();
+				}
+			} catch (Exception e) {
+				this.exception = e;
+			}
+		}
+	}
+
+	private static class SimpleDumper extends Dumper {
+		public SimpleDumper(InputStream cramIS,
+				ReferenceSource referenceSource, int nofStreams,
+				String fastqBaseName, boolean gzip, int maxRecords)
+				throws IOException {
+			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
+					maxRecords);
+		}
+
+		@Override
+		protected AbstractFastqReader newReader() {
+			return new ReaderToFastq();
+		}
+
+		@Override
+		protected void containerHasBeenRead() throws IOException {
+			ReaderToFastq reader = (ReaderToFastq) super.reader;
+			for (int i = 0; i < outputs.length; i++) {
+				ByteBuffer buf = reader.bufs[i];
+				OutputStream os = outputs[i].outputStream;
+				buf.flip();
+				os.write(buf.array(), 0, buf.limit());
+				if (buf.limit() > 0)
+					outputs[i].empty = false;
+				buf.clear();
+			}
+		}
+	}
+
+	private static class CollatingDumper extends Dumper {
+		private FileOutput fo = new FileOutput();
+
+		public CollatingDumper(InputStream cramIS,
+				ReferenceSource referenceSource, int nofStreams,
+				String fastqBaseName, boolean gzip, long maxRecords)
+				throws IOException {
+			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
+					maxRecords);
+			fo.file = new File(fastqBaseName == null ? "overflow.bam"
+					: fastqBaseName + ".overflow.bam");
+			fo.outputStream = new BufferedOutputStream(new FileOutputStream(
+					fo.file));
+		}
+
+		@Override
+		protected AbstractFastqReader newReader() {
+			return new MultiFastqOutputter(outputs, fo);
+		}
+
+		@Override
+		protected void containerHasBeenRead() throws IOException {
+		}
+
+		@Override
+		public void doRun() throws IOException {
+			super.doRun();
+
+			fo.close();
+
+			if (fo.empty)
+				return;
+
+			log.info("Sorting overflow BAM: ", fo.file.length());
+			SAMFileReader
+					.setDefaultValidationStringency(ValidationStringency.SILENT);
+			SAMFileReader r = new SAMFileReader(fo.file);
+			SAMRecordIterator iterator = r.iterator();
+			if (!iterator.hasNext()) {
+				r.close();
+				fo.file.delete();
+			}
+
+			SAMRecord r1 = iterator.next();
+			SAMRecord r2 = null;
+			while (iterator.hasNext()) {
+				r2 = iterator.next();
+				if (r1.getReadName().equals(r2.getReadName())) {
+					print(r1, r2);
+					if (!iterator.hasNext())
+						break;
+					r1 = iterator.next();
+					r2 = null;
 				} else {
-					for (int i = 0; i < streams.length; i++) {
-						ByteBuffer buf = reader.bufs[i];
-						OutputStream os = streams[i];
-						buf.flip();
-						os.write(buf.array(), 0, buf.limit());
-						if (buf.limit() > 0) files[i] = null ;
-						buf.clear();
-					}
+					print(r1, 0);
+					r1 = r2;
+					r2 = null;
 				}
+			}
+			if (r1 != null)
+				print(r1, 0);
+			r.close();
+		}
+
+		private void print(SAMRecord r1, SAMRecord r2) throws IOException {
+			if (r1.getFirstOfPairFlag()) {
+				print(r1, 1);
+				print(r2, 2);
+			} else {
+				print(r1, 2);
+				print(r2, 1);
 			}
 		}
 
-		if (streams != null) {
-			for (OutputStream os : streams)
-				if (os != null)
-					os.close();
+		private void print(SAMRecord r, int index) throws IOException {
+			OutputStream os = outputs[index].outputStream;
+			os.write('@');
+			os.write(r.getReadName().getBytes());
+			if (index > 0) {
+				os.write('/');
+				os.write(48 + index);
+			}
+			os.write('\n');
+			os.write(r.getReadBases());
+			os.write("\n+\n".getBytes());
+			os.write(r.getBaseQualityString().getBytes());
+			os.write('\n');
+		}
+	}
+
+	private static class FileOutput extends OutputStream {
+		File file;
+		OutputStream outputStream;
+		boolean empty = true;
+
+		@Override
+		public void write(int b) throws IOException {
+			outputStream.write(b);
+			empty = false;
 		}
 
-		if (files != null) {
-			for (File file : files)
-				if (file != null)
-					file.delete();
+		@Override
+		public void write(byte[] b) throws IOException {
+			outputStream.write(b);
+			empty = false;
+		}
 
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			outputStream.write(b, off, len);
+			empty = false;
+		}
+
+		@Override
+		public void flush() throws IOException {
+			outputStream.flush();
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (outputStream != null && outputStream != System.out
+					&& outputStream != System.err) {
+				outputStream.close();
+				outputStream = null;
+			}
+			if (empty && file != null && file.exists())
+				file.delete();
 		}
 	}
 
@@ -224,6 +424,12 @@ public class Cram2Fastq {
 
 		@Parameter(names = { "--enumerate" }, description = "Append read names with read index (/1 for first in pair, /2 for second in pair).")
 		boolean appendSegmentIndexToReadNames;
+
+		@Parameter(names = { "--max-records" }, description = "Stop after reading this many records.")
+		long maxRecords = -1;
+
+		@Parameter(names = { "--collate" }, description = "Read name collation.")
+		boolean collate = false;
 	}
 
 }

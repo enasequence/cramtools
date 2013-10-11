@@ -202,9 +202,6 @@ public class DecomposeBAM {
 		@Parameter(names = { "--input-bam-file", "-I" }, converter = FileConverter.class, description = "Path to the input BAM file.")
 		File bamFile;
 
-		@Parameter(names = { "--output-file", "-O" }, converter = FileConverter.class, description = "The path for the output file.")
-		File outputFile = null;
-
 		@Parameter(names = { "--max-records" }, description = "Stop after compressing this many records. ")
 		int maxRecords = Integer.MAX_VALUE;
 

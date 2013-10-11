@@ -1,6 +1,8 @@
 package net.sf.cram.encoding.reader;
 
 import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+import java.util.Comparator;
 
 public class FastqView {
 	private int NAME = -1;
@@ -140,5 +142,34 @@ public class FastqView {
 		}
 
 		return readCount;
+	}
+
+	public static int readOffset (int read, LongBuffer buf) {
+		long entry = buf.get(read) ;
+		return (int) (0xFFFFFFFF & (entry >>> (8*5))) ;
+	}
+	
+	public static int readNameLength (int read, LongBuffer buf) {
+		long entry = buf.get(read) ;
+		return (int) (0x0000FFFF & (entry >> (8*3))) ;
+	}
+	
+	public static int readLength (int read, LongBuffer buf) {
+		long entry = buf.get(read) ;
+		return (int) (0x00FFFFFF & entry) ;
+	}
+	
+//	private static class IndexComparator implements Comparator<T>
+	
+	public static void main(String[] args) {
+		ByteBuffer buf = ByteBuffer.allocate(8) ;
+		buf.put (new byte[]{0, 0, 1, 0, 2, 0, 0, 3}) ;
+		
+		buf.rewind() ;
+		System.out.println(readOffset(0, buf.asLongBuffer()));
+		buf.rewind() ;
+		System.out.println(readNameLength(0, buf.asLongBuffer()));
+		buf.rewind() ;
+		System.out.println(readLength(0, buf.asLongBuffer()));
 	}
 }

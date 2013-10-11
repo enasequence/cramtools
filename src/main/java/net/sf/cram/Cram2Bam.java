@@ -40,6 +40,7 @@ import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.index.CramIndex.Entry;
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
@@ -54,6 +55,7 @@ import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 import net.sf.samtools.util.SeekableFileStream;
 import net.sf.samtools.util.SeekableStream;
 import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
@@ -145,6 +147,8 @@ public class Cram2Bam {
 		fix.addCramtoolsPG(cramHeader.samFileHeader);
 		offset = cis.getCount();
 
+		BlockCompressedOutputStream
+				.setDefaultCompressionLevel(ByteBufferUtils.GZIP_COMPRESSION_LEVEL);
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
 		samFileWriterFactory.setAsyncOutputBufferSize(10000);
 		samFileWriterFactory.setCreateIndex(false);
@@ -230,6 +234,10 @@ public class Cram2Bam {
 				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(c.sequenceId);
+					System.out.printf("Getting sequence: %s, %d, %s.\n",
+							sequence.getSequenceName(),
+							sequence.getSequenceLength(),
+							sequence.getAttribute(SAMSequenceRecord.MD5_TAG));
 					ref = referenceSource.getReferenceBases(sequence, true);
 					Utils.upperCase(ref);
 					prevSeqId = c.sequenceId;
@@ -246,7 +254,8 @@ public class Cram2Bam {
 						log.error(String
 								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
 										s.sequenceId, s.alignmentStart,
-										s.alignmentSpan, String.format("%032x", new BigInteger(1, s.refMD5))));
+										s.alignmentSpan, String.format("%032x",
+												new BigInteger(1, s.refMD5))));
 						System.exit(1);
 					}
 				}

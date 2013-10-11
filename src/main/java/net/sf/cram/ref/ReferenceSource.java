@@ -29,6 +29,9 @@ import java.util.regex.Pattern;
 
 import net.sf.cram.common.Utils;
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.picard.PicardException;
+import net.sf.picard.reference.FastaSequenceIndex;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -38,6 +41,7 @@ import net.sf.samtools.SAMSequenceRecord;
 public class ReferenceSource {
 	private static Log log = Log.getInstance(ReferenceSource.class);
 	private ReferenceSequenceFile rsFile;
+	private FastaSequenceIndex fastaSequenceIndex;
 
 	private Map<String, WeakReference<byte[]>> cacheW = new HashMap<String, WeakReference<byte[]>>();
 
@@ -45,9 +49,14 @@ public class ReferenceSource {
 	}
 
 	public ReferenceSource(File file) {
-		if (file != null)
+		if (file != null) {
 			rsFile = ReferenceSequenceFileFactory
 					.getReferenceSequenceFile(file);
+
+			File indexFile = new File(file.getAbsoluteFile() + ".fai");
+			if (indexFile.exists())
+				fastaSequenceIndex = new FastaSequenceIndex(indexFile);
+		}
 	}
 
 	public ReferenceSource(ReferenceSequenceFile rsFile) {
@@ -67,7 +76,7 @@ public class ReferenceSource {
 		}
 		return null;
 	}
-	
+
 	public byte[] getReferenceBases(SAMSequenceRecord record,
 			boolean tryNameVariants) {
 		{ // check cache by sequence name:
@@ -91,7 +100,7 @@ public class ReferenceSource {
 		{ // try to fetch sequence by name:
 			bases = findBasesByName(record.getSequenceName(), tryNameVariants);
 			if (bases != null) {
-				Utils.upperCase(bases) ;
+				Utils.upperCase(bases);
 				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(
 						bases));
 				return bases;
@@ -106,7 +115,7 @@ public class ReferenceSource {
 					throw new RuntimeException(e);
 				}
 			if (bases != null) {
-				Utils.upperCase(bases) ;
+				Utils.upperCase(bases);
 				cacheW.put(md5, new WeakReference<byte[]>(bases));
 				return bases;
 			}
@@ -117,9 +126,16 @@ public class ReferenceSource {
 	}
 
 	protected byte[] findBasesByName(String name, boolean tryVariants) {
-		if (rsFile == null)
+		if (rsFile == null || !rsFile.isIndexed())
 			return null;
-		ReferenceSequence sequence = rsFile.getSequence(name);
+
+		ReferenceSequence sequence = null;
+		if (fastaSequenceIndex != null)
+			if (fastaSequenceIndex.hasIndexEntry(name))
+				sequence = rsFile.getSequence(name);
+			else
+				sequence = null;
+
 		if (sequence != null)
 			return sequence.getBases();
 
