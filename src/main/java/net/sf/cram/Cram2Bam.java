@@ -330,8 +330,7 @@ public class Cram2Bam {
 		}
 
 		if (params.countOnly) {
-			System.out.println(recordCount);
-			System.out.println(baseCount);
+			System.out.printf("READS: %d; BASES: %d\n", recordCount, baseCount);
 		}
 
 		writer.close();
