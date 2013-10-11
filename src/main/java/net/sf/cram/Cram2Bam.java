@@ -177,6 +177,7 @@ public class Cram2Bam {
 		}
 
 		long recordCount = 0;
+		long baseCount = 0;
 		long readTime = 0;
 		long parseTime = 0;
 		long normTime = 0;
@@ -212,6 +213,7 @@ public class Cram2Bam {
 			if (params.countOnly && params.requiredFlags == 0
 					&& params.filteringFlags == 0) {
 				recordCount += c.nofRecords;
+				baseCount += c.bases;
 				continue;
 			}
 
@@ -292,6 +294,7 @@ public class Cram2Bam {
 					continue;
 				if (params.countOnly) {
 					recordCount++;
+					baseCount += r.readLength;
 					continue;
 				}
 
@@ -326,8 +329,10 @@ public class Cram2Bam {
 				break;
 		}
 
-		if (params.countOnly)
+		if (params.countOnly) {
 			System.out.println(recordCount);
+			System.out.println(baseCount);
+		}
 
 		writer.close();
 
