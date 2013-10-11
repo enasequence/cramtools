@@ -310,6 +310,7 @@ public class Cram2Fastq {
 			if (!iterator.hasNext()) {
 				r.close();
 				fo.file.delete();
+				return;
 			}
 
 			SAMRecord r1 = iterator.next();
