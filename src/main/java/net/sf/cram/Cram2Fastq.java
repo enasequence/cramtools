@@ -331,6 +331,7 @@ public class Cram2Fastq {
 			if (r1 != null)
 				print(r1, 0);
 			r.close();
+			fo.file.delete();
 		}
 
 		private void print(SAMRecord r1, SAMRecord r2) throws IOException {
@@ -399,7 +400,7 @@ public class Cram2Fastq {
 		}
 	}
 
-	@Parameters(commandDescription = "CRAM to BAM conversion. ")
+	@Parameters(commandDescription = "CRAM to FastQ dump conversion. ")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
 		LogLevel logLevel = LogLevel.ERROR;
