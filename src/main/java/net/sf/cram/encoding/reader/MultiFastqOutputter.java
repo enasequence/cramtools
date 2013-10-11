@@ -24,6 +24,24 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	private SAMFileHeader header;
 	private BAMFileWriter writer;
 	private OutputStream cacheOverFlowStream;
+	private byte[] prefix;
+	private long counter = 1;
+
+	public byte[] getPrefix() {
+		return prefix;
+	}
+
+	public void setPrefix(byte[] prefix) {
+		this.prefix = prefix;
+	}
+
+	public long getCounter() {
+		return counter;
+	}
+
+	public void setCounter(long counter) {
+		this.counter = counter;
+	}
 
 	public MultiFastqOutputter(OutputStream[] streams,
 			OutputStream cacheOverFlowStream) {
@@ -31,11 +49,28 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		this.cacheOverFlowStream = cacheOverFlowStream;
 	}
 
+	protected void write(FastqRead read, OutputStream stream)
+			throws IOException {
+		if (prefix == null) {
+			stream.write(read.data);
+		} else {
+			streams[read.templateIndex].write('@');
+			streams[read.templateIndex].write(prefix);
+			streams[read.templateIndex].write('.');
+			streams[read.templateIndex].write(String.valueOf(counter)
+					.getBytes());
+			streams[read.templateIndex].write(' ');
+			streams[read.templateIndex].write(read.data, 1,
+					read.data.length - 1);
+		}
+	}
+
 	protected void foundCollision(FastqRead read) {
 		FastqRead anchor = readSet.remove(read);
 		try {
-			streams[anchor.templateIndex].write(anchor.data);
-			streams[read.templateIndex].write(read.data);
+			write(anchor, streams[anchor.templateIndex]);
+			write(read, streams[read.templateIndex]);
+			counter++;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -90,7 +125,8 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		read.generation = generation++;
 		if (read.templateIndex == 0) {
 			try {
-				streams[0].write(read.data);
+				write(read, streams[0]);
+				counter++;
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

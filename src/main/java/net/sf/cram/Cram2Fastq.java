@@ -100,6 +100,7 @@ public class Cram2Fastq {
 		CollatingDumper d = new CollatingDumper(new FileInputStream(
 				params.cramFile), new ReferenceSource(params.reference), 3,
 				params.fastqBaseName, params.gzip, params.maxRecords);
+		d.prefix = params.prefix;
 		d.run();
 
 		if (d.exception != null)
@@ -271,6 +272,9 @@ public class Cram2Fastq {
 
 	private static class CollatingDumper extends Dumper {
 		private FileOutput fo = new FileOutput();
+		private String prefix;
+		private long counter;
+		private MultiFastqOutputter multiFastqOutputter;
 
 		public CollatingDumper(InputStream cramIS,
 				ReferenceSource referenceSource, int nofStreams,
@@ -286,7 +290,15 @@ public class Cram2Fastq {
 
 		@Override
 		protected AbstractFastqReader newReader() {
-			return new MultiFastqOutputter(outputs, fo);
+			if (multiFastqOutputter != null) {
+				counter = multiFastqOutputter.getCounter();
+			}
+			multiFastqOutputter = new MultiFastqOutputter(outputs, fo);
+			if (prefix != null) {
+				multiFastqOutputter.setPrefix(prefix.getBytes());
+				multiFastqOutputter.setCounter(counter);
+			}
+			return multiFastqOutputter;
 		}
 
 		@Override
@@ -315,10 +327,13 @@ public class Cram2Fastq {
 
 			SAMRecord r1 = iterator.next();
 			SAMRecord r2 = null;
+			counter = multiFastqOutputter.getCounter();
+			log.info("Counter=" + counter);
 			while (iterator.hasNext()) {
 				r2 = iterator.next();
 				if (r1.getReadName().equals(r2.getReadName())) {
 					print(r1, r2);
+					counter++;
 					if (!iterator.hasNext())
 						break;
 					r1 = iterator.next();
@@ -327,6 +342,7 @@ public class Cram2Fastq {
 					print(r1, 0);
 					r1 = r2;
 					r2 = null;
+					counter++;
 				}
 			}
 			if (r1 != null)
@@ -346,8 +362,14 @@ public class Cram2Fastq {
 		}
 
 		private void print(SAMRecord r, int index) throws IOException {
-			OutputStream os = outputs[index].outputStream;
+			OutputStream os = outputs[index];
 			os.write('@');
+			if (prefix != null) {
+				os.write(prefix.getBytes());
+				os.write('.');
+				os.write(String.valueOf(counter).getBytes());
+				os.write(' ');
+			}
 			os.write(r.getReadName().getBytes());
 			if (index > 0) {
 				os.write('/');
@@ -432,6 +454,9 @@ public class Cram2Fastq {
 
 		@Parameter(names = { "--collate" }, description = "Read name collation.")
 		boolean collate = false;
+
+		@Parameter(names = { "--read-name-prefix" }, description = "Replace read names with this prefix and a sequential integer.")
+		String prefix = null;
 	}
 
 }
