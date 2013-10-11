@@ -273,7 +273,7 @@ public class Cram2Fastq {
 	private static class CollatingDumper extends Dumper {
 		private FileOutput fo = new FileOutput();
 		private String prefix;
-		private long counter;
+		private long counter = 1;
 		private MultiFastqOutputter multiFastqOutputter;
 
 		public CollatingDumper(InputStream cramIS,
