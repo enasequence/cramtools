@@ -56,4 +56,9 @@ public class ReaderToFasta extends AbstractFastqReader {
 		// TODO Auto-generated method stub
 
 	}
+
+	@Override
+	protected byte[] refSeqChanged(int seqID) {
+		throw new RuntimeException("not implemented.");
+	}
 }

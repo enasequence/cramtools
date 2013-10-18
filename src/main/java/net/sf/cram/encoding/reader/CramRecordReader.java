@@ -59,9 +59,8 @@ public class CramRecordReader extends AbstractReader {
 				r.alignmentStart = alStartC.readData();
 			r.readGroupID = readGroupC.readData();
 
-			if (captureReadNames) {
+			if (captureReadNames)
 				r.readName = new String(readNameC.readData(), charset);
-			}
 
 			// mate record:
 			if (r.isDetached()) {

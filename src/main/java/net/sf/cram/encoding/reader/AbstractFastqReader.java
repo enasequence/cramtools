@@ -56,14 +56,18 @@ public abstract class AbstractFastqReader extends AbstractReader {
 			return 2;
 	}
 
+	protected abstract byte[] refSeqChanged(int seqID);
+
 	public void read() throws IOException {
 
+		int seqId = refId;
 		try {
 			flags = bitFlagsC.readData();
 
 			compressionFlags = compBitFlagsC.readData();
-			if (refId == -2)
-				refIdCodec.skip();
+			if (refId == -2) {
+				seqId = refIdCodec.readData();
+			}
 
 			readLength = readLengthC.readData();
 			if (AP_delta)
@@ -104,9 +108,12 @@ public abstract class AbstractFastqReader extends AbstractReader {
 			}
 
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
+				byte[] refBases = referenceSequence;
+				if (seqId != refId)
+					refBases = refSeqChanged(seqId);
 				rfBuf.readReadFeatures(this);
-				rfBuf.restoreReadBases(readLength, prevAlStart,
-						referenceSequence, substitutionMatrix, bases);
+				rfBuf.restoreReadBases(readLength, prevAlStart, refBases,
+						substitutionMatrix, bases);
 
 				mqc.skip();
 				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
@@ -129,6 +136,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 			recordCounter++;
 		} catch (Exception e) {
 			System.err.printf("Failed at record %d. \n", recordCounter);
+			if (readName != null)
+				System.err.println("read name: " + new String(readName));
 			throw new RuntimeException(e);
 		}
 	}

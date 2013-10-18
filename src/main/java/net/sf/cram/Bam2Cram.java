@@ -20,11 +20,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +32,6 @@ import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.build.ContainerFactory;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.build.Sam2CramRecordFactory;
-import net.sf.cram.common.Utils;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.ref.ReferenceTracks;
@@ -61,7 +57,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class Bam2Cram {
 	private static Log log = Log.getInstance(Bam2Cram.class);
-	public static final String COMMAND = "cram" ;
+	public static final String COMMAND = "cram";
 
 	private static Set<String> tagsNamesToSet(String tags) {
 		Set<String> set = new TreeSet<String>();
@@ -155,10 +151,10 @@ public class Bam2Cram {
 
 			preservation.addQualityScores(samRecord, cramRecord, tracks);
 		}
-		
+
 		if (f.getBaseCount() < 3 * f.getFeatureCount())
 			log.warn("Abnormally high number of mismatches, possibly wrong reference.");
-		
+
 		createNanos = System.nanoTime() - createNanos;
 
 		// mating:
@@ -325,11 +321,11 @@ public class Bam2Cram {
 		FixBAMFileHeader fixBAMFileHeader = new FixBAMFileHeader(
 				referenceSource);
 		fixBAMFileHeader.setConfirmMD5(true);
-		fixBAMFileHeader.setInjectURI(true);
+		fixBAMFileHeader.setInjectURI(params.injectURI);
 		fixBAMFileHeader.fixSequences(samFileHeader.getSequenceDictionary()
 				.getSequences());
 		fixBAMFileHeader.addCramtoolsPG(samFileHeader);
-		
+
 		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN"
 				: params.bamFile.getName(), samFileHeader);
 		long offset = CramIO.writeCramHeader(h, os);
@@ -509,5 +505,7 @@ public class Bam2Cram {
 		@Parameter(names = { "--input-is-sam" }, description = "Input is in SAM format.")
 		boolean inputIsSam = false;
 
+		@Parameter(names = { "--inject-sq-uri" }, description = "Inject or change the @SQ:UR header fields to point to ENA reference service. ")
+		public boolean injectURI = false;
 	}
 }

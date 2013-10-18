@@ -126,7 +126,7 @@ public class CramNormalizer {
 			if (referenceSource != null)
 				refBases = referenceSource.getReferenceBases(
 						header.getSequence(r.sequenceId), true);
-			
+
 			byte[] bases = restoreReadBases(r, refBases, substitutionMatrix);
 			r.readBases = bases;
 		}
@@ -207,7 +207,7 @@ public class CramNormalizer {
 
 	private static final byte[] restoreReadBases(CramRecord record, byte[] ref,
 			SubstitutionMatrix substitutionMatrix) {
-		int readLength = (int) record.readLength;
+		int readLength = record.readLength;
 		byte[] bases = new byte[readLength];
 
 		int posInRead = 1;
@@ -274,7 +274,7 @@ public class CramNormalizer {
 		}
 
 		for (int i = 0; i < bases.length; i++) {
-			bases[i] = Utils.normalizeBase(bases[i]) ;
+			bases[i] = Utils.normalizeBase(bases[i]);
 		}
 
 		return bases;

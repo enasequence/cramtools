@@ -99,7 +99,8 @@ public class Cram2Fastq {
 
 		CollatingDumper d = new CollatingDumper(new FileInputStream(
 				params.cramFile), new ReferenceSource(params.reference), 3,
-				params.fastqBaseName, params.gzip, params.maxRecords);
+				params.fastqBaseName, params.gzip, params.maxRecords,
+				params.reverse);
 		d.prefix = params.prefix;
 		d.run();
 
@@ -117,14 +118,16 @@ public class Cram2Fastq {
 		protected Container container;
 		protected AbstractFastqReader reader;
 		protected Exception exception;
+		private boolean reverse = false;
 
 		public Dumper(InputStream cramIS, ReferenceSource referenceSource,
 				int nofStreams, String fastqBaseName, boolean gzip,
-				long maxRecords) throws IOException {
+				long maxRecords, boolean reverse) throws IOException {
 
 			this.cramIS = cramIS;
 			this.referenceSource = referenceSource;
 			this.maxRecords = maxRecords;
+			this.reverse = reverse;
 			outputs = new FileOutput[nofStreams];
 			for (int index = 0; index < outputs.length; index++)
 				outputs[index] = new FileOutput();
@@ -163,14 +166,22 @@ public class Cram2Fastq {
 		protected void doRun() throws IOException {
 			cramHeader = CramIO.readCramHeader(cramIS);
 			reader = newReader();
+			reader.reverseNegativeReads = reverse;
 			MAIN_LOOP: while ((container = CramIO.readContainer(cramIS)) != null) {
 				DataReaderFactory f = new DataReaderFactory();
 
 				for (Slice s : container.slices) {
-					if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+					if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
+							&& s.sequenceId != -2) {
 						SAMSequenceRecord sequence = cramHeader.samFileHeader
 								.getSequence(s.sequenceId);
-						ref = referenceSource.getReferenceBases(sequence, true);
+
+						if (sequence == null) {
+							log.error("Null sequence for id: " + s.sequenceId);
+							ref = new byte[0];
+						} else
+							ref = referenceSource.getReferenceBases(sequence,
+									true);
 
 						try {
 							if (!s.validateRefMD5(ref)) {
@@ -187,7 +198,9 @@ public class Cram2Fastq {
 						} catch (NoSuchAlgorithmException e) {
 							throw new RuntimeException(e);
 						}
-					}
+					} else
+						ref = new byte[0];
+
 					Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 					for (Integer exId : s.external.keySet()) {
 						inputMap.put(exId, new ByteArrayInputStream(s.external
@@ -244,10 +257,10 @@ public class Cram2Fastq {
 	private static class SimpleDumper extends Dumper {
 		public SimpleDumper(InputStream cramIS,
 				ReferenceSource referenceSource, int nofStreams,
-				String fastqBaseName, boolean gzip, int maxRecords)
-				throws IOException {
+				String fastqBaseName, boolean gzip, int maxRecords,
+				boolean reverse) throws IOException {
 			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
-					maxRecords);
+					maxRecords, reverse);
 		}
 
 		@Override
@@ -278,10 +291,10 @@ public class Cram2Fastq {
 
 		public CollatingDumper(InputStream cramIS,
 				ReferenceSource referenceSource, int nofStreams,
-				String fastqBaseName, boolean gzip, long maxRecords)
-				throws IOException {
+				String fastqBaseName, boolean gzip, long maxRecords,
+				boolean reverse) throws IOException {
 			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
-					maxRecords);
+					maxRecords, reverse);
 			fo.file = new File(fastqBaseName == null ? "overflow.bam"
 					: fastqBaseName + ".overflow.bam");
 			fo.outputStream = new BufferedOutputStream(new FileOutputStream(
@@ -293,7 +306,8 @@ public class Cram2Fastq {
 			if (multiFastqOutputter != null) {
 				counter = multiFastqOutputter.getCounter();
 			}
-			multiFastqOutputter = new MultiFastqOutputter(outputs, fo);
+			multiFastqOutputter = new MultiFastqOutputter(outputs, fo,
+					referenceSource, cramHeader.samFileHeader);
 			if (prefix != null) {
 				multiFastqOutputter.setPrefix(prefix.getBytes());
 				multiFastqOutputter.setCounter(counter);
@@ -444,7 +458,7 @@ public class Cram2Fastq {
 		boolean gzip;
 
 		@Parameter(names = { "--reverse" }, description = "Re-reverse reads mapped to negative strand.")
-		boolean reverse;
+		boolean reverse = false;
 
 		@Parameter(names = { "--enumerate" }, description = "Append read names with read index (/1 for first in pair, /2 for second in pair).")
 		boolean appendSegmentIndexToReadNames;

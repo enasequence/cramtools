@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.util.Log;
 import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
 
 public class MultiFastqOutputter extends AbstractFastqReader {
 	private static final Log log = Log.getInstance(MultiFastqOutputter.class);
@@ -21,11 +23,22 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	private long generation = 0;
 	private OutputStream[] streams;
 
-	private SAMFileHeader header;
+	private SAMFileHeader headerForOverflowWriter;
 	private BAMFileWriter writer;
 	private OutputStream cacheOverFlowStream;
 	private byte[] prefix;
 	private long counter = 1;
+	private ReferenceSource referenceSource;
+	private SAMFileHeader header;
+
+	public MultiFastqOutputter(OutputStream[] streams,
+			OutputStream cacheOverFlowStream, ReferenceSource referenceSource,
+			SAMFileHeader header) {
+		this.streams = streams;
+		this.cacheOverFlowStream = cacheOverFlowStream;
+		this.referenceSource = referenceSource;
+		this.header = header;
+	}
 
 	public byte[] getPrefix() {
 		return prefix;
@@ -41,12 +54,6 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 
 	public void setCounter(long counter) {
 		this.counter = counter;
-	}
-
-	public MultiFastqOutputter(OutputStream[] streams,
-			OutputStream cacheOverFlowStream) {
-		this.streams = streams;
-		this.cacheOverFlowStream = cacheOverFlowStream;
 	}
 
 	protected void write(FastqRead read, OutputStream stream)
@@ -87,13 +94,14 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	protected void kickedFromCache(FastqRead read) {
 		if (writer == null) {
 			log.info("Creating overflow BAM file.");
-			header = new SAMFileHeader();
-			header.setSortOrder(SAMFileHeader.SortOrder.queryname);
+			headerForOverflowWriter = new SAMFileHeader();
+			headerForOverflowWriter
+					.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
 			writer = new BAMFileWriter(cacheOverFlowStream, null);
-			writer.setHeader(header);
+			writer.setHeader(headerForOverflowWriter);
 		}
-		SAMRecord r = read.toSAMRecord(header);
+		SAMRecord r = read.toSAMRecord(headerForOverflowWriter);
 		writer.addAlignment(r);
 	}
 
@@ -152,5 +160,11 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		if (writer != null)
 			writer.close();
 		writer = null;
+	}
+
+	@Override
+	protected byte[] refSeqChanged(int seqID) {
+		SAMSequenceRecord sequence = header.getSequence(seqID);
+		return referenceSource.getReferenceBases(sequence, true);
 	}
 }

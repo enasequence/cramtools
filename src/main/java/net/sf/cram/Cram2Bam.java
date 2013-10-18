@@ -141,7 +141,7 @@ public class Cram2Bam {
 		CramHeader cramHeader = CramIO.readCramHeader(cis);
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
 		fix.setConfirmMD5(true);
-		fix.setInjectURI(true);
+		fix.setInjectURI(params.injectURI);
 		fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
 				.getSequences());
 		fix.addCramtoolsPG(cramHeader.samFileHeader);
@@ -236,10 +236,6 @@ public class Cram2Bam {
 				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader
 							.getSequence(c.sequenceId);
-					System.out.printf("Getting sequence: %s, %d, %s.\n",
-							sequence.getSequenceName(),
-							sequence.getSequenceLength(),
-							sequence.getAttribute(SAMSequenceRecord.MD5_TAG));
 					ref = referenceSource.getReferenceBases(sequence, true);
 					Utils.upperCase(ref);
 					prevSeqId = c.sequenceId;
@@ -536,6 +532,8 @@ public class Cram2Bam {
 		@Parameter(names = { "--filter-flags", "-F" }, description = "Filtering flags. ")
 		int filteringFlags = 0;
 
+		@Parameter(names = { "--inject-sq-uri" }, description = "Inject or change the @SQ:UR header fields to point to ENA reference service. ")
+		public boolean injectURI = false;
 	}
 
 }

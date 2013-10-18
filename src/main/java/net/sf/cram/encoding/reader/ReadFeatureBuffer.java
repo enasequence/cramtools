@@ -151,6 +151,8 @@ class ReadFeatureBuffer {
 			case BaseQualityScore.operator:
 				readFeatureBuffer.get();
 				break;
+			default:
+				throw new RuntimeException("Unkown operator: " + op);
 			}
 		}
 		for (; posInRead <= readLength
