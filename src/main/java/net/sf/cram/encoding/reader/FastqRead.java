@@ -52,8 +52,8 @@ public class FastqRead implements IRead {
 		buf.put("+\n".getBytes());
 
 		if (scores != null) {
-			for (int i = 0; i < readLength; i++)
-				scores[i] += 33;
+			// for (int i = 0; i < readLength; i++)
+			// scores[i] += 33;
 			buf.put(scores, 0, readLength);
 		}
 		buf.put((byte) '\n');

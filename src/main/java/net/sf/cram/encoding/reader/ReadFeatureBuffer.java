@@ -147,6 +147,7 @@ class ReadFeatureBuffer {
 				break;
 			case ReadBase.operator:
 				bases[posInRead++ - 1] = readFeatureBuffer.get();
+				readFeatureBuffer.get();
 				break;
 			case BaseQualityScore.operator:
 				readFeatureBuffer.get();
@@ -233,6 +234,7 @@ class ReadFeatureBuffer {
 				co = CigarOperator.MATCH_OR_MISMATCH;
 				rfLen = 1;
 				readFeatureBuffer.get();
+				readFeatureBuffer.get();
 				break;
 			case BaseQualityScore.operator:
 				readFeatureBuffer.get();
@@ -278,5 +280,58 @@ class ReadFeatureBuffer {
 		}
 
 		return new Cigar(list);
+	}
+
+	public void restoreQualityScores(int readLength, int prevAlStart,
+			byte[] scores) {
+		readFeatureBuffer.rewind();
+
+		int posInRead = 1;
+
+		for (int r = 0; r < readFeatureSize; r++) {
+			byte op = readFeatureBuffer.get();
+			posInRead = readFeatureBuffer.getInt();
+
+			int len = 0;
+			switch (op) {
+			case Substitution.operator:
+				readFeatureBuffer.get();
+				break;
+			case Insertion.operator:
+				len = readFeatureBuffer.getInt();
+				for (int i = 0; i < len; i++)
+					readFeatureBuffer.get();
+				break;
+			case SoftClip.operator:
+				len = readFeatureBuffer.getInt();
+				for (int i = 0; i < len; i++)
+					readFeatureBuffer.get();
+				break;
+			case HardClip.operator:
+				readFeatureBuffer.getInt();
+				break;
+			case RefSkip.operator:
+				len = readFeatureBuffer.getInt();
+				break;
+			case Padding.operator:
+				readFeatureBuffer.getInt();
+				break;
+			case Deletion.operator:
+				readFeatureBuffer.getInt();
+				break;
+			case InsertBase.operator:
+				readFeatureBuffer.get();
+				break;
+			case ReadBase.operator:
+				readFeatureBuffer.get();
+				scores[posInRead - 1] = readFeatureBuffer.get();
+				break;
+			case BaseQualityScore.operator:
+				scores[posInRead - 1] = readFeatureBuffer.get();
+				break;
+			default:
+				throw new RuntimeException("Unkown operator: " + op);
+			}
+		}
 	}
 }

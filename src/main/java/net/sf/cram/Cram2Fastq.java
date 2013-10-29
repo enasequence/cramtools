@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
@@ -68,6 +69,7 @@ public class Cram2Fastq {
 		System.out.println(sb.toString());
 	}
 
+	@SuppressWarnings("restriction")
 	public static void main(String[] args) throws Exception {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
@@ -97,10 +99,19 @@ public class Cram2Fastq {
 		// new ReferenceSource(params.reference), 3, params.fastqBaseName,
 		// params.gzip, params.maxParams);
 
+		final AtomicBoolean brokenPipe = new AtomicBoolean(false);
+		sun.misc.Signal.handle(new sun.misc.Signal("PIPE"),
+				new sun.misc.SignalHandler() {
+					@Override
+					public void handle(sun.misc.Signal sig) {
+						brokenPipe.set(true);
+					}
+				});
+
 		CollatingDumper d = new CollatingDumper(new FileInputStream(
 				params.cramFile), new ReferenceSource(params.reference), 3,
 				params.fastqBaseName, params.gzip, params.maxRecords,
-				params.reverse);
+				params.reverse, params.defaultQS, brokenPipe);
 		d.prefix = params.prefix;
 		d.run();
 
@@ -119,15 +130,18 @@ public class Cram2Fastq {
 		protected AbstractFastqReader reader;
 		protected Exception exception;
 		private boolean reverse = false;
+		protected AtomicBoolean brokenPipe;
 
 		public Dumper(InputStream cramIS, ReferenceSource referenceSource,
 				int nofStreams, String fastqBaseName, boolean gzip,
-				long maxRecords, boolean reverse) throws IOException {
+				long maxRecords, boolean reverse, int defaultQS,
+				AtomicBoolean brokenPipe) throws IOException {
 
 			this.cramIS = cramIS;
 			this.referenceSource = referenceSource;
 			this.maxRecords = maxRecords;
 			this.reverse = reverse;
+			this.brokenPipe = brokenPipe;
 			outputs = new FileOutput[nofStreams];
 			for (int index = 0; index < outputs.length; index++)
 				outputs[index] = new FileOutput();
@@ -167,7 +181,8 @@ public class Cram2Fastq {
 			cramHeader = CramIO.readCramHeader(cramIS);
 			reader = newReader();
 			reader.reverseNegativeReads = reverse;
-			MAIN_LOOP: while ((container = CramIO.readContainer(cramIS)) != null) {
+			MAIN_LOOP: while (!brokenPipe.get()
+					&& (container = CramIO.readContainer(cramIS)) != null) {
 				DataReaderFactory f = new DataReaderFactory();
 
 				for (Slice s : container.slices) {
@@ -236,7 +251,8 @@ public class Cram2Fastq {
 					containerHasBeenRead();
 				}
 			}
-			reader.finish();
+			if (!brokenPipe.get())
+				reader.finish();
 		}
 
 		@Override
@@ -258,9 +274,10 @@ public class Cram2Fastq {
 		public SimpleDumper(InputStream cramIS,
 				ReferenceSource referenceSource, int nofStreams,
 				String fastqBaseName, boolean gzip, int maxRecords,
-				boolean reverse) throws IOException {
+				boolean reverse, int defaultQS, AtomicBoolean brokenPipe)
+				throws IOException {
 			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
-					maxRecords, reverse);
+					maxRecords, reverse, defaultQS, brokenPipe);
 		}
 
 		@Override
@@ -288,13 +305,17 @@ public class Cram2Fastq {
 		private String prefix;
 		private long counter = 1;
 		private MultiFastqOutputter multiFastqOutputter;
+		private int defaultQS;
 
 		public CollatingDumper(InputStream cramIS,
 				ReferenceSource referenceSource, int nofStreams,
 				String fastqBaseName, boolean gzip, long maxRecords,
-				boolean reverse) throws IOException {
+				boolean reverse, int defaultQS, AtomicBoolean brokenPipe)
+				throws IOException {
 			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip,
-					maxRecords, reverse);
+					maxRecords, reverse, defaultQS, brokenPipe);
+			this.defaultQS = defaultQS;
+			this.brokenPipe = brokenPipe;
 			fo.file = new File(fastqBaseName == null ? "overflow.bam"
 					: fastqBaseName + ".overflow.bam");
 			fo.outputStream = new BufferedOutputStream(new FileOutputStream(
@@ -312,6 +333,7 @@ public class Cram2Fastq {
 				multiFastqOutputter.setPrefix(prefix.getBytes());
 				multiFastqOutputter.setCounter(counter);
 			}
+			multiFastqOutputter.defaultQS = this.defaultQS;
 			return multiFastqOutputter;
 		}
 
@@ -343,7 +365,7 @@ public class Cram2Fastq {
 			SAMRecord r2 = null;
 			counter = multiFastqOutputter.getCounter();
 			log.info("Counter=" + counter);
-			while (iterator.hasNext()) {
+			while (!brokenPipe.get() && iterator.hasNext()) {
 				r2 = iterator.next();
 				if (r1.getReadName().equals(r2.getReadName())) {
 					print(r1, r2);
@@ -471,6 +493,9 @@ public class Cram2Fastq {
 
 		@Parameter(names = { "--read-name-prefix" }, description = "Replace read names with this prefix and a sequential integer.")
 		String prefix = null;
+
+		@Parameter(names = { "--default-quality-score" }, description = "Use this quality score (decimal representation of ASCII symbol) as a default value when the original quality score was lost due to compression. Minimum is 33.")
+		int defaultQS = '?';
 	}
 
 }

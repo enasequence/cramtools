@@ -17,6 +17,7 @@ package net.sf.cram.encoding.reader;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Arrays;
 
 import net.sf.cram.common.Utils;
 import net.sf.cram.structure.CramRecord;
@@ -37,6 +38,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 	public byte[] bases = new byte[1024];
 	public byte[] scores = new byte[1024];
+
+	public int defaultQS = '?';
 
 	/**
 	 * For now this is to identify the right buffer to use.
@@ -116,14 +119,19 @@ public abstract class AbstractFastqReader extends AbstractReader {
 						substitutionMatrix, bases);
 
 				mqc.skip();
-				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					qcArray.readByteArrayInto(scores, 0, readLength);
 			} else {
 				bc.readByteArrayInto(bases, 0, readLength);
 
-				if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
-					qcArray.readByteArrayInto(scores, 0, readLength);
 			}
+
+			Arrays.fill(scores, 0, readLength, (byte) (defaultQS - 33));
+			if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
+				qcArray.readByteArrayInto(scores, 0, readLength);
+			else
+				rfBuf.restoreQualityScores(readLength, prevAlStart, scores);
+
+			for (int i = 0; i < readLength; i++)
+				scores[i] += 33;
 
 			if (reverseNegativeReads
 					&& (flags & CramRecord.NEGATIVE_STRAND_FLAG) != 0) {

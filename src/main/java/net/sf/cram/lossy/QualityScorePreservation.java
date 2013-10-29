@@ -384,16 +384,16 @@ public class QualityScorePreservation {
 				maskedCount++;
 			}
 
-		if (maskedCount > 0) {
-			System.out.println(p.toString());
-			System.out.println(Arrays.toString(mask));
-			for (byte b : scores)
-				if (b < 0 || b > 93)
-					System.out.print(' ');
-				else
-					System.out.print((char) (b + 33));
-			System.out.println();
-		}
+		// if (maskedCount > 0) {
+		// System.out.println(p.toString());
+		// System.out.println(Arrays.toString(mask));
+		// for (byte b : scores)
+		// if (b < 0 || b > 93)
+		// System.out.print(' ');
+		// else
+		// System.out.print((char) (b + 33));
+		// System.out.println();
+		// }
 
 		// safety latch, store all qs if there are too many individual score
 		// to store:
