@@ -29,9 +29,7 @@ import java.util.regex.Pattern;
 
 import net.sf.cram.common.Utils;
 import net.sf.cram.io.ByteBufferUtils;
-import net.sf.picard.PicardException;
 import net.sf.picard.reference.FastaSequenceIndex;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;

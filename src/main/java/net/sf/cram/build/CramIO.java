@@ -63,8 +63,7 @@ public class CramIO {
 		boolean result = Arrays.equals(CHECK, bytes);
 
 		if (!result)
-			log.error("Expected %s but got %s.\n", new String(CHECK),
-					new String(bytes));
+			log.error("Expected %s but got %s.\n", new String(CHECK), new String(bytes));
 
 		return result;
 	}
@@ -73,8 +72,7 @@ public class CramIO {
 		os.write(CHECK);
 	}
 
-	public static long writeCramHeader(CramHeader h, OutputStream os)
-			throws IOException {
+	public static long writeCramHeader(CramHeader h, OutputStream os) throws IOException {
 		os.write("CRAM".getBytes("US-ASCII"));
 		os.write(h.majorVersion);
 		os.write(h.minorVersion);
@@ -85,8 +83,7 @@ public class CramIO {
 		return DEFINITION_LENGTH + len;
 	}
 
-	public static void readFormatDefinition(InputStream is, CramHeader header)
-			throws IOException {
+	private static void readFormatDefinition(InputStream is, CramHeader header) throws IOException {
 		for (byte b : CramHeader.magick) {
 			if (b != is.read())
 				throw new RuntimeException("Unknown file format.");
@@ -108,8 +105,7 @@ public class CramIO {
 		return header;
 	}
 
-	public static int writeContainer(Container c, OutputStream os)
-			throws IOException {
+	public static int writeContainer(Container c, OutputStream os) throws IOException {
 
 		long time1 = System.nanoTime();
 		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream();
@@ -154,8 +150,7 @@ public class CramIO {
 		return readContainer(is, 0, Integer.MAX_VALUE);
 	}
 
-	public static Container readContainerHeader(InputStream is)
-			throws IOException {
+	public static Container readContainerHeader(InputStream is) throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
 		if (!chio.readContainerHeader(c, is))
@@ -163,8 +158,7 @@ public class CramIO {
 		return c;
 	}
 
-	public static Container readContainer(InputStream is, int fromSlice,
-			int howManySlices) throws IOException {
+	public static Container readContainer(InputStream is, int fromSlice, int howManySlices) throws IOException {
 
 		long time1 = System.nanoTime();
 		Container c = readContainerHeader(is);
@@ -187,7 +181,7 @@ public class CramIO {
 			slices.add(slice);
 		}
 
-		c.slices = (Slice[]) slices.toArray(new Slice[slices.size()]);
+		c.slices = slices.toArray(new Slice[slices.size()]);
 
 		calculateSliceOffsetsAndSizes(c);
 
@@ -238,19 +232,16 @@ public class CramIO {
 		return headerOS.toByteArray();
 	}
 
-	private static long writeContainerForSamFileHeader(SAMFileHeader samFileHeader,
-			OutputStream os) throws IOException {
+	private static long writeContainerForSamFileHeader(SAMFileHeader samFileHeader, OutputStream os) throws IOException {
 		byte[] data = toByteArray(samFileHeader);
-		return writeContainerForSamFileHeaderData(data, 0,
-				Math.max(1024, data.length + data.length / 2), os);
+		return writeContainerForSamFileHeaderData(data, 0, Math.max(1024, data.length + data.length / 2), os);
 	}
 
-	private static long writeContainerForSamFileHeaderData(byte[] data, int offset, int len,
-			OutputStream os) throws IOException {
+	private static long writeContainerForSamFileHeaderData(byte[] data, int offset, int len, OutputStream os)
+			throws IOException {
 		Block block = new Block();
 		byte[] blockContent = new byte[len];
-		System.arraycopy(data, 0, blockContent, offset,
-				Math.min(data.length - offset, len));
+		System.arraycopy(data, 0, blockContent, offset, Math.min(data.length - offset, len));
 		block.setRawContent(blockContent);
 		block.method = BlockCompressionMethod.RAW;
 		block.contentId = 0;
@@ -280,8 +271,7 @@ public class CramIO {
 		return containerHeaderByteSize + baos.size();
 	}
 
-	public static SAMFileHeader readSAMFileHeader(String id, InputStream is)
-			throws IOException {
+	public static SAMFileHeader readSAMFileHeader(String id, InputStream is) throws IOException {
 		Container container = readContainerHeader(is);
 		Block b = new Block(is, true, true);
 
@@ -298,13 +288,11 @@ public class CramIO {
 		byte[] bytes = new byte[size];
 		dis.readFully(bytes);
 
-		BufferedLineReader r = new BufferedLineReader(new ByteArrayInputStream(
-				bytes));
+		BufferedLineReader r = new BufferedLineReader(new ByteArrayInputStream(bytes));
 		return new SAMTextHeaderCodec().decode(r, id);
 	}
 
-	public static boolean replaceCramHeader(File file, CramHeader newHeader)
-			throws IOException {
+	public static boolean replaceCramHeader(File file, CramHeader newHeader) throws IOException {
 
 		int MAP_SIZE = (int) Math.min(1024 * 1024, file.length());
 		FileInputStream inputStream = new FileInputStream(file);
@@ -313,13 +301,9 @@ public class CramIO {
 		CramHeader header = new CramHeader();
 		readFormatDefinition(cis, header);
 
-		if (header.majorVersion != newHeader.majorVersion
-				&& header.minorVersion != newHeader.minorVersion) {
-			log.error(String
-					.format("Cannot replace CRAM header because format versions differ: ",
-							header.majorVersion, header.minorVersion,
-							newHeader.majorVersion, header.minorVersion,
-							file.getAbsolutePath()));
+		if (header.majorVersion != newHeader.majorVersion && header.minorVersion != newHeader.minorVersion) {
+			log.error(String.format("Cannot replace CRAM header because format versions differ: ", header.majorVersion,
+					header.minorVersion, newHeader.majorVersion, header.minorVersion, file.getAbsolutePath()));
 			cis.close();
 			return false;
 		}
@@ -338,8 +322,7 @@ public class CramIO {
 
 		RandomAccessFile raf = new RandomAccessFile(file, "rw");
 		FileChannel channelOut = raf.getChannel();
-		MappedByteBuffer mapOut = channelOut.map(MapMode.READ_WRITE, dataStart,
-				MAP_SIZE - dataStart);
+		MappedByteBuffer mapOut = channelOut.map(MapMode.READ_WRITE, dataStart, MAP_SIZE - dataStart);
 		mapOut.put(data);
 		mapOut.force();
 

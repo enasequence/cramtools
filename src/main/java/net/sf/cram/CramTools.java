@@ -41,8 +41,7 @@ public class CramTools {
 		Field[] declaredFields = klass.getDeclaredFields();
 		Field field = null;
 		for (Field f : declaredFields) {
-			if (java.lang.reflect.Modifier.isStatic(f.getModifiers())
-					&& f.getName().equals(name)) {
+			if (java.lang.reflect.Modifier.isStatic(f.getModifiers()) && f.getName().equals(name)) {
 				field = f;
 				break;
 			}
@@ -55,8 +54,7 @@ public class CramTools {
 		Method[] declaredFields = klass.getDeclaredMethods();
 		Method mainMethod = null;
 		for (Method m : declaredFields) {
-			if (java.lang.reflect.Modifier.isStatic(m.getModifiers())
-					&& m.getName().equals("main")) {
+			if (java.lang.reflect.Modifier.isStatic(m.getModifiers()) && m.getName().equals("main")) {
 				mainMethod = m;
 				break;
 			}
@@ -76,9 +74,8 @@ public class CramTools {
 		return paramsClass;
 	}
 
-	private static void addProgram(JCommander jc, Class<?> klass)
-			throws ClassNotFoundException, InstantiationException,
-			IllegalAccessException {
+	private static void addProgram(JCommander jc, Class<?> klass) throws ClassNotFoundException,
+			InstantiationException, IllegalAccessException {
 
 		Class<?> paramsClass = findParamsClass(klass);
 		Object instance = paramsClass.newInstance();
@@ -90,8 +87,7 @@ public class CramTools {
 		classes.put(command, klass);
 	}
 
-	private static void invoke(String command, String[] args)
-			throws IllegalArgumentException, IllegalAccessException,
+	private static void invoke(String command, String[] args) throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
 		Method mainMethod = findStaticMainMethod(classes.get(command));
 		mainMethod.invoke(null, (Object) args);
@@ -110,6 +106,7 @@ public class CramTools {
 		addProgram(jc, Cram2Fastq.class);
 		addProgram(jc, CramFixHeader.class);
 		addProgram(jc, DownloadReferences.class);
+		addProgram(jc, QualityScoreStats.class);
 
 		jc.parse(args);
 
@@ -117,7 +114,7 @@ public class CramTools {
 
 		if (command == null || params.help) {
 			Utils.printUsage(jc);
-			return ;
+			return;
 		}
 
 		String[] commandArgs = new String[args.length - 1];
@@ -141,8 +138,7 @@ public class CramTools {
 
 	}
 
-	public static class ValidationStringencyConverter implements
-			IStringConverter<ValidationStringency> {
+	public static class ValidationStringencyConverter implements IStringConverter<ValidationStringency> {
 
 		@Override
 		public ValidationStringency convert(String s) {

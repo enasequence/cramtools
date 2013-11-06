@@ -36,8 +36,9 @@ public abstract class AbstractFastqReader extends AbstractReader {
 	public int prevAlStart;
 	public byte[] readName;
 
-	public byte[] bases = new byte[1024];
-	public byte[] scores = new byte[1024];
+	public static final int maxReadBufferLength = 1024 * 1024;
+	public byte[] bases = new byte[maxReadBufferLength];
+	public byte[] scores = new byte[maxReadBufferLength];
 
 	public int defaultQS = '?';
 
@@ -110,13 +111,15 @@ public abstract class AbstractFastqReader extends AbstractReader {
 				}
 			}
 
+			if ("HS18_09233:8:2114:9377:50721#168".equals(new String(readName))) {
+				System.out.println("gotcha");
+			}
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				byte[] refBases = referenceSequence;
 				if (seqId != refId)
 					refBases = refSeqChanged(seqId);
 				rfBuf.readReadFeatures(this);
-				rfBuf.restoreReadBases(readLength, prevAlStart, refBases,
-						substitutionMatrix, bases);
+				rfBuf.restoreReadBases(readLength, prevAlStart, refBases, substitutionMatrix, bases);
 
 				mqc.skip();
 			} else {
@@ -125,16 +128,20 @@ public abstract class AbstractFastqReader extends AbstractReader {
 			}
 
 			Arrays.fill(scores, 0, readLength, (byte) (defaultQS - 33));
-			if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0)
+			if ((compressionFlags & CramRecord.FORCE_PRESERVE_QS_FLAG) != 0) {
 				qcArray.readByteArrayInto(scores, 0, readLength);
-			else
-				rfBuf.restoreQualityScores(readLength, prevAlStart, scores);
-
+			} else {
+				if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
+					rfBuf.restoreQualityScores(readLength, prevAlStart, scores);
+				}
+			}
 			for (int i = 0; i < readLength; i++)
-				scores[i] += 33;
+				if (scores[i] == -1)
+					scores[i] = (byte) defaultQS;
+				else
+					scores[i] += 33;
 
-			if (reverseNegativeReads
-					&& (flags & CramRecord.NEGATIVE_STRAND_FLAG) != 0) {
+			if (reverseNegativeReads && (flags & CramRecord.NEGATIVE_STRAND_FLAG) != 0) {
 				Utils.reverseComplement(bases, 0, readLength);
 				Utils.reverse(scores, 0, readLength);
 			}
@@ -150,8 +157,7 @@ public abstract class AbstractFastqReader extends AbstractReader {
 		}
 	}
 
-	protected abstract void writeRead(byte[] name, int flags, byte[] bases,
-			byte[] scores);
+	protected abstract void writeRead(byte[] name, int flags, byte[] bases, byte[] scores);
 
 	public abstract void finish();
 }

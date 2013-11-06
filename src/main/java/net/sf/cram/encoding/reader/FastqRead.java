@@ -16,8 +16,8 @@ public class FastqRead implements IRead {
 	FastqRead next;
 	long age = 0;
 
-	public FastqRead(int readLength, byte[] name, boolean appendSegmentIndex,
-			int templateIndex, byte[] bases, byte[] scores) {
+	public FastqRead(int readLength, byte[] name, boolean appendSegmentIndex, int templateIndex, byte[] bases,
+			byte[] scores) {
 		ByteBuffer buf = null;
 		nameBaseLen = name.length;
 
@@ -93,17 +93,15 @@ public class FastqRead implements IRead {
 		SAMRecord record = new SAMRecord(header);
 		String name = null;
 		if (data[nameLen - 1] == '/' && Character.isDigit(data[nameLen]))
-			name = new String(data, 0, nameLen - 1);
+			name = new String(data, 1, nameLen - 2);
 		else
-			name = new String(data, 0, nameLen);
+			name = new String(data, 1, nameLen - 2);
 		record.setReadName(name);
 		int readLen = (data.length - this.nameLen - 4 - 1) / 2;
-		byte[] bases = Arrays.copyOfRange(data, nameLen + 2, nameLen + 2
-				+ readLen);
+		byte[] bases = Arrays.copyOfRange(data, nameLen + 2, nameLen + 2 + readLen);
 		record.setReadBases(bases);
 
-		byte[] scores = Arrays.copyOfRange(data, nameLen + 3 + 1 + readLen + 1,
-				nameLen + 3 + 1 + 2 * readLen + 1);
+		byte[] scores = Arrays.copyOfRange(data, nameLen + 3 + 1 + readLen + 1, nameLen + 3 + 1 + 2 * readLen + 1);
 		record.setBaseQualityString(new String(scores));
 
 		record.setReadUnmappedFlag(true);

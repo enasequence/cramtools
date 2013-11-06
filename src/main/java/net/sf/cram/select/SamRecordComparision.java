@@ -82,8 +82,7 @@ public class SamRecordComparision {
 
 	}
 
-	public static Object getValue(SAMRecord record, FIELD_TYPE field,
-			String tagId) {
+	public static Object getValue(SAMRecord record, FIELD_TYPE field, String tagId) {
 		if (field == null)
 			throw new IllegalArgumentException("Record field is null.");
 
@@ -113,18 +112,15 @@ public class SamRecordComparision {
 
 		case TAG:
 			if (tagId == null)
-				throw new IllegalArgumentException(
-						"Tag mismatch reqiues tag id. ");
+				throw new IllegalArgumentException("Tag mismatch reqiues tag id. ");
 			return record.getAttribute(tagId);
 
 		default:
-			throw new IllegalArgumentException("Unknown record field: "
-					+ field.name());
+			throw new IllegalArgumentException("Unknown record field: " + field.name());
 		}
 	}
 
-	public boolean compareFieldValue(SAMRecord r1, SAMRecord r2,
-			FIELD_TYPE field, String tagId) {
+	public boolean compareFieldValue(SAMRecord r1, SAMRecord r2, FIELD_TYPE field, String tagId) {
 		if (field == null)
 			throw new IllegalArgumentException("Record field is null.");
 
@@ -176,8 +172,7 @@ public class SamRecordComparision {
 		return false;
 	}
 
-	private boolean compareTags(SAMRecord r1, SAMRecord r2, long recordCounter,
-			List<SamRecordDiscrepancy> list) {
+	private boolean compareTags(SAMRecord r1, SAMRecord r2, long recordCounter, List<SamRecordDiscrepancy> list) {
 		if (!compareTags)
 			return true;
 
@@ -233,8 +228,7 @@ public class SamRecordComparision {
 		return equal;
 	}
 
-	public void compareRecords(SAMRecord r1, SAMRecord r2, long recordCounter,
-			List<SamRecordDiscrepancy> list) {
+	public void compareRecords(SAMRecord r1, SAMRecord r2, long recordCounter, List<SamRecordDiscrepancy> list) {
 		// if (!r1.getReadName().equals(r2.getReadName())
 		// || r1.getAlignmentStart() != r2.getAlignmentStart()) {
 		// System.err.println("Name mismatch: ");
@@ -260,13 +254,11 @@ public class SamRecordComparision {
 
 	}
 
-	public List<SamRecordDiscrepancy> compareRecords(SAMRecordIterator it1,
-			SAMRecordIterator it2, int maxDiscrepandcies) {
+	public List<SamRecordDiscrepancy> compareRecords(SAMRecordIterator it1, SAMRecordIterator it2, int maxDiscrepandcies) {
 		List<SamRecordDiscrepancy> discrepancies = new ArrayList<SamRecordComparision.SamRecordDiscrepancy>();
 		long recordCounter = 0;
 
-		while (it1.hasNext() && it2.hasNext()
-				&& discrepancies.size() < maxDiscrepandcies) {
+		while (it1.hasNext() && it2.hasNext() && discrepancies.size() < maxDiscrepandcies) {
 			recordCounter++;
 			SAMRecord record1 = it1.next();
 			SAMRecord record2 = it2.next();
@@ -298,8 +290,7 @@ public class SamRecordComparision {
 			return value.substring(0, Math.min(maxLen, value.length())) + "...";
 	}
 
-	private static void createDiscrepancyTable(String tableName, Connection c)
-			throws SQLException {
+	private static void createDiscrepancyTable(String tableName, Connection c) throws SQLException {
 		System.out.println(tableName);
 		PreparedStatement ps = c
 				.prepareStatement("CREATE TABLE IF NOT EXISTS "
@@ -309,11 +300,9 @@ public class SamRecordComparision {
 		c.commit();
 	}
 
-	private static void dbLog(String tableName,
-			Iterator<SamRecordDiscrepancy> it, Connection c)
-			throws SQLException {
-		PreparedStatement ps = c.prepareStatement("INSERT INTO " + tableName
-				+ " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	private static void dbLog(String tableName, Iterator<SamRecordDiscrepancy> it, Connection c) throws SQLException {
+		PreparedStatement ps = c
+				.prepareStatement("INSERT INTO " + tableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 		while (it.hasNext()) {
 			SamRecordDiscrepancy d = it.next();
 			int column = 1;
@@ -326,12 +315,10 @@ public class SamRecordComparision {
 			String value2 = null;
 			switch (d.prematureEnd) {
 			case 0:
-				value1 = SAMRecordField.toString(getValue(d.record1, d.field,
-						d.tagId));
+				value1 = SAMRecordField.toString(getValue(d.record1, d.field, d.tagId));
 				ps.setString(column++, value1);
 
-				value2 = SAMRecordField.toString(getValue(d.record2, d.field,
-						d.tagId));
+				value2 = SAMRecordField.toString(getValue(d.record2, d.field, d.tagId));
 				ps.setString(column++, value2);
 
 				ps.setString(column++, d.record1.getReadName());
@@ -343,8 +330,7 @@ public class SamRecordComparision {
 			case 1:
 				ps.setString(column++, null);
 
-				value2 = SAMRecordField.toString(getValue(d.record2,
-						FIELD_TYPE.TAG, d.tagId));
+				value2 = SAMRecordField.toString(getValue(d.record2, FIELD_TYPE.TAG, d.tagId));
 				ps.setString(column++, value2);
 
 				ps.setString(column++, null);
@@ -354,8 +340,7 @@ public class SamRecordComparision {
 				ps.setString(column++, d.record2.getSAMString());
 				break;
 			case 2:
-				value1 = SAMRecordField.toString(getValue(d.record1,
-						FIELD_TYPE.TAG, d.tagId));
+				value1 = SAMRecordField.toString(getValue(d.record1, FIELD_TYPE.TAG, d.tagId));
 				ps.setString(column++, value1);
 
 				ps.setString(column++, null);
@@ -381,20 +366,14 @@ public class SamRecordComparision {
 		switch (d.prematureEnd) {
 		case 0:
 			if (d.field != FIELD_TYPE.TAG) {
-				String value1 = SAMRecordField.toString(getValue(d.record1,
-						d.field, null));
-				String value2 = SAMRecordField.toString(getValue(d.record2,
-						d.field, null));
-				ps.println(String.format("FIELD:\t%d\t%s\t%s\t%s",
-						d.recordCounter, d.field.name(),
+				String value1 = SAMRecordField.toString(getValue(d.record1, d.field, null));
+				String value2 = SAMRecordField.toString(getValue(d.record2, d.field, null));
+				ps.println(String.format("FIELD:\t%d\t%s\t%s\t%s", d.recordCounter, d.field.name(),
 						print(value1, maxValueLen), print(value2, maxValueLen)));
 			} else {
-				String value1 = SAMRecordField.toString(getValue(d.record1,
-						FIELD_TYPE.TAG, d.tagId));
-				String value2 = SAMRecordField.toString(getValue(d.record2,
-						FIELD_TYPE.TAG, d.tagId));
-				ps.println(String.format("TAG:\t%d\t%s\t%s\t%s\t%s",
-						d.recordCounter, d.field.name(), d.tagId,
+				String value1 = SAMRecordField.toString(getValue(d.record1, FIELD_TYPE.TAG, d.tagId));
+				String value2 = SAMRecordField.toString(getValue(d.record2, FIELD_TYPE.TAG, d.tagId));
+				ps.println(String.format("TAG:\t%d\t%s\t%s\t%s\t%s", d.recordCounter, d.field.name(), d.tagId,
 						print(value1, maxValueLen), print(value2, maxValueLen)));
 			}
 			if (dumpRecords) {
@@ -403,21 +382,18 @@ public class SamRecordComparision {
 			}
 			break;
 		case 1:
-			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
-					d.prematureEnd));
+			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter, d.prematureEnd));
 			if (dumpRecords)
 				ps.print("\t" + d.record2.getSAMString());
 			break;
 		case 2:
-			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter,
-					d.prematureEnd));
+			ps.println(String.format("PREMATURE:\t%d\t%d", d.recordCounter, d.prematureEnd));
 			if (dumpRecords)
 				ps.print("\t" + d.record1.getSAMString());
 			break;
 
 		default:
-			throw new IllegalArgumentException("Unknown premature end value: "
-					+ d.prematureEnd);
+			throw new IllegalArgumentException("Unknown premature end value: " + d.prematureEnd);
 		}
 
 	}
@@ -471,14 +447,11 @@ public class SamRecordComparision {
 	 * @param list
 	 * @return
 	 */
-	private int detectCorrectedMateFlagsInSecondMember(
-			List<SamRecordDiscrepancy> list) {
+	private int detectCorrectedMateFlagsInSecondMember(List<SamRecordDiscrepancy> list) {
 		int count = 0;
 		for (SamRecordDiscrepancy d : list) {
-			if (d.record1.getMateNegativeStrandFlag() != d.record2
-					.getMateNegativeStrandFlag()
-					|| d.record1.getMateUnmappedFlag() != d.record2
-							.getMateUnmappedFlag())
+			if (d.record1.getMateNegativeStrandFlag() != d.record2.getMateNegativeStrandFlag()
+					|| d.record1.getMateUnmappedFlag() != d.record2.getMateUnmappedFlag())
 				count++;
 		}
 		return count;
@@ -519,8 +492,7 @@ public class SamRecordComparision {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Bam2Cram.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -530,8 +502,7 @@ public class SamRecordComparision {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -546,11 +517,9 @@ public class SamRecordComparision {
 		Log.setGlobalLogLevel(params.logLevel);
 
 		if (params.referenceFasta != null)
-			System.setProperty("reference",
-					params.referenceFasta.getAbsolutePath());
+			System.setProperty("reference", params.referenceFasta.getAbsolutePath());
 
-		SAMFileReader
-				.setDefaultValidationStringency(ValidationStringency.SILENT);
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT);
 		SAMFileReader r1 = new SAMFileReader(params.file1);
 		SAMFileReader r2 = new SAMFileReader(params.file2);
 
@@ -580,9 +549,7 @@ public class SamRecordComparision {
 			String chunks[] = params.ignoreTags.split(":");
 			for (String tagId : chunks) {
 				if (!tagId.matches("^[A-Z]{2}$"))
-					throw new RuntimeException(
-							"Expecting tag id to match ^[A-Z]{2}$ but got this: "
-									+ tagId);
+					throw new RuntimeException("Expecting tag id to match ^[A-Z]{2}$ but got this: " + tagId);
 				c.tagsToIgnore.add(tagId);
 			}
 		}
@@ -602,8 +569,8 @@ public class SamRecordComparision {
 			int seqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 			byte[] ref = null;
 			ReferenceSource source = new ReferenceSource(params.referenceFasta);
-			List<PreservationPolicy> policies = params.lossySpec == null ? null
-					: QualityScorePreservation.parsePolicies(params.lossySpec);
+			List<PreservationPolicy> policies = params.lossySpec == null ? null : QualityScorePreservation
+					.parsePolicies(params.lossySpec);
 
 			while (diffSize < params.maxDiscrepancies && it1.hasNext()) {
 				if (!it2.hasNext()) {
@@ -621,11 +588,8 @@ public class SamRecordComparision {
 					} else {
 						if (record1.getReferenceIndex() != seqId) {
 							seqId = record1.getReferenceIndex();
-							SAMSequenceRecord s = r1.getFileHeader()
-									.getSequence(seqId);
+							SAMSequenceRecord s = r1.getFileHeader().getSequence(seqId);
 							ref = source.getReferenceBases(s, true);
-							System.out.println("Starting sequence: "
-									+ s.getSequenceName());
 						}
 					}
 				}
@@ -635,8 +599,7 @@ public class SamRecordComparision {
 			}
 			System.out.printf("Checked %d records.", recordsChecked);
 		} else {
-			List<SamRecordDiscrepancy> discrepancies = c.compareRecords(it1,
-					it2, params.maxDiscrepancies);
+			List<SamRecordDiscrepancy> discrepancies = c.compareRecords(it1, it2, params.maxDiscrepancies);
 
 			r1.close();
 			r2.close();
@@ -656,8 +619,7 @@ public class SamRecordComparision {
 				}
 
 			} else {
-				db(params.dbDumpFile, "discrepancy".toUpperCase(),
-						discrepancies.iterator());
+				db(params.dbDumpFile, "discrepancy".toUpperCase(), discrepancies.iterator());
 			}
 
 			if (!discrepancies.isEmpty())
@@ -666,11 +628,9 @@ public class SamRecordComparision {
 
 	}
 
-	private static void db(File dbFile, String tableName,
-			Iterator<SamRecordDiscrepancy> it) throws SQLException {
+	private static void db(File dbFile, String tableName, Iterator<SamRecordDiscrepancy> it) throws SQLException {
 		// Server server = Server.createTcpServer("").start();
-		Connection connection = DriverManager.getConnection("jdbc:h2:"
-				+ dbFile.getAbsolutePath());
+		Connection connection = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath());
 		createDiscrepancyTable(tableName, connection);
 		dbLog(tableName, it, connection);
 		connection.commit();
@@ -686,33 +646,27 @@ public class SamRecordComparision {
 
 		@Override
 		public String toString() {
-			return String.format("%d\t%c\t%c/%c\t%c/%c\t%s", posInRead,
-					cigarOp, base, refBase, score + 33, oScore + 33,
-					treatment.name());
+			return String.format("%d\t%c\t%c/%c\t%c/%c\t%s", posInRead, cigarOp, base, refBase, score + 33,
+					oScore + 33, treatment.name());
 		}
 	}
 
-	private static ScoreDiff[] findScoreDiffs(SAMRecord r1, SAMRecord r2,
-			byte[] ref, List<PreservationPolicy> policies) {
+	private static ScoreDiff[] findScoreDiffs(SAMRecord r1, SAMRecord r2, byte[] ref, List<PreservationPolicy> policies) {
 		if (!r1.getCigarString().equals(r2.getCigarString()))
 			throw new RuntimeException("CIGAR string are different.");
 
 		List<ScoreDiff> diffs = new ArrayList<SamRecordComparision.ScoreDiff>();
 		int posInRead = 1, posInRef = r1.getAlignmentStart();
-		
-		if ("HS4_110:4:41:16550:113556".equals(r1.getReadName()))
-				System.out.println("gotcha");
+
 		for (CigarElement ce : r1.getCigar().getCigarElements()) {
 			if (ce.getOperator().consumesReadBases()) {
 				for (int i = 0; i < ce.getLength(); i++) {
-					if (r1.getBaseQualities()[i + posInRead - 1] != r2
-							.getBaseQualities()[i + posInRead - 1]) {
+					if (r1.getBaseQualities()[i + posInRead - 1] != r2.getBaseQualities()[i + posInRead - 1]) {
 						ScoreDiff d = new ScoreDiff();
 						d.base = r1.getReadBases()[i + posInRead - 1];
 						d.refBase = ref[i + posInRef - 1];
 						ce.getOperator();
-						d.cigarOp = CigarOperator.enumToCharacter(ce
-								.getOperator());
+						d.cigarOp = CigarOperator.enumToCharacter(ce.getOperator());
 						d.oScore = r1.getBaseQualities()[i + posInRead - 1];
 						d.score = r2.getBaseQualities()[i + posInRead - 1];
 						d.posInRead = i + posInRead;
@@ -722,71 +676,24 @@ public class SamRecordComparision {
 						else if (d.score == DEFAULT_SCORE)
 							d.treatment = QualityScoreTreatmentType.DROP;
 
-						if (policies == null
-								|| !obeysLossyModel(policies, r1, d)) {
+						if (policies == null || !obeysLossyModel(policies, r1, d))
 							diffs.add(d);
-							System.out.println(r1.getBaseQualityString());
-							System.out.println(r2.getBaseQualityString());
-							System.exit(1) ;
-						}
 					}
 				}
 			}
 
-			posInRead += ce.getOperator().consumesReadBases() ? ce.getLength()
-					: 0;
-			posInRef += ce.getOperator().consumesReferenceBases() ? ce
-					.getLength() : 0;
+			posInRead += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
+			posInRef += ce.getOperator().consumesReferenceBases() ? ce.getLength() : 0;
 		}
-		return (ScoreDiff[]) diffs.toArray(new ScoreDiff[diffs.size()]);
+		return diffs.toArray(new ScoreDiff[diffs.size()]);
 	}
 
-	private static interface ByteValueForPosition {
-		public byte value(int at);
-	}
-
-	private static class ArrayByteValueForPosition implements
-			ByteValueForPosition {
-		byte[] array;
-		int offset;
-
-		@Override
-		public byte value(int at) {
-			return array[at - offset];
-		}
-
-		public void setValueAt(byte value, int at) {
-			array[at - offset] = value;
-		}
-
-		public void update(byte[] array, int offset) {
-			this.array = array;
-			this.offset = offset;
-		}
-
-		public void shiftLeft(int size) {
-			System.arraycopy(array, size, array, 0, array.length - size);
-			offset += size;
-		}
-
-		public void shiftRight(int size) {
-			System.arraycopy(array, 0, array, size, array.length - size);
-			offset -= size;
-		}
-
-		public boolean isWithinBounds(int position) {
-			return position - offset >= 0 && position - offset < array.length;
-		}
-	}
-
-	private static int dumpScoreDiffs(SAMRecord r1, SAMRecord r2, byte[] ref,
-			List<PreservationPolicy> policies) {
+	private static int dumpScoreDiffs(SAMRecord r1, SAMRecord r2, byte[] ref, List<PreservationPolicy> policies) {
 		ScoreDiff[] diffs = findScoreDiffs(r1, r2, ref, policies);
 		if (diffs.length == 0)
 			return 0;
 
-		System.out.printf("%s\t%d\t%d\t%s:\n", r1.getReadName(),
-				r1.getAlignmentStart(), r1.getMappingQuality(),
+		System.out.printf("%s\t%d\t%d\t%s:\n", r1.getReadName(), r1.getAlignmentStart(), r1.getMappingQuality(),
 				(r1.getReadUnmappedFlag() ? "unmapped" : "mapped"));
 		for (ScoreDiff diff : diffs) {
 			System.out.printf("%s\n", diff.toString());
@@ -807,21 +714,17 @@ public class SamRecordComparision {
 			return record.getReadUnmappedFlag();
 
 		default:
-			throw new RuntimeException("Unknown read category: "
-					+ c.type.name());
+			throw new RuntimeException("Unknown read category: " + c.type.name());
 		}
 	}
 
 	private static boolean testBaseCategory(BaseCategory c, ScoreDiff diff) {
 		switch (c.type) {
 		case FLANKING_DELETION:
-			return diff.nextBaseCoP == CigarOperator
-					.enumToCharacter(CigarOperator.DELETION)
-					|| diff.prevBaseCoP == CigarOperator
-							.enumToCharacter(CigarOperator.DELETION);
+			return diff.nextBaseCoP == CigarOperator.enumToCharacter(CigarOperator.DELETION)
+					|| diff.prevBaseCoP == CigarOperator.enumToCharacter(CigarOperator.DELETION);
 		case INSERTION:
-			return diff.cigarOp == CigarOperator
-					.enumToCharacter(CigarOperator.INSERTION);
+			return diff.cigarOp == CigarOperator.enumToCharacter(CigarOperator.INSERTION);
 		case LOWER_COVERAGE:
 			return diff.coverage < c.param;
 		case MATCH:
@@ -832,13 +735,11 @@ public class SamRecordComparision {
 			return diff.pileup <= c.param;
 
 		default:
-			throw new RuntimeException("Unknown read category: "
-					+ c.type.name());
+			throw new RuntimeException("Unknown read category: " + c.type.name());
 		}
 	}
 
-	private static boolean testScoreTreatment(QualityScoreTreatment t,
-			ScoreDiff diff) {
+	private static boolean testScoreTreatment(QualityScoreTreatment t, ScoreDiff diff) {
 		switch (t.type) {
 		case BIN:
 			return diff.score == Binning.Illumina_binning_matrix[diff.oScore];
@@ -848,18 +749,14 @@ public class SamRecordComparision {
 			return diff.score == diff.oScore;
 
 		default:
-			throw new RuntimeException(
-					"Unknown quality score treatment category: "
-							+ t.type.name());
+			throw new RuntimeException("Unknown quality score treatment category: " + t.type.name());
 		}
 	}
 
-	private static boolean obeysLossyModel(List<PreservationPolicy> policies,
-			SAMRecord record, ScoreDiff diff) {
+	private static boolean obeysLossyModel(List<PreservationPolicy> policies, SAMRecord record, ScoreDiff diff) {
 
 		NEXT_POLICY: for (PreservationPolicy policy : policies) {
-			if (policy.readCategory != null
-					&& !testReadCategory(policy.readCategory, record))
+			if (policy.readCategory != null && !testReadCategory(policy.readCategory, record))
 				continue;
 
 			if (policy.baseCategories != null) {
