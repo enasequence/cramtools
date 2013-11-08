@@ -8,8 +8,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import net.sf.cram.encoding.reader.NameCollate.IRead;
+import net.sf.picard.util.Log;
 
 public abstract class NameCollate<R extends IRead> {
+	private static final Log log = Log.getInstance(NameCollate.class);
 	private Map<R, R> readSet = new TreeMap<R, R>();
 	private int maxCacheSize = 100000;
 	private long generation = 0;
@@ -44,8 +46,7 @@ public abstract class NameCollate<R extends IRead> {
 
 		list.clear();
 		long time2 = System.nanoTime();
-		System.out.println(String.format("Cache purged in %.2fms.\n",
-				(time2 - time1) / 1000000f));
+		log.debug(String.format("Cache purged in %.2fms.\n", (time2 - time1) / 1000000f));
 	}
 
 	protected abstract boolean needsCollating(R read);

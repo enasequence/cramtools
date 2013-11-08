@@ -15,10 +15,13 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -27,10 +30,15 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 
@@ -49,13 +57,11 @@ public class Crambone {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Bam2Cram.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws FileNotFoundException,
-			InterruptedException {
+	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		Log.setGlobalLogLevel(Log.LogLevel.INFO);
 
 		Params params = new Params();
@@ -63,8 +69,7 @@ public class Crambone {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -81,8 +86,8 @@ public class Crambone {
 
 		log.info("Starting thread pool, size ", params.poolSize);
 		BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
-		ThreadPoolExecutor executor = new ThreadPoolExecutor(params.poolSize,
-				params.poolSize, 1, TimeUnit.SECONDS, workQueue);
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(params.poolSize, params.poolSize, 1, TimeUnit.SECONDS,
+				workQueue);
 
 		Map<String, String> modelMap = new TreeMap<String, String>();
 		Scanner modelScanner = new Scanner(params.modelFile);
@@ -118,12 +123,10 @@ public class Crambone {
 				if (rel != null)
 					destDir = new File(destDir, rel);
 				destDir.mkdirs();
-				Bam2CramTask bam2CramTask = new Bam2CramTask(destDir, bamFile,
-						params.refFile, model);
+				Bam2CramTask bam2CramTask = new Bam2CramTask(destDir, bamFile, params.refFile, model);
 				tasks.add(bam2CramTask);
 
-				Cram2BamTask cram2BamTask = new Cram2BamTask(destDir,
-						bam2CramTask.cramFile, params.refFile);
+				Cram2BamTask cram2BamTask = new Cram2BamTask(destDir, bam2CramTask.cramFile, params.refFile);
 				tasks.add(cram2BamTask);
 
 				Project p = new Project(params.cleanup, params.resetFailed, tasks);
@@ -166,7 +169,7 @@ public class Crambone {
 		@Parameter(names = { "--cleanup", "-C" }, required = false, description = "Clean up and try again failed/garbled tasks.")
 		boolean cleanup = false;
 
-		@Parameter(names = { "--reset-failed"}, required = false, description = "Restart failed tasks from scratch.")
+		@Parameter(names = { "--reset-failed" }, required = false, description = "Restart failed tasks from scratch.")
 		boolean resetFailed = false;
 
 		@Parameter(names = { "--pool-size", "-P" }, required = false, description = "Thread pool size. Number of cores by default.")
@@ -230,9 +233,7 @@ public class Crambone {
 							for (int j = i; j < tasks.size(); j++) {
 								Task t = tasks.get(i);
 								if (!t.cleanUp()) {
-									log.error("Cleanup failed: ",
-											t.destDir.getAbsolutePath(), "/",
-											t.fileNameBase);
+									log.error("Cleanup failed: ", t.destDir.getAbsolutePath(), "/", t.fileNameBase);
 									return;
 								}
 							}
@@ -250,8 +251,7 @@ public class Crambone {
 
 					task.run();
 					if (task.exception != null) {
-						log.error("Exception [", task.exception.getMessage(),
-								"] ", task);
+						log.error("Exception [", task.exception.getMessage(), "] ", task);
 						return;
 					}
 					if (task.exitCode != 0) {
@@ -284,8 +284,7 @@ public class Crambone {
 
 		private String cmd = null;
 
-		public Bam2CramTask(File destDir, File bamFile, File refFile,
-				String model) {
+		public Bam2CramTask(File destDir, File bamFile, File refFile, String model) {
 			super(bamFile.getName() + ".cram1", destDir);
 			this.bamFile = bamFile;
 			this.refFile = refFile;
@@ -296,10 +295,8 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format(
-					"%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
-					cramtoolsJar.getAbsolutePath(), logLevel.name(),
-					cramtoolsCommand, bamFile.getAbsolutePath(),
+			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
+					cramtoolsJar.getAbsolutePath(), logLevel.name(), cramtoolsCommand, bamFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), cramFile.getAbsolutePath());
 			if (model != null && model.length() > 0 && !model.matches("^\\s+$"))
 				cmd += " -L " + model;
@@ -348,10 +345,8 @@ public class Crambone {
 
 		@Override
 		protected ProcessBuilder createProcessBuilder() {
-			String cmd = String.format(
-					"%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
-					cramtoolsJar.getAbsolutePath(), logLevel.name(),
-					cramtoolsCommand, cramFile.getAbsolutePath(),
+			String cmd = String.format("%s %s -jar %s -l %s %s -I %s -R %s -O %s", java, javaOpts,
+					cramtoolsJar.getAbsolutePath(), logLevel.name(), cramtoolsCommand, cramFile.getAbsolutePath(),
 					refFile.getAbsolutePath(), bamFile.getAbsolutePath());
 			log.info(cmd);
 
@@ -400,8 +395,7 @@ public class Crambone {
 			this.fileNameBase = fileNameBase;
 			this.destDir = destDir;
 
-			inProgressMarkerFile = new File(destDir, fileNameBase
-					+ ".inprogress");
+			inProgressMarkerFile = new File(destDir, fileNameBase + ".inprogress");
 			failedMarkerFile = new File(destDir, fileNameBase + ".failed");
 			successMarkerFile = new File(destDir, fileNameBase + ".success");
 			outputFile = new File(destDir, fileNameBase + ".output");
@@ -420,8 +414,7 @@ public class Crambone {
 
 		protected abstract ProcessBuilder createProcessBuilder();
 
-		protected void createAndWriteDefaultMessageToMarkerFile(File file)
-				throws IOException {
+		protected void createAndWriteDefaultMessageToMarkerFile(File file) throws IOException {
 			log.debug("Creating file ", file.getAbsolutePath());
 			file.createNewFile();
 			FileOutputStream fos = new FileOutputStream(file);
@@ -437,6 +430,9 @@ public class Crambone {
 
 		@Override
 		public void run() {
+			ProcessPump pump = null;
+			OutputStream processOutput = null;
+			OutputStream processError = null;
 			try {
 				if (status() != STATUS.NONE) {
 					log.debug("Invalid task status: " + status());
@@ -450,19 +446,26 @@ public class Crambone {
 
 				ProcessBuilder b = createProcessBuilder();
 				b.directory(destDir);
-				b.redirectError(errorFile);
-				b.redirectOutput(outputFile);
+				// the following works only in java7, so we'll take a
+				// b.redirectError(errorFile);
+				// b.redirectOutput(outputFile);
 
 				log.debug("Executing ", toString());
 
 				Process process = b.start();
-				try {
-					process.waitFor();
-				} finally {
+				processOutput = new BufferedOutputStream(new FileOutputStream(outputFile));
+				processError = new BufferedOutputStream(new FileOutputStream(errorFile));
+				pump = new ProcessPump(process, processOutput, processError);
+				process.waitFor();
+				exitCode = process.exitValue();
+				process.destroy();
+
+				for (Future<Long> f : pump.outputs) {
 					try {
-						exitCode = process.exitValue();
-						process.destroy();
+						log.debug("Process output size " + f.get());
 					} catch (Exception e) {
+						log.error("Process output pump exception.", e);
+						throw e;
 					}
 				}
 
@@ -475,6 +478,17 @@ public class Crambone {
 
 			} catch (Exception e) {
 				exception = e;
+			} finally {
+				if (processOutput != null)
+					try {
+						processOutput.close();
+					} catch (IOException e) {
+					}
+				if (processError != null)
+					try {
+						processError.close();
+					} catch (IOException e) {
+					}
 			}
 
 			try {
@@ -508,27 +522,19 @@ public class Crambone {
 			for (STATUS s : STATUS.values())
 				switch (s) {
 				case NONE:
-					if (!inProgressMarkerFile.exists()
-							&& !failedMarkerFile.exists()
-							&& !successMarkerFile.exists())
+					if (!inProgressMarkerFile.exists() && !failedMarkerFile.exists() && !successMarkerFile.exists())
 						return STATUS.NONE;
 					break;
 				case INPROGRESS:
-					if (inProgressMarkerFile.exists()
-							&& !failedMarkerFile.exists()
-							&& !successMarkerFile.exists())
+					if (inProgressMarkerFile.exists() && !failedMarkerFile.exists() && !successMarkerFile.exists())
 						return STATUS.INPROGRESS;
 					break;
 				case FAILED:
-					if (!inProgressMarkerFile.exists()
-							&& failedMarkerFile.exists()
-							&& !successMarkerFile.exists())
+					if (!inProgressMarkerFile.exists() && failedMarkerFile.exists() && !successMarkerFile.exists())
 						return STATUS.FAILED;
 					break;
 				case SUCCESS:
-					if (!inProgressMarkerFile.exists()
-							&& !failedMarkerFile.exists()
-							&& successMarkerFile.exists())
+					if (!inProgressMarkerFile.exists() && !failedMarkerFile.exists() && successMarkerFile.exists())
 						return STATUS.SUCCESS;
 					break;
 
@@ -536,6 +542,34 @@ public class Crambone {
 					break;
 				}
 			return STATUS.GARBLED;
+		}
+	}
+
+	private static class ProcessPump {
+		ExecutorService es = Executors.newFixedThreadPool(2);
+		List<Future<Long>> outputs = new ArrayList<Future<Long>>();
+
+		ProcessPump(Process p, OutputStream stdout, OutputStream stderr) {
+			if (stdout != null)
+				outputs.add(es.submit(new Pump(p.getInputStream(), stdout)));
+			if (stderr != null)
+				outputs.add(es.submit(new Pump(p.getErrorStream(), stderr)));
+		}
+
+		private static class Pump implements Callable<Long> {
+			InputStream is;
+			OutputStream os;
+
+			public Pump(InputStream is, OutputStream os) {
+				this.is = is;
+				this.os = os;
+			}
+
+			@Override
+			public Long call() throws Exception {
+				return ByteBufferUtils.copyLarge(is, os);
+			}
+
 		}
 	}
 }

@@ -52,8 +52,7 @@ public class QualityScorePreservation {
 		return value;
 	}
 
-	private static final QualityScoreTreatment readTreament(
-			LinkedList<Character> list) {
+	private static final QualityScoreTreatment readTreament(LinkedList<Character> list) {
 		int param = readParam(list);
 		QualityScoreTreatment t;
 		switch (param) {
@@ -117,8 +116,7 @@ public class QualityScorePreservation {
 				break;
 			case 'X':
 				int coverage = readParam(list);
-				p.baseCategories
-						.add(BaseCategory.lower_than_coverage(coverage));
+				p.baseCategories.add(BaseCategory.lower_than_coverage(coverage));
 				break;
 			case 'D':
 				p.baseCategories.add(BaseCategory.flanking_deletion());
@@ -154,8 +152,7 @@ public class QualityScorePreservation {
 				break;
 
 			default:
-				throw new RuntimeException("Uknown read or base category: "
-						+ code);
+				throw new RuntimeException("Uknown read or base category: " + code);
 			}
 
 			if (p.treatment == null)
@@ -180,8 +177,7 @@ public class QualityScorePreservation {
 			return score;
 
 		}
-		throw new RuntimeException("Unknown quality score treatment type: "
-				+ t.type.name());
+		throw new RuntimeException("Unknown quality score treatment type: " + t.type.name());
 	}
 
 	public void addQualityScores(SAMRecord s, CramRecord r, ReferenceTracks t) {
@@ -218,8 +214,7 @@ public class QualityScorePreservation {
 		}
 	};
 
-	private static final void addQS(SAMRecord s, CramRecord r, byte[] scores,
-			ReferenceTracks t, PreservationPolicy p) {
+	private static final void addQS(SAMRecord s, CramRecord r, byte[] scores, ReferenceTracks t, PreservationPolicy p) {
 		int alSpan = s.getAlignmentEnd() - s.getAlignmentStart();
 		byte[] qs = s.getBaseQualities();
 
@@ -241,8 +236,7 @@ public class QualityScorePreservation {
 				break;
 
 			default:
-				throw new RuntimeException("Unknown read category: "
-						+ p.readCategory.type.name());
+				throw new RuntimeException("Unknown read category: " + p.readCategory.type.name());
 			}
 
 			if (!properRead) // nothing to do here:
@@ -255,14 +249,12 @@ public class QualityScorePreservation {
 			case BIN:
 				if (r.qualityScores == null)
 					r.qualityScores = s.getBaseQualities();
-				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
-						scores.length);
+				System.arraycopy(s.getBaseQualities(), 0, scores, 0, scores.length);
 				applyBinning(scores);
 				r.setForcePreserveQualityScores(true);
 				break;
 			case PRESERVE:
-				System.arraycopy(s.getBaseQualities(), 0, scores, 0,
-						scores.length);
+				System.arraycopy(s.getBaseQualities(), 0, scores, 0, scores.length);
 				r.setForcePreserveQualityScores(true);
 				break;
 			case DROP:
@@ -271,9 +263,7 @@ public class QualityScorePreservation {
 				break;
 
 			default:
-				throw new RuntimeException(
-						"Unknown quality score treatment type: "
-								+ p.treatment.type.name());
+				throw new RuntimeException("Unknown quality score treatment type: " + p.treatment.type.name());
 			}
 
 			// nothing else to do here:
@@ -303,8 +293,7 @@ public class QualityScorePreservation {
 							mask[pos + 1] = true;
 					}
 
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
+					pos += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
 				}
 				break;
 			case MATCH:
@@ -314,8 +303,7 @@ public class QualityScorePreservation {
 				for (CigarElement ce : s.getCigar().getCigarElements()) {
 					if (ce.getOperator().consumesReadBases()) {
 						for (int i = 0; i < ce.getLength(); i++) {
-							boolean match = s.getReadBases()[pos + i] == t
-									.baseAt(refPos + i);
+							boolean match = s.getReadBases()[pos + i] == t.baseAt(refPos + i);
 							if ((c.type == BaseCategoryType.MATCH && match)
 									|| (c.type == BaseCategoryType.MISMATCH && !match)) {
 								mask[pos + i] = true;
@@ -324,8 +312,7 @@ public class QualityScorePreservation {
 						}
 						pos += ce.getLength();
 					}
-					refPos += ce.getOperator().consumesReferenceBases() ? ce
-							.getLength() : 0;
+					refPos += ce.getOperator().consumesReferenceBases() ? ce.getLength() : 0;
 				}
 				break;
 			case INSERTION:
@@ -340,8 +327,7 @@ public class QualityScorePreservation {
 						break;
 					}
 
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
+					pos += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
 				}
 				break;
 			case LOWER_COVERAGE:
@@ -359,10 +345,8 @@ public class QualityScorePreservation {
 						break;
 					}
 
-					pos += ce.getOperator().consumesReadBases() ? ce
-							.getLength() : 0;
-					refPos += ce.getOperator().consumesReferenceBases() ? ce
-							.getLength() : 0;
+					pos += ce.getOperator().consumesReadBases() ? ce.getLength() : 0;
+					refPos += ce.getOperator().consumesReferenceBases() ? ce.getLength() : 0;
 				}
 				break;
 			case PILEUP:
@@ -383,17 +367,6 @@ public class QualityScorePreservation {
 				scores[i] = applyTreatment(qs[i], p.treatment);
 				maskedCount++;
 			}
-
-		// if (maskedCount > 0) {
-		// System.out.println(p.toString());
-		// System.out.println(Arrays.toString(mask));
-		// for (byte b : scores)
-		// if (b < 0 || b > 93)
-		// System.out.print(' ');
-		// else
-		// System.out.print((char) (b + 33));
-		// System.out.println();
-		// }
 
 		// safety latch, store all qs if there are too many individual score
 		// to store:

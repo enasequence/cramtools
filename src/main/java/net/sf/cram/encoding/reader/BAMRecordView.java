@@ -15,9 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.encoding.reader;
 
-import java.util.Arrays;
-
-import net.sf.cram.io.ByteBufferUtils;
 import net.sf.samtools.BinaryCigarCodec;
 import net.sf.samtools.Cigar;
 
@@ -93,9 +90,6 @@ public class BAMRecordView {
 	}
 
 	public void setReadName(byte[] readName) {
-		if (Arrays.equals("809RWABXX101220:6:25:17514:25953".getBytes(),
-				readName))
-			System.out.println("gotcha");
 		writeUByte((short) (readName.length + 1), READ_NAME_LEN);
 		System.arraycopy(readName, 0, buf, start + READ_NAME, readName.length);
 		buf[start + READ_NAME + readName.length] = 0;
@@ -126,7 +120,7 @@ public class BAMRecordView {
 	}
 
 	public void setFlags(int flags) {
-//		writeInt(flags, FLAGS);
+		// writeInt(flags, FLAGS);
 		writeUShort(flags, FLAGS);
 	}
 
@@ -161,13 +155,12 @@ public class BAMRecordView {
 		int i;
 
 		for (i = 1; i < length; i += 2)
-			buf[start + BASES + i / 2] = (byte) (charToCompressedBaseHigh(bases[offset
-					+ i - 1]) | charToCompressedBaseLow(bases[offset + i]));
+			buf[start + BASES + i / 2] = (byte) (charToCompressedBaseHigh(bases[offset + i - 1]) | charToCompressedBaseLow(bases[offset
+					+ i]));
 
 		// Last nybble
 		if (i == length)
-			buf[start + BASES + i / 2] = charToCompressedBaseHigh((char) bases[offset
-					+ i - 1]);
+			buf[start + BASES + i / 2] = charToCompressedBaseHigh((char) bases[offset + i - 1]);
 
 		setReadLength(length);
 		SCORES = BASES + length / 2 + length % 2;
@@ -202,8 +195,7 @@ public class BAMRecordView {
 				buf[start + SCORES + i] = (byte) 0xFF;
 			TAGS = SCORES + len;
 		} else {
-			System.arraycopy(qualities, 0, buf, start + SCORES,
-					qualities.length);
+			System.arraycopy(qualities, 0, buf, start + SCORES, qualities.length);
 			TAGS = SCORES + qualities.length;
 		}
 	}
@@ -270,21 +262,17 @@ public class BAMRecordView {
 	}
 
 	private final int getInt(final int at) {
-		int value = (0xFF & buf[start + at])
-				| ((0xFF & buf[start + at + 1]) << 8)
-				| ((0xFF & buf[start + at + 2]) << 16)
-				| ((0xFF & buf[start + at + 3]) << 24);
+		int value = (0xFF & buf[start + at]) | ((0xFF & buf[start + at + 1]) << 8)
+				| ((0xFF & buf[start + at + 2]) << 16) | ((0xFF & buf[start + at + 3]) << 24);
 		return value;
 	}
 
 	private int writeUInt(Long value, int at) {
 		if (value < 0) {
-			throw new IllegalArgumentException("Negative value (" + value
-					+ ") passed to unsigned writing method.");
+			throw new IllegalArgumentException("Negative value (" + value + ") passed to unsigned writing method.");
 		}
 		if (value > MAX_UINT) {
-			throw new IllegalArgumentException("Value (" + value
-					+ ") to large to be written as uint.");
+			throw new IllegalArgumentException("Value (" + value + ") to large to be written as uint.");
 		}
 
 		buf[start + at] = (byte) (value & 0xFF);
@@ -423,8 +411,7 @@ public class BAMRecordView {
 		case 'b':
 			return COMPRESSED_B_HIGH;
 		default:
-			throw new IllegalArgumentException(
-					"Bad  byte passed to charToCompressedBase: " + base);
+			throw new IllegalArgumentException("Bad  byte passed to charToCompressedBase: " + base);
 		}
 	}
 
@@ -474,8 +461,7 @@ public class BAMRecordView {
 			return 'B';
 
 		default:
-			throw new IllegalArgumentException(
-					"Bad  byte passed to charToCompressedBase: " + base);
+			throw new IllegalArgumentException("Bad  byte passed to charToCompressedBase: " + base);
 		}
 	}
 
@@ -540,8 +526,7 @@ public class BAMRecordView {
 		case 'b':
 			return COMPRESSED_B_LOW;
 		default:
-			throw new IllegalArgumentException(
-					"Bad  byte passed to charToCompressedBase: " + base);
+			throw new IllegalArgumentException("Bad  byte passed to charToCompressedBase: " + base);
 		}
 	}
 
@@ -603,12 +588,12 @@ public class BAMRecordView {
 	private static final byte OP_X = 8;
 
 	public int calculateAlignmentEnd() {
-		int aend = getAlignmentStart()-1;
+		int aend = getAlignmentStart() - 1;
 
 		int readNamelen = getUByte(READ_NAME_LEN);
 		int cigarLen = getUShort(CIGAR_LEN);
 
-		CIGAR = (int) (READ_NAME + readNamelen);
+		CIGAR = READ_NAME + readNamelen;
 
 		for (int i = CIGAR; i < CIGAR + 4 * cigarLen; i += 4) {
 			int e = getInt(i);

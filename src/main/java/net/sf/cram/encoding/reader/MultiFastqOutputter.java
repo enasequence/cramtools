@@ -31,9 +31,8 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	private ReferenceSource referenceSource;
 	private SAMFileHeader header;
 
-	public MultiFastqOutputter(OutputStream[] streams,
-			OutputStream cacheOverFlowStream, ReferenceSource referenceSource,
-			SAMFileHeader header) {
+	public MultiFastqOutputter(OutputStream[] streams, OutputStream cacheOverFlowStream,
+			ReferenceSource referenceSource, SAMFileHeader header) {
 		this.streams = streams;
 		this.cacheOverFlowStream = cacheOverFlowStream;
 		this.referenceSource = referenceSource;
@@ -56,19 +55,16 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		this.counter = counter;
 	}
 
-	protected void write(FastqRead read, OutputStream stream)
-			throws IOException {
+	protected void write(FastqRead read, OutputStream stream) throws IOException {
 		if (prefix == null) {
 			stream.write(read.data);
 		} else {
 			streams[read.templateIndex].write('@');
 			streams[read.templateIndex].write(prefix);
 			streams[read.templateIndex].write('.');
-			streams[read.templateIndex].write(String.valueOf(counter)
-					.getBytes());
+			streams[read.templateIndex].write(String.valueOf(counter).getBytes());
 			streams[read.templateIndex].write(' ');
-			streams[read.templateIndex].write(read.data, 1,
-					read.data.length - 1);
+			streams[read.templateIndex].write(read.data, 1, read.data.length - 1);
 		}
 	}
 
@@ -95,8 +91,7 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		if (writer == null) {
 			log.info("Creating overflow BAM file.");
 			headerForOverflowWriter = new SAMFileHeader();
-			headerForOverflowWriter
-					.setSortOrder(SAMFileHeader.SortOrder.queryname);
+			headerForOverflowWriter.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
 			writer = new BAMFileWriter(cacheOverFlowStream, null);
 			writer.setHeader(headerForOverflowWriter);
@@ -121,14 +116,12 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 
 		list.clear();
 		long time2 = System.nanoTime();
-		System.out.println(String.format("Cache purged in %.2fms.\n",
-				(time2 - time1) / 1000000f));
+		log.debug(String.format("Cache purged in %.2fms.\n", (time2 - time1) / 1000000f));
 	}
 
 	@Override
 	protected void writeRead(byte[] name, int flags, byte[] bases, byte[] scores) {
-		FastqRead read = new FastqRead(readLength, name,
-				appendSegmentIndexToReadNames,
+		FastqRead read = new FastqRead(readLength, name, appendSegmentIndexToReadNames,
 				getSegmentIndexInTemplate(flags), bases, scores);
 		read.generation = generation++;
 		if (read.templateIndex == 0) {

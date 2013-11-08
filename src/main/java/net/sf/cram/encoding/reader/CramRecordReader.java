@@ -94,9 +94,6 @@ public class CramRecordReader extends AbstractReader {
 				}
 			}
 
-			// if ("HS18_09233:8:2114:9377:50721#168".equals(r.readName)) {
-			// System.out.println("gotcha");
-			// }
 			if (!r.isSegmentUnmapped()) {
 				// writing read features:
 				int size = nfc.readData();

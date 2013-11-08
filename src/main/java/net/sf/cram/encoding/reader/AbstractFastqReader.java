@@ -111,9 +111,6 @@ public abstract class AbstractFastqReader extends AbstractReader {
 				}
 			}
 
-			if ("HS18_09233:8:2114:9377:50721#168".equals(new String(readName))) {
-				System.out.println("gotcha");
-			}
 			if ((flags & CramRecord.SEGMENT_UNMAPPED_FLAG) == 0) {
 				byte[] refBases = referenceSequence;
 				if (seqId != refId)
