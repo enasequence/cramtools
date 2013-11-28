@@ -28,6 +28,7 @@ import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.CramTools.ValidationStringencyConverter;
+import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.BAMQueryFilteringIterator;
 import net.sf.cram.index.CramIndex;
@@ -65,8 +66,7 @@ public class Merge {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Merge.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Merge.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -102,11 +102,9 @@ public class Merge {
 				referenceSource = new ReferenceSource(new File(prop));
 		}
 
-		AlignmentSliceQuery query = params.region == null ? null
-				: new AlignmentSliceQuery(params.region);
+		AlignmentSliceQuery query = params.region == null ? null : new AlignmentSliceQuery(params.region);
 
-		List<RecordSource> list = readFiles(params.files, referenceSource,
-				query, params.validationLevel);
+		List<RecordSource> list = readFiles(params.files, referenceSource, query, params.validationLevel);
 
 		StringBuffer mergeComment = new StringBuffer("Merged from:");
 		for (RecordSource source : list) {
@@ -118,18 +116,22 @@ public class Merge {
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
 		fix.setConfirmMD5(true);
 		fix.setInjectURI(true);
-		fix.fixSequences(header.getSequenceDictionary().getSequences());
+		fix.setIgnoreMD5Mismatch(false);
+		try {
+			fix.fixSequences(header.getSequenceDictionary().getSequences());
+		} catch (MD5MismatchError e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
 		fix.addCramtoolsPG(header);
 		header.addComment(mergeComment.toString());
 
 		SAMFileWriter writer = null;
 		if (params.outFile != null)
 			if (!params.samFormat)
-				writer = new SAMFileWriterFactory().makeBAMWriter(header, true,
-						params.outFile);
+				writer = new SAMFileWriterFactory().makeBAMWriter(header, true, params.outFile);
 			else
-				writer = new SAMFileWriterFactory().makeSAMWriter(header, true,
-						params.outFile);
+				writer = new SAMFileWriterFactory().makeSAMWriter(header, true, params.outFile);
 		else if (!params.samFormat) {
 			// hack to write BAM format to stdout:
 			File file = File.createTempFile("bam", null);
@@ -141,8 +143,7 @@ public class Merge {
 		}
 
 		else {
-			writer = Utils.createSAMTextWriter(null, System.out, header,
-					params.printSAMHeader);
+			writer = Utils.createSAMTextWriter(null, System.out, header, params.printSAMHeader);
 		}
 
 		MergedIterator mergedIterator = new MergedIterator(list, header);
@@ -160,20 +161,15 @@ public class Merge {
 		try {
 			writer.close();
 		} catch (net.sf.samtools.util.RuntimeIOException e) {
-			if (params.samFormat
-					|| params.outFile != null
-					|| !e.getMessage()
-							.matches(
-									"Terminator block not found after closing BGZF file.*"))
+			if (params.samFormat || params.outFile != null
+					|| !e.getMessage().matches("Terminator block not found after closing BGZF file.*"))
 				throw e;
 		}
 	}
 
-	private static List<RecordSource> readFiles(List<File> files,
-			ReferenceSource referenceSource, AlignmentSliceQuery query,
-			ValidationStringency ValidationStringency) throws IOException {
-		List<RecordSource> sources = new ArrayList<Merge.RecordSource>(
-				files.size());
+	private static List<RecordSource> readFiles(List<File> files, ReferenceSource referenceSource,
+			AlignmentSliceQuery query, ValidationStringency ValidationStringency) throws IOException {
+		List<RecordSource> sources = new ArrayList<Merge.RecordSource>(files.size());
 
 		SAMFileReader.setDefaultValidationStringency(ValidationStringency);
 		for (File file : files) {
@@ -191,8 +187,7 @@ public class Merge {
 				if (query == null)
 					source.it = reader.iterator();
 				else
-					source.it = reader.query(query.sequence, query.start,
-							query.end, true);
+					source.it = reader.query(query.sequence, query.start, query.end, true);
 			} else {
 				index = new File(file.getAbsolutePath() + ".crai");
 				if (index.exists()) {
@@ -204,30 +199,24 @@ public class Merge {
 						SeekableFileStream is = new SeekableFileStream(file);
 
 						FileInputStream fis = new FileInputStream(index);
-						GZIPInputStream gis = new GZIPInputStream(
-								new BufferedInputStream(fis));
+						GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(fis));
 						BufferedInputStream bis = new BufferedInputStream(gis);
 						List<CramIndex.Entry> full = CramIndex.readIndex(gis);
 
 						List<CramIndex.Entry> entries = new LinkedList<CramIndex.Entry>();
-						SAMSequenceRecord sequence = reader.getFileHeader()
-								.getSequence(query.sequence);
+						SAMSequenceRecord sequence = reader.getFileHeader().getSequence(query.sequence);
 						if (sequence == null)
-							throw new RuntimeException("Sequence not found: "
-									+ query.sequence);
+							throw new RuntimeException("Sequence not found: " + query.sequence);
 
-						entries.addAll(CramIndex.find(full,
-								sequence.getSequenceIndex(), query.start,
-								query.end - query.start));
+						entries.addAll(CramIndex.find(full, sequence.getSequenceIndex(), query.start, query.end
+								- query.start));
 
 						bis.close();
 
 						SAMIterator it = new SAMIterator(is, referenceSource);
 						is.seek(entries.get(0).containerStartOffset);
-						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(
-								it, query.sequence, query.start, query.end,
-								BAMQueryFilteringIterator.QueryType.CONTAINED,
-								reader.getFileHeader());
+						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(it, query.sequence, query.start,
+								query.end, BAMQueryFilteringIterator.QueryType.CONTAINED, reader.getFileHeader());
 						source.it = bit;
 					}
 				} else {
@@ -249,8 +238,7 @@ public class Merge {
 		Map<String, Integer> idCountMap = new TreeMap<String, Integer>();
 		for (RecordSource source : list) {
 			if (idCountMap.containsKey(source.id)) {
-				idCountMap.put(source.id,
-						((Integer) idCountMap.get(source.id)).intValue() + 1);
+				idCountMap.put(source.id, idCountMap.get(source.id).intValue() + 1);
 			} else
 				idCountMap.put(source.id, 1);
 		}
@@ -296,10 +284,8 @@ public class Merge {
 		for (RecordSource source : sources) {
 			SAMFileHeader h = source.reader.getFileHeader();
 
-			for (SAMSequenceRecord seq : h.getSequenceDictionary()
-					.getSequences()) {
-				if (header.getSequenceDictionary().getSequence(
-						seq.getSequenceName()) == null)
+			for (SAMSequenceRecord seq : h.getSequenceDictionary().getSequences()) {
+				if (header.getSequenceDictionary().getSequence(seq.getSequenceName()) == null)
 					header.addSequence(seq);
 			}
 
@@ -329,8 +315,7 @@ public class Merge {
 
 		public MergedIterator(List<RecordSource> list, SAMFileHeader header) {
 			this.header = header;
-			sources = (RecordSource[]) list.toArray(new RecordSource[list
-					.size()]);
+			sources = list.toArray(new RecordSource[list.size()]);
 			records = new SAMRecord[list.size()];
 
 			for (int i = 0; i < records.length; i++) {
@@ -363,21 +348,18 @@ public class Merge {
 				next = null;
 			} else {
 				next = records[candidateIndex];
-				SAMSequenceRecord sequence = header.getSequence(next
-						.getReferenceName());
+				SAMSequenceRecord sequence = header.getSequence(next.getReferenceName());
 
 				next.setHeader(header);
 
 				next.setReferenceIndex(sequence.getSequenceIndex());
 
-				next.setReadName(sources[candidateIndex].id + delim
-						+ next.getReadName());
+				next.setReadName(sources[candidateIndex].id + delim + next.getReadName());
 
 				if (next.getMateReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 					next.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 				} else {
-					SAMSequenceRecord mateSequence = header.getSequence(next
-							.getMateReferenceName());
+					SAMSequenceRecord mateSequence = header.getSequence(next.getMateReferenceName());
 					next.setMateReferenceIndex(mateSequence.getSequenceIndex());
 				}
 

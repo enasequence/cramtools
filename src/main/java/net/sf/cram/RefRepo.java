@@ -156,7 +156,7 @@ public class RefRepo {
 				sequence.getBases();
 
 				Entry e = new Entry();
-				e.md5 = Utils.calculateMD5(sequence.getBases());
+				e.md5 = Utils.calculateMD5String(sequence.getBases());
 				e.file = "file://" + file.getAbsolutePath();
 				e.name = sequence.getName();
 				e.length = sequence.length();

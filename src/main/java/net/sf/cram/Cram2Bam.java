@@ -33,6 +33,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.build.ContainerParser;
 import net.sf.cram.build.Cram2BamRecordFactory;
 import net.sf.cram.build.CramIO;
@@ -135,9 +136,15 @@ public class Cram2Bam {
 		CountingInputStream cis = new CountingInputStream(is);
 		CramHeader cramHeader = CramIO.readCramHeader(cis);
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
-		fix.setConfirmMD5(true);
+		fix.setConfirmMD5(!params.skipMD5Checks);
 		fix.setInjectURI(params.injectURI);
-		fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
+		fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
+		try {
+			fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
+		} catch (MD5MismatchError e) {
+			log.error(e.getMessage());
+			System.exit(1);
+		}
 		fix.addCramtoolsPG(cramHeader.samFileHeader);
 		offset = cis.getCount();
 
@@ -496,6 +503,12 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--async-bam-buffer" }, description = "The buffer size (number of records) for the asynchronious BAM output.", hidden = true)
 		int asyncBamBuffer = 10000;
+
+		@Parameter(names = { "--ignore-md5-mismatch" }, description = "Issue a warning on sequence MD5 mismatch and continue. This does not garantee the data will be read succesfully. ")
+		public boolean ignoreMD5Mismatch = false;
+
+		@Parameter(names = { "--skip-md5-check" }, description = "Skip MD5 checks when reading the header.")
+		public boolean skipMD5Checks = false;
 	}
 
 }

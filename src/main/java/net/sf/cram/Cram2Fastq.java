@@ -18,7 +18,6 @@ package net.sf.cram;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.encoding.reader.AbstractFastqReader;
 import net.sf.cram.encoding.reader.DataReaderFactory;
@@ -49,6 +49,7 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.util.SeekableFileStream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -89,13 +90,22 @@ public class Cram2Fastq {
 
 		Log.setGlobalLogLevel(params.logLevel);
 
+		SeekableFileStream sfs = new SeekableFileStream(params.cramFile);
+		CramHeader cramHeader = CramIO.readCramHeader(sfs);
+		ReferenceSource referenceSource = new ReferenceSource(params.reference);
+		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
+		fix.setConfirmMD5(!params.skipMD5Checks);
+		fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
+		try {
+			fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
+		} catch (MD5MismatchError e) {
+			log.error(e.getMessage());
+			System.exit(1);
+		}
+		sfs.seek(0);
+
 		if (params.reference == null)
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
-
-		// SimpleDumper d = new SimpleDumper(new
-		// FileInputStream(params.cramFile),
-		// new ReferenceSource(params.reference), 3, params.fastqBaseName,
-		// params.gzip, params.maxParams);
 
 		final AtomicBoolean brokenPipe = new AtomicBoolean(false);
 		sun.misc.Signal.handle(new sun.misc.Signal("PIPE"), new sun.misc.SignalHandler() {
@@ -105,9 +115,8 @@ public class Cram2Fastq {
 			}
 		});
 
-		CollatingDumper d = new CollatingDumper(new FileInputStream(params.cramFile), new ReferenceSource(
-				params.reference), 3, params.fastqBaseName, params.gzip, params.maxRecords, params.reverse,
-				params.defaultQS, brokenPipe);
+		CollatingDumper d = new CollatingDumper(sfs, referenceSource, 3, params.fastqBaseName, params.gzip,
+				params.maxRecords, params.reverse, params.defaultQS, brokenPipe);
 		d.prefix = params.prefix;
 		d.run();
 
@@ -173,6 +182,8 @@ public class Cram2Fastq {
 
 		protected void doRun() throws IOException {
 			cramHeader = CramIO.readCramHeader(cramIS);
+			FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
+
 			reader = newReader();
 			reader.reverseNegativeReads = reverse;
 			MAIN_LOOP: while (!brokenPipe.get() && (container = CramIO.readContainer(cramIS)) != null) {
@@ -182,11 +193,10 @@ public class Cram2Fastq {
 					if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && s.sequenceId != -2) {
 						SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(s.sequenceId);
 
-						if (sequence == null) {
-							log.error("Null sequence for id: " + s.sequenceId);
-							ref = new byte[0];
-						} else
-							ref = referenceSource.getReferenceBases(sequence, true);
+						if (sequence == null)
+							throw new RuntimeException("Null sequence for id: " + s.sequenceId);
+
+						ref = referenceSource.getReferenceBases(sequence, true);
 
 						try {
 							if (!s.validateRefMD5(ref)) {
@@ -467,6 +477,12 @@ public class Cram2Fastq {
 
 		@Parameter(names = { "--default-quality-score" }, description = "Use this quality score (decimal representation of ASCII symbol) as a default value when the original quality score was lost due to compression. Minimum is 33.")
 		int defaultQS = '?';
+
+		@Parameter(names = { "--ignore-md5-mismatch" }, description = "Issue a warning on sequence MD5 mismatch and continue. This does not garantee the data will be read succesfully. ")
+		public boolean ignoreMD5Mismatch = false;
+
+		@Parameter(names = { "--skip-md5-check" }, description = "Skip MD5 checks when reading the header.")
+		public boolean skipMD5Checks = false;
 	}
 
 }

@@ -18,6 +18,7 @@ package net.sf.cram;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import net.sf.cram.build.CramIO;
@@ -34,6 +35,7 @@ public class FixBAMFileHeader {
 	private boolean confirmMD5 = false;
 	private String sequenceUrlPattern = "http://www.ebi.ac.uk/ena/cram/md5/%s";
 	private boolean injectURI = false;
+	private boolean ignoreMD5Mismatch = false;
 
 	private ReferenceSource referenceSource;
 
@@ -41,54 +43,51 @@ public class FixBAMFileHeader {
 		this.referenceSource = referenceSource;
 	}
 
-	public void fixSequences(List<SAMSequenceRecord> sequenceRecords) {
+	public void fixSequences(List<SAMSequenceRecord> sequenceRecords) throws MD5MismatchError {
 		for (SAMSequenceRecord sequenceRecord : sequenceRecords)
 			fixSequence(sequenceRecord);
 	}
 
-	public void fixSequence(SAMSequenceRecord sequenceRecord) {
-		String found_md5 = sequenceRecord
-				.getAttribute(SAMSequenceRecord.MD5_TAG);
-		if (found_md5 != null) {
-			if (confirmMD5) {
-				byte[] bytes = referenceSource.getReferenceBases(
-						sequenceRecord, true);
-				String md5 = Utils.calculateMD5_RTE(bytes);
-				if (!md5.equals(found_md5)) {
-					log.warn(String
-							.format("Sequence id=%d, len=%d, name=%s has incorrect md5=%s. Replaced with %s.",
-									sequenceRecord.getSequenceIndex(),
-									sequenceRecord.getSequenceLength(),
-									sequenceRecord.getSequenceName(),
-									found_md5, md5));
-					sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+	public void fixSequence(SAMSequenceRecord sequenceRecord) throws MD5MismatchError {
+		try {
+			String found_md5 = sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG);
+			if (found_md5 != null) {
+				if (confirmMD5) {
+					byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+					String md5 = Utils.calculateMD5String(bytes);
+					if (!md5.equals(found_md5)) {
+						if (ignoreMD5Mismatch) {
+							log.warn(String.format(
+									"Sequence id=%d, len=%d, name=%s has incorrect md5=%s. Replaced with %s.",
+									sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceLength(),
+									sequenceRecord.getSequenceName(), found_md5, md5));
+							sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+						} else
+							throw new MD5MismatchError(sequenceRecord, md5);
+					}
+					if (sequenceRecord.getSequenceLength() != bytes.length) {
+						log.warn(String.format("Sequence id=%d, name=%s has incorrect length=%d. Replaced with %d.",
+								sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceName(),
+								sequenceRecord.getSequenceLength(), bytes.length));
+						sequenceRecord.setSequenceLength(bytes.length);
+					}
 				}
-				if (sequenceRecord.getSequenceLength() != bytes.length) {
-					log.warn(String
-							.format("Sequence id=%d, name=%s has incorrect length=%d. Replaced with %d.",
-									sequenceRecord.getSequenceIndex(),
-									sequenceRecord.getSequenceName(),
-									sequenceRecord.getSequenceLength(),
-									bytes.length));
-					sequenceRecord.setSequenceLength(bytes.length);
-				}
+			} else {
+				byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+				String md5 = Utils.calculateMD5String(bytes);
+				sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 			}
-		} else {
-			byte[] bytes = referenceSource.getReferenceBases(sequenceRecord,
-					true);
-			String md5 = Utils.calculateMD5_RTE(bytes);
-			sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
-		}
 
-		if (injectURI) {
-			sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG, String
-					.format(sequenceUrlPattern, sequenceRecord
-							.getAttribute(SAMSequenceRecord.MD5_TAG)));
+			if (injectURI) {
+				sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG,
+						String.format(sequenceUrlPattern, sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG)));
+			}
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
-	public void addPG(SAMFileHeader header, String program, String cmd,
-			String version) {
+	public void addPG(SAMFileHeader header, String program, String cmd, String version) {
 		SAMProgramRecord programRecord = header.createProgramRecord();
 		programRecord.setCommandLine(cmd);
 		programRecord.setProgramName(program);
@@ -98,7 +97,7 @@ public class FixBAMFileHeader {
 	public void addCramtoolsPG(SAMFileHeader header) {
 		String cmd = "java " + Utils.getJavaCommand();
 		String version = Utils.getVersion();
-		
+
 		addPG(header, "cramtools", cmd, version);
 	}
 
@@ -130,12 +129,11 @@ public class FixBAMFileHeader {
 		this.injectURI = injectURI;
 	}
 
-	public boolean fixHeaderInFile(File cramFile) throws IOException {
+	public boolean fixHeaderInFile(File cramFile) throws IOException, MD5MismatchError {
 		FileInputStream fis = new FileInputStream(cramFile);
 		CramHeader cramHeader = CramIO.readCramHeader(fis);
 
-		fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
-				.getSequences());
+		fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
 		String cmd = "fixheader";
 		String version = getClass().getPackage().getImplementationVersion();
 		addPG(cramHeader.samFileHeader, "cramtools", cmd, version);
@@ -144,4 +142,42 @@ public class FixBAMFileHeader {
 
 		return CramIO.replaceCramHeader(cramFile, newHeader);
 	}
+
+	public static class MD5MismatchError extends RuntimeException {
+
+		private SAMSequenceRecord sequenceRecord;
+		private String actualMD5;
+
+		public MD5MismatchError(SAMSequenceRecord sequenceRecord, String md5) {
+			super(String.format("MD5 mismatch for sequence %s:%s", sequenceRecord.getSequenceName(), md5));
+			this.sequenceRecord = sequenceRecord;
+			this.actualMD5 = md5;
+		}
+
+		public String getActualMD5() {
+			return actualMD5;
+		}
+
+		public void setActualMD5(String actualMD5) {
+			this.actualMD5 = actualMD5;
+		}
+
+		public SAMSequenceRecord getSequenceRecord() {
+			return sequenceRecord;
+		}
+
+		public void setSequenceRecord(SAMSequenceRecord sequenceRecord) {
+			this.sequenceRecord = sequenceRecord;
+		}
+
+	}
+
+	public boolean isIgnoreMD5Mismatch() {
+		return ignoreMD5Mismatch;
+	}
+
+	public void setIgnoreMD5Mismatch(boolean ignoreMD5Mismatch) {
+		this.ignoreMD5Mismatch = ignoreMD5Mismatch;
+	}
+
 }

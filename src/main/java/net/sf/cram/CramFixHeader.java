@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.common.Utils;
 import net.sf.cram.ref.ReferenceSource;
@@ -21,17 +22,16 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class CramFixHeader {
 	private static Log log = Log.getInstance(CramFixHeader.class);
-	public static final String COMMAND = "fixheader" ;
+	public static final String COMMAND = "fixheader";
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, MD5MismatchError {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		jc.setProgramName(COMMAND);
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameters, detailed message below: ");
+			System.out.println("Failed to parse parameters, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -65,15 +65,14 @@ public class CramFixHeader {
 			System.exit(1);
 		}
 
-		ReferenceSource referenceSource = params.reference == null ? null
-				: new ReferenceSource(params.reference);
+		ReferenceSource referenceSource = params.reference == null ? null : new ReferenceSource(params.reference);
 
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		CramHeader cramHeader = CramIO.readCramHeader(fis);
 
 		FixBAMFileHeader fixer = new FixBAMFileHeader(referenceSource);
-		fixer.fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
-				.getSequences());
+		fixer.setIgnoreMD5Mismatch(true);
+		fixer.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
 		fixer.addCramtoolsPG(cramHeader.samFileHeader);
 
 		CramHeader newHeader = cramHeader.clone();
@@ -85,8 +84,7 @@ public class CramFixHeader {
 
 	}
 
-	private static boolean checkURIPattenIsSensible(String pattern)
-			throws URISyntaxException {
+	private static boolean checkURIPattenIsSensible(String pattern) throws URISyntaxException {
 		String uri = String.format(pattern, "d41d8cd98f00b204e9800998ecf8427e");
 		URI u = new URI(uri);
 		// the uri has been parsed and contains the md5:
