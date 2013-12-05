@@ -80,6 +80,33 @@ public class Cram2Bam {
 		System.out.println(sb.toString());
 	}
 
+	private static InputStream getInputStream(Params params) throws IOException {
+		InputStream is = null;
+		if (params.decrypt) {
+			char[] pass = null;
+			if (System.console() == null)
+				throw new RuntimeException("Cannot access console.");
+			pass = System.console().readPassword();
+
+			if (params.cramFile == null)
+				return new CipherInputStream_256(System.in, pass, 128).getCipherInputStream();
+			else
+				return new SeekableCipherStream_256(new SeekableFileStream(params.cramFile), pass, 1, 128);
+
+		} else {
+			if (params.cramFile == null)
+				is = System.in;
+			else {
+				if (params.locations.isEmpty())
+					is = new BufferedInputStream(new FileInputStream(params.cramFile));
+				else
+					is = new SeekableFileStream(params.cramFile);
+			}
+		}
+
+		return is;
+	}
+
 	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
@@ -107,30 +134,12 @@ public class Cram2Bam {
 		if (params.locations == null)
 			params.locations = new ArrayList<String>();
 
-		char[] pass = null;
-		if (params.decrypt) {
-			if (System.console() == null)
-				throw new RuntimeException("Cannot access console.");
-			pass = System.console().readPassword();
+		if (!params.locations.isEmpty() && params.cramFile == null) {
+			log.error("Random access workds only for files. Please specify input CRAM file.");
+			System.exit(1);
 		}
 
-		InputStream is;
-		if (params.cramFile != null) {
-			FileInputStream fis = new FileInputStream(params.cramFile);
-			if (params.locations == null || params.locations.isEmpty())
-				is = new BufferedInputStream(fis);
-			else
-				is = new SeekableFileStream(params.cramFile);
-		} else
-			is = System.in;
-
-		if (params.decrypt) {
-			CipherInputStream_256 cipherInputStream_256 = new CipherInputStream_256(is, pass, 128);
-			is = cipherInputStream_256.getCipherInputStream();
-			if (params.locations != null && !params.locations.isEmpty()) {
-				is = new SeekableCipherStream_256(new SeekableFileStream(params.cramFile), pass, 1, 128);
-			}
-		}
+		InputStream is = getInputStream(params);
 
 		long offset = 0;
 		CountingInputStream cis = new CountingInputStream(is);
@@ -509,6 +518,7 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--skip-md5-check" }, description = "Skip MD5 checks when reading the header.")
 		public boolean skipMD5Checks = false;
+
 	}
 
 }

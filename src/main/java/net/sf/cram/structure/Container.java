@@ -30,11 +30,11 @@ public class Container {
 	public long bases = 0;
 	public int blockCount = -1;
 	public int[] landmarks;
-	
+
 	/**
 	 * Container data
 	 */
-	public Block[] blocks ;
+	public Block[] blocks;
 
 	public CompressionHeader h;
 
@@ -48,7 +48,6 @@ public class Container {
 	public long parseTime;
 	public long readTime;
 
-
 	// for indexing:
 	/**
 	 * Container start in the stream.
@@ -57,9 +56,12 @@ public class Container {
 
 	@Override
 	public String toString() {
-		return String
-				.format("seqid=%d, astart=%d, aspan=%d, records=%d, slices=%d, blocks=%d.",
-						sequenceId, alignmentStart, alignmentSpan, nofRecords,
-						slices == null ? -1 : slices.length, blockCount);
+		return String.format("seqid=%d, astart=%d, aspan=%d, records=%d, slices=%d, blocks=%d.", sequenceId,
+				alignmentStart, alignmentSpan, nofRecords, slices == null ? -1 : slices.length, blockCount);
+	}
+
+	public boolean isEOF() {
+		return containerByteSize == 11 && sequenceId == 4542278 && blockCount == 1 && nofRecords == 0
+				&& (slices == null || slices.length == 0);
 	}
 }

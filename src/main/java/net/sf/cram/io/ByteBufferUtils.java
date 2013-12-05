@@ -569,4 +569,15 @@ public class ByteBufferUtils {
 		buf.get(data);
 		return new String(data);
 	}
+
+	public static byte[] bytesFromHex(String s) {
+		String clean = s.replaceAll("[^0-9a-f]", "");
+		if (clean.length() % 2 != 0)
+			throw new RuntimeException("Not a hex string: " + s);
+		byte data[] = new byte[clean.length() / 2];
+		for (int i = 0; i < clean.length(); i += 2) {
+			data[i / 2] = (Integer.decode("0x" + clean.charAt(i) + clean.charAt(i + 1))).byteValue();
+		}
+		return data;
+	}
 }

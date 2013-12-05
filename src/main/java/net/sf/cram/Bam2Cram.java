@@ -386,9 +386,9 @@ public class Bam2Cram {
 						params.captureAllTags, params.captureTags, params.ignoreTags);
 				samRecords.clear();
 				Container container = cf.buildContainer(records);
-				for (Slice s : container.slices) {
+				for (Slice s : container.slices)
 					s.setRefMD5(ref);
-				}
+
 				records.clear();
 				CramIO.writeContainer(container, os);
 				log.info(String.format(

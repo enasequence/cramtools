@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;
@@ -49,11 +50,14 @@ import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BufferedLineReader;
+import net.sf.samtools.util.SeekableStream;
 
 public class CramIO {
 	public static int DEFINITION_LENGTH = 4 + 1 + 1 + 20;
 	private static final byte[] CHECK = "".getBytes();
 	private static Log log = Log.getInstance(CramIO.class);
+	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
+			.bytesFromHex("0b 00 00 00 e0 45 4f 46 00 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
 
 	private static final boolean check(InputStream is) throws IOException {
 		DataInputStream dis = new DataInputStream(is);
@@ -72,11 +76,43 @@ public class CramIO {
 		os.write(CHECK);
 	}
 
+	public static long issueZeroB_EOF_marker(OutputStream os) throws IOException {
+		os.write(ZERO_B_EOF_MARKER);
+		return ZERO_B_EOF_MARKER.length;
+	}
+
+	public static boolean hasZeroB_EOF_marker(SeekableStream s) throws IOException {
+		byte[] tail = new byte[ZERO_B_EOF_MARKER.length];
+
+		s.seek(s.length() - ZERO_B_EOF_MARKER.length);
+		ByteBufferUtils.readFully(tail, s);
+
+		return Arrays.equals(tail, ZERO_B_EOF_MARKER);
+	}
+
+	public static boolean hasZeroB_EOF_marker(File file) throws IOException {
+		byte[] tail = new byte[ZERO_B_EOF_MARKER.length];
+
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		try {
+			raf.seek(file.length() - ZERO_B_EOF_MARKER.length);
+			raf.readFully(tail);
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			raf.close();
+		}
+
+		return Arrays.equals(tail, ZERO_B_EOF_MARKER);
+	}
+
 	public static long writeCramHeader(CramHeader h, OutputStream os) throws IOException {
 		os.write("CRAM".getBytes("US-ASCII"));
 		os.write(h.majorVersion);
 		os.write(h.minorVersion);
 		os.write(h.id);
+		for (int i = h.id.length; i < 20; i++)
+			os.write(0);
 
 		long len = writeContainerForSamFileHeader(h.samFileHeader, os);
 
@@ -153,8 +189,14 @@ public class CramIO {
 	public static Container readContainerHeader(InputStream is) throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		if (!chio.readContainerHeader(c, is))
+		if (!chio.readContainerHeader(c, is)) {
+			log.info("No more data, must be the end of stream.");
 			return null;
+		}
+		if (c.isEOF()) {
+			log.info("Found poison container, assuming end of stream.");
+			return null;
+		}
 		return c;
 	}
 
@@ -194,6 +236,8 @@ public class CramIO {
 	}
 
 	private static void calculateSliceOffsetsAndSizes(Container c) {
+		if (c.slices.length == 0)
+			return;
 		for (int i = 0; i < c.slices.length - 1; i++) {
 			Slice s = c.slices[i];
 			s.offset = c.landmarks[i];

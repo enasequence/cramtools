@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import net.sf.cram.common.Utils;
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.picard.PicardException;
 import net.sf.picard.reference.FastaSequenceIndex;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -48,8 +49,7 @@ public class ReferenceSource {
 
 	public ReferenceSource(File file) {
 		if (file != null) {
-			rsFile = ReferenceSequenceFileFactory
-					.getReferenceSequenceFile(file);
+			rsFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(file);
 
 			File indexFile = new File(file.getAbsoluteFile() + ".fai");
 			if (indexFile.exists())
@@ -75,8 +75,7 @@ public class ReferenceSource {
 		return null;
 	}
 
-	public byte[] getReferenceBases(SAMSequenceRecord record,
-			boolean tryNameVariants) {
+	public byte[] getReferenceBases(SAMSequenceRecord record, boolean tryNameVariants) {
 		{ // check cache by sequence name:
 			String name = record.getSequenceName();
 			byte[] bases = findInCache(name);
@@ -99,8 +98,7 @@ public class ReferenceSource {
 			bases = findBasesByName(record.getSequenceName(), tryNameVariants);
 			if (bases != null) {
 				Utils.upperCase(bases);
-				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(
-						bases));
+				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(bases));
 				return bases;
 			}
 		}
@@ -139,7 +137,11 @@ public class ReferenceSource {
 
 		if (tryVariants) {
 			for (String variant : getVariants(name)) {
-				sequence = rsFile.getSequence(variant);
+				try {
+					sequence = rsFile.getSequence(variant);
+				} catch (PicardException e) {
+					log.info("Sequence not found: " + variant);
+				}
 				if (sequence != null)
 					return sequence.getBases();
 			}
@@ -147,8 +149,7 @@ public class ReferenceSource {
 		return null;
 	}
 
-	protected byte[] findBasesByMD5(String md5) throws MalformedURLException,
-			IOException {
+	protected byte[] findBasesByMD5(String md5) throws MalformedURLException, IOException {
 		String url = String.format("http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
 		InputStream is = new URL(url).openStream();
 		if (is == null)
@@ -158,8 +159,7 @@ public class ReferenceSource {
 		return ByteBufferUtils.readFully(is);
 	}
 
-	private static final Pattern chrPattern = Pattern.compile("chr.*",
-			Pattern.CASE_INSENSITIVE);
+	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
 
 	protected List<String> getVariants(String name) {
 		List<String> variants = new ArrayList<String>();

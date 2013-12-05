@@ -34,29 +34,44 @@ public final class CramHeader {
 	public CramHeader() {
 	}
 
-	public CramHeader(int majorVersion, int minorVersion, String id,
-			SAMFileHeader samFileHeader) {
+	public CramHeader(int majorVersion, int minorVersion, String id, SAMFileHeader samFileHeader) {
 		this.majorVersion = (byte) majorVersion;
 		this.minorVersion = (byte) minorVersion;
-		System.arraycopy(id.getBytes(), 0, this.id, 0,
-				Math.min(id.length(), this.id.length));
+		System.arraycopy(id.getBytes(), 0, this.id, 0, Math.min(id.length(), this.id.length));
 		this.samFileHeader = samFileHeader;
 	}
 
 	public void setID(String stringID) {
-		System.arraycopy(stringID.getBytes(), 0, this.id, 0,
-				Math.min(this.id.length, stringID.length()));
+		System.arraycopy(stringID.getBytes(), 0, this.id, 0, Math.min(this.id.length, stringID.length()));
 	}
-	
+
 	@Override
 	public CramHeader clone() {
-		CramHeader clone = new CramHeader() ;
-		clone.majorVersion = majorVersion ;
-		clone.minorVersion = minorVersion ;
-		System.arraycopy(id, 0, clone.id, 0, id.length) ;
-		clone.samFileHeader = samFileHeader.clone() ;
-		
+		CramHeader clone = new CramHeader();
+		clone.majorVersion = majorVersion;
+		clone.minorVersion = minorVersion;
+		System.arraycopy(id, 0, clone.id, 0, id.length);
+		clone.samFileHeader = samFileHeader.clone();
+
 		return clone;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
+		if (!(obj instanceof CramHeader))
+			return false;
+
+		CramHeader h = (CramHeader) obj;
+
+		if (majorVersion != h.majorVersion)
+			return false;
+		if (minorVersion != h.minorVersion)
+			return false;
+		if (!Arrays.equals(id, h.id))
+			return false;
+		return samFileHeader.equals(h.samFileHeader);
 	}
 
 }

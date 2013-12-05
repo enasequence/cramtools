@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.structure;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,15 +24,20 @@ import net.sf.cram.io.ByteBufferUtils;
 
 public class ContainerHeaderIO {
 
-	public boolean readContainerHeader(Container c, InputStream is)
-			throws IOException {
-		byte[] peek = new byte[4] ;
-		try {
-			ByteBufferUtils.readFully(peek, is) ;
-		} catch (EOFException e) {
-			return false ;
+	public boolean readContainerHeader(Container c, InputStream is) throws IOException {
+		byte[] peek = new byte[4];
+		int ch = is.read();
+		if (ch == -1)
+			return false;
+
+		peek[0] = (byte) ch;
+		for (int i = 1; i < peek.length; i++) {
+			ch = is.read();
+			if (ch == -1)
+				throw new RuntimeException("Incomplete or broken stream.");
+			peek[i] = (byte) ch;
 		}
-		
+
 		c.containerByteSize = ByteBufferUtils.int32(peek);
 		c.sequenceId = ByteBufferUtils.readUnsignedITF8(is);
 		c.alignmentStart = ByteBufferUtils.readUnsignedITF8(is);
@@ -43,12 +47,11 @@ public class ContainerHeaderIO {
 		c.bases = ByteBufferUtils.readUnsignedLTF8(is);
 		c.blockCount = ByteBufferUtils.readUnsignedITF8(is);
 		c.landmarks = ByteBufferUtils.array(is);
-		
-		return true ;
+
+		return true;
 	}
-	
-	public int writeContainerHeader(Container c, OutputStream os)
-			throws IOException {
+
+	public int writeContainerHeader(Container c, OutputStream os) throws IOException {
 		int len = ByteBufferUtils.writeInt32(c.containerByteSize, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.sequenceId, os);
 		len += ByteBufferUtils.writeUnsignedITF8(c.alignmentStart, os);
@@ -61,9 +64,9 @@ public class ContainerHeaderIO {
 
 		return len;
 	}
-	
-	public int sizeOfContainerHeader (Container c) throws IOException {
-		NullOutputStream nos = new NullOutputStream() ;
-		return writeContainerHeader(c, nos) ;
+
+	public int sizeOfContainerHeader(Container c) throws IOException {
+		NullOutputStream nos = new NullOutputStream();
+		return writeContainerHeader(c, nos);
 	}
 }
