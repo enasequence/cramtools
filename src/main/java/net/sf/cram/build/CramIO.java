@@ -57,7 +57,7 @@ public class CramIO {
 	private static final byte[] CHECK = "".getBytes();
 	private static Log log = Log.getInstance(CramIO.class);
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
-			.bytesFromHex("0b 00 00 00 e0 45 4f 46 00 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
+			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
 
 	private static final boolean check(InputStream is) throws IOException {
 		DataInputStream dis = new DataInputStream(is);
@@ -375,4 +375,5 @@ public class CramIO {
 
 		return true;
 	}
+
 }

@@ -61,7 +61,7 @@ public class Container {
 	}
 
 	public boolean isEOF() {
-		return containerByteSize == 11 && sequenceId == 4542278 && blockCount == 1 && nofRecords == 0
-				&& (slices == null || slices.length == 0);
+		return containerByteSize == 11 && sequenceId == -1 && alignmentStart == 4542278 && blockCount == 1
+				&& nofRecords == 0 && (slices == null || slices.length == 0);
 	}
 }
