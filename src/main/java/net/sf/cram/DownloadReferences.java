@@ -158,7 +158,7 @@ public class DownloadReferences {
 		int count;
 		byte[] buffer = new byte[8192];
 		int posInLine = 0, posInBuf = 0;
-		while ((count = in.read(buffer)) > 0) {
+		while ((count = in.read(buffer)) > -1) {
 			posInBuf = 0;
 			while (posInBuf < count) {
 				for (; posInLine < lineLength && posInBuf < count; posInLine++) {
