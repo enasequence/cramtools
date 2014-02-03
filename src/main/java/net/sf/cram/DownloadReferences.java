@@ -7,7 +7,6 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -122,12 +121,31 @@ public class DownloadReferences {
 				InputStream is = null;
 				try {
 					is = getInputStreamForMD5(id.md5);
-				} catch (FileNotFoundException e) {
-					if (ignoreNotFound) {
-						log.warn(String.format("Sequence %s not found for MD5 %s", id.name, id.md5));
-						continue;
+					// } catch (FileNotFoundException e) {
+					// if (ignoreNotFound) {
+					// log.warn(String.format("Sequence %s not found for MD5 %s",
+					// id.name, id.md5));
+					// continue;
+					// } else {
+					// log.error(String.format("Sequence %s not found for MD5 %s",
+					// id.name, id.md5));
+					// throw e;
+					// }
+				} catch (IOException ioe) {
+					String message = ioe.getMessage();
+					if (message != null & message.startsWith("Server returned HTTP response code: 500")) {
+						if (ignoreNotFound) {
+							log.warn(String.format("Not found in the remote repository: sequence '%s' for MD5 %s",
+									id.name, id.md5));
+							continue;
+						} else {
+							log.error(String.format("Not found in the remote repository: sequence '%s' for MD5 %s",
+									id.name, id.md5));
+							throw ioe;
+						}
 					} else
-						throw e;
+						throw ioe;
+
 				}
 
 				printSequence(is, id, bos, lineLength);

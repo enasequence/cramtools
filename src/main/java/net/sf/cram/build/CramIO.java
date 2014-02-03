@@ -333,7 +333,9 @@ public class CramIO {
 		dis.readFully(bytes);
 
 		BufferedLineReader r = new BufferedLineReader(new ByteArrayInputStream(bytes));
-		return new SAMTextHeaderCodec().decode(r, id);
+		SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
+		SAMFileHeader header = codec.decode(r, id);
+		return header;
 	}
 
 	public static boolean replaceCramHeader(File file, CramHeader newHeader) throws IOException {

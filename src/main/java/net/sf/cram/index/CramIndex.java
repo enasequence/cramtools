@@ -18,7 +18,9 @@ package net.sf.cram.index;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
@@ -79,18 +81,18 @@ public class CramIndex {
 
 		@Override
 		public String toString() {
-			return String.format("%d\t%d\t%d\t%d\t%d\t%d", sequenceId,
-					alignmentStart, alignmentSpan, containerStartOffset,
-					sliceOffset, sliceSize);
+			return String.format("%d\t%d\t%d\t%d\t%d\t%d", sequenceId, alignmentStart, alignmentSpan,
+					containerStartOffset, sliceOffset, sliceSize);
 		}
 
 		@Override
 		public int compareTo(Entry o) {
 			if (sequenceId != o.sequenceId)
-				return sequenceId - o.sequenceId;
+				return o.sequenceId - sequenceId;
 			if (alignmentStart != o.alignmentStart)
 				return alignmentStart - o.alignmentStart;
-			return 0;
+
+			return (int) (containerStartOffset - o.containerStartOffset);
 		}
 
 		@Override
@@ -126,31 +128,68 @@ public class CramIndex {
 		return list;
 	}
 
-	public static List<Entry> find(List<Entry> list, int seqId, int start,
-			int span) {
+	private static Comparator<Entry> byEnd = new Comparator<Entry>() {
+
+		@Override
+		public int compare(Entry o1, Entry o2) {
+			if (o1.sequenceId != o2.sequenceId)
+				return o2.sequenceId - o1.sequenceId;
+			if (o1.alignmentStart + o1.alignmentSpan != o2.alignmentStart + o2.alignmentSpan)
+				return o1.alignmentStart + o1.alignmentSpan - o2.alignmentStart - o2.alignmentSpan;
+
+			return (int) (o1.containerStartOffset - o2.containerStartOffset);
+		}
+	};
+
+	private static Comparator<Entry> byStart = new Comparator<Entry>() {
+
+		@Override
+		public int compare(Entry o1, Entry o2) {
+			if (o1.sequenceId != o2.sequenceId)
+				return o2.sequenceId - o1.sequenceId;
+			if (o1.alignmentStart != o2.alignmentStart)
+				return o1.alignmentStart - o2.alignmentStart;
+
+			return (int) (o1.containerStartOffset - o2.containerStartOffset);
+		}
+	};
+
+	private static boolean intersect(Entry e0, Entry e1) {
+		if (e0.sequenceId != e1.sequenceId)
+			return false;
+		if (e0.sequenceId < 0)
+			return false;
+
+		int a0 = e0.alignmentStart;
+		int a1 = e1.alignmentStart;
+
+		int b0 = a0 + e0.alignmentSpan;
+		int b1 = a1 + e1.alignmentSpan;
+
+		boolean result = Math.abs(a0 + b0 - a1 - b1) < (e0.alignmentSpan + e1.alignmentSpan);
+		return result;
+
+	}
+
+	public static List<Entry> find(List<Entry> list, int seqId, int start, int span) {
+		boolean whole = start < 1 || span < 1;
 		Entry query = new Entry();
 		query.sequenceId = seqId;
-		query.alignmentStart = start;
-		query.alignmentSpan = span;
+		query.alignmentStart = start < 1 ? 1 : start;
+		query.alignmentSpan = span < 1 ? Integer.MAX_VALUE : span;
 		query.containerStartOffset = Long.MAX_VALUE;
 		query.sliceOffset = Integer.MAX_VALUE;
 		query.sliceSize = Integer.MAX_VALUE;
 
-		int index = Collections.binarySearch(list, query);
-		if (index < 0)
-			index = -index - 1;
-		if (list.get(index).sequenceId != seqId)
-			return Collections.EMPTY_LIST;
-
-		query.alignmentStart = start + span;
-		int index2 = Collections.binarySearch(list, query);
-		if (index2 < 0)
-			index2 = -index2 - 1;
-
-		if (index2 <= index)
-			index2 = index + 1;
-
-		return list.subList(index, index2);
+		List<Entry> l = new ArrayList<Entry>();
+		for (Entry e : list) {
+			if (e.sequenceId != seqId)
+				continue;
+			if (whole || intersect(e, query))
+				l.add(e);
+		}
+		Collections.sort(l, byStart);
+		return l;
 	}
 
 	public void close() throws IOException {
@@ -167,7 +206,21 @@ public class CramIndex {
 				left = e;
 
 		return left;
-
 	}
 
+	private static int findLastAlignedEntry(List<Entry> list) {
+		int low = 0;
+		int high = list.size() - 1;
+
+		while (low <= high) {
+			int mid = (low + high) >>> 1;
+			Entry midVal = list.get(mid);
+
+			if (midVal.sequenceId >= 0)
+				low = mid + 1;
+			else
+				high = mid - 1;
+		}
+		return low;
+	}
 }

@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +42,7 @@ public class ReferenceSource {
 	private static Log log = Log.getInstance(ReferenceSource.class);
 	private ReferenceSequenceFile rsFile;
 	private FastaSequenceIndex fastaSequenceIndex;
+	private int downloadTriesBeforeFailing = 2;
 
 	private Map<String, WeakReference<byte[]>> cacheW = new HashMap<String, WeakReference<byte[]>>();
 
@@ -151,12 +153,31 @@ public class ReferenceSource {
 
 	protected byte[] findBasesByMD5(String md5) throws MalformedURLException, IOException {
 		String url = String.format("http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
-		InputStream is = new URL(url).openStream();
-		if (is == null)
-			return null;
 
-		log.info("Downloading reference sequence: " + url);
-		return ByteBufferUtils.readFully(is);
+		for (int i = 0; i < downloadTriesBeforeFailing; i++) {
+			InputStream is = new URL(url).openStream();
+			if (is == null)
+				return null;
+
+			log.info("Downloading reference sequence: " + url);
+			byte[] data = ByteBufferUtils.readFully(is);
+			log.info("Downloaded " + data.length + " bytes for md5 " + md5);
+			is.close();
+
+			try {
+				String downloadedMD5 = Utils.calculateMD5String(data);
+				if (md5.equals(downloadedMD5)) {
+					return data;
+				} else {
+					String message = String.format("Downloaded sequence is corrupt: requested md5=%s, received md5=%s",
+							md5, downloadedMD5);
+					log.error(message);
+				}
+			} catch (NoSuchAlgorithmException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		throw new RuntimeException("Giving up on downloading sequence for md5 " + md5);
 	}
 
 	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
@@ -181,5 +202,13 @@ public class ReferenceSource {
 			variants.add("MT");
 		}
 		return variants;
+	}
+
+	public int getDownloadTriesBeforeFailing() {
+		return downloadTriesBeforeFailing;
+	}
+
+	public void setDownloadTriesBeforeFailing(int downloadTriesBeforeFailing) {
+		this.downloadTriesBeforeFailing = downloadTriesBeforeFailing;
 	}
 }

@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -40,7 +41,6 @@ import net.sf.cram.build.CramIO;
 import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
-import net.sf.cram.index.CramIndex.Entry;
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.CountingInputStream;
 import net.sf.cram.ref.ReferenceSource;
@@ -130,6 +130,7 @@ public class Cram2Bam {
 		if (params.reference == null)
 			log.warn("No reference file specified, remote access over internet may be used to download public sequences. ");
 		ReferenceSource referenceSource = new ReferenceSource(params.reference);
+		referenceSource.setDownloadTriesBeforeFailing(params.downloadTriesBeforeFailing);
 
 		if (params.locations == null)
 			params.locations = new ArrayList<String>();
@@ -149,6 +150,7 @@ public class Cram2Bam {
 		fix.setInjectURI(params.injectURI);
 		fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
 		try {
+			log.info("Preparing the header...");
 			fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
 		} catch (MD5MismatchError e) {
 			log.error(e.getMessage());
@@ -173,8 +175,19 @@ public class Cram2Bam {
 				throw new RuntimeException("Only one location is supported.");
 
 			location = new AlignmentSliceQuery(params.locations.get(0));
+			location.sequenceId = cramHeader.samFileHeader.getSequenceIndex(location.sequence);
+			if (location.sequenceId < 0) {
+				log.error("Reference sequence not found for name: " + location.sequence);
+				return;
+			}
 
-			c = skipToContainer(params.cramFile, cramHeader, (SeekableStream) is, location);
+			try {
+				log.info("Seeking for the query " + location.toString());
+				c = skipToContainer(params.cramFile, cramHeader, (SeekableStream) is, location);
+			} catch (ReadNotFoundException e) {
+				log.warn("Nothing found for query " + location);
+				return;
+			}
 
 			if (c == null) {
 				log.error("Index file not found. ");
@@ -210,11 +223,10 @@ public class Cram2Bam {
 
 			// for random access check if the sequence is the one we are looking
 			// for:
-			if (location != null
-					&& cramHeader.samFileHeader.getSequence(location.sequence).getSequenceIndex() != c.sequenceId)
+			if (location != null && location.sequenceId != c.sequenceId)
 				break;
 
-			if (params.countOnly && params.requiredFlags == 0 && params.filteringFlags == 0) {
+			if (params.countOnly && location == null && params.requiredFlags == 0 && params.filteringFlags == 0) {
 				recordCount += c.nofRecords;
 				baseCount += c.bases;
 				continue;
@@ -238,6 +250,7 @@ public class Cram2Bam {
 			default:
 				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
 					SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(c.sequenceId);
+					log.info("Loading reference sequence " + sequence.getSequenceName());
 					ref = referenceSource.getReferenceBases(sequence, true);
 					Utils.upperCase(ref);
 					prevSeqId = c.sequenceId;
@@ -252,10 +265,11 @@ public class Cram2Bam {
 						continue;
 					if (!s.validateRefMD5(ref)) {
 						log.error(String
-								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
+								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
 										s.sequenceId, s.alignmentStart, s.alignmentSpan,
 										String.format("%032x", new BigInteger(1, s.refMD5))));
-						System.exit(1);
+						if (!params.resilient)
+							System.exit(1);
 					}
 				}
 			} catch (NoSuchAlgorithmException e1) {
@@ -275,8 +289,14 @@ public class Cram2Bam {
 			boolean enough = false;
 			for (CramRecord r : cramRecords) {
 				// check if the record ends before the query start:
-				if (location != null && r.alignmentStart < location.start)
+				if (location != null && r.sequenceId == location.sequenceId && r.getAlignmentEnd() < location.start)
 					continue;
+
+				// we got all the reads for random access:
+				if (location != null && location.sequenceId == r.sequenceId && location.end < r.alignmentStart) {
+					enough = true;
+					break;
+				}
 
 				time = System.nanoTime();
 				SAMRecord s = c2sFactory.create(r);
@@ -303,11 +323,6 @@ public class Cram2Bam {
 				if (params.outputFile == null && System.out.checkError())
 					break;
 
-				// we got all the reads for random access:
-				if (location != null && location.end < s.getAlignmentStart()) {
-					enough = true;
-					break;
-				}
 			}
 
 			log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
@@ -329,22 +344,27 @@ public class Cram2Bam {
 	}
 
 	private static Container skipToContainer(File cramFile, CramHeader cramHeader, SeekableStream cramFileInputStream,
-			AlignmentSliceQuery location) throws IOException {
+			AlignmentSliceQuery location) throws IOException, ReadNotFoundException {
 		Container c = null;
 
 		{ // try crai:
+			log.info("Reading BAI...");
 			List<CramIndex.Entry> entries = getCraiEntries(cramFile, cramHeader, cramFileInputStream, location);
 			if (entries != null) {
+
+				if (entries.isEmpty())
+					throw new ReadNotFoundException();
+
+				log.info("Found index entries: " + entries.size());
+
 				try {
-					Entry leftmost = CramIndex.getLeftmost(entries);
-					cramFileInputStream.seek(leftmost.containerStartOffset);
+					cramFileInputStream.seek(entries.get(0).containerStartOffset);
 					c = CramIO.readContainerHeader(cramFileInputStream);
 					if (c == null)
-						return null;
-					if (c.alignmentStart + c.alignmentSpan > location.start) {
-						cramFileInputStream.seek(leftmost.containerStartOffset);
-						return c;
-					}
+						throw new RuntimeException("Index point outside of the file.");
+
+					cramFileInputStream.seek(entries.get(0).containerStartOffset);
+					return c;
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -352,10 +372,13 @@ public class Cram2Bam {
 		}
 
 		{ // try bai:
+			log.info("Reading BAI...");
 			long[] filePointers = getBaiFilePointers(cramFile, cramHeader, cramFileInputStream, location);
-			if (filePointers.length == 0) {
+			if (filePointers == null)
 				return null;
-			}
+
+			if (filePointers.length == 0)
+				throw new ReadNotFoundException();
 
 			for (int i = 0; i < filePointers.length; i += 2) {
 				long offset = filePointers[i] >>> 16;
@@ -377,13 +400,14 @@ public class Cram2Bam {
 	}
 
 	private static long[] getBaiFilePointers(File cramFile, CramHeader cramHeader, SeekableStream cramFileInputStream,
-			AlignmentSliceQuery location) throws IOException {
-		long[] filePointers = new long[0];
+			AlignmentSliceQuery location) throws IOException, ReadNotFoundException {
+		long[] filePointers = null;
 
 		File indexFile = new File(cramFile.getAbsolutePath() + ".bai");
 		if (indexFile.exists())
 			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(indexFile,
 					cramHeader.samFileHeader.getSequenceDictionary(), location.sequence, location.start, location.end);
+
 		return filePointers;
 	}
 
@@ -395,6 +419,7 @@ public class Cram2Bam {
 			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(fis));
 			BufferedInputStream bis = new BufferedInputStream(gis);
 			List<CramIndex.Entry> full = CramIndex.readIndex(gis);
+			Collections.sort(full);
 
 			List<CramIndex.Entry> entries = new LinkedList<CramIndex.Entry>();
 			SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(location.sequence);
@@ -489,7 +514,7 @@ public class Cram2Bam {
 		@Parameter(names = { "--calculate-nm-tag" }, description = "Calculate NM tag.")
 		boolean calculateNmTag = false;
 
-		@Parameter()
+		@Parameter(description = "A region to access specified as <sequence name>[:<start inclusive>[-[<stop inclusive>]]")
 		List<String> locations;
 
 		@Parameter(names = { "--decrypt" }, description = "Decrypt the file.")
@@ -519,6 +544,11 @@ public class Cram2Bam {
 		@Parameter(names = { "--skip-md5-check" }, description = "Skip MD5 checks when reading the header.")
 		public boolean skipMD5Checks = false;
 
+		@Parameter(names = { "--ref-seq-download-tries" }, description = "Try to download sequences this many times if their md5 mismatches.", hidden = true)
+		int downloadTriesBeforeFailing = 2;
+
+		@Parameter(names = { "--resilient" }, description = "Report reference sequence md5 mismatch and keep going.", hidden = true)
+		public boolean resilient = false;
 	}
 
 }

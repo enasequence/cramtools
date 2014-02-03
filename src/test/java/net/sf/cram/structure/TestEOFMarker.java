@@ -36,25 +36,6 @@ public class TestEOFMarker {
 	}
 
 	@Test
-	public void test1() throws IOException {
-		String marker = "0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00";
-		byte[] bytes = ByteBufferUtils.bytesFromHex(marker);
-		System.out.println(bytes.length);
-		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		ContainerHeaderIO cio = new ContainerHeaderIO();
-		Container c = new Container();
-		cio.readContainerHeader(c, bais);
-
-		assertThat(c.sequenceId, is(-1));
-		assertThat(c.alignmentStart, is(4542278));
-
-		String blockLine = "00 01 00 06 06 01 00 01 00 01 00";
-		bytes = ByteBufferUtils.bytesFromHex(blockLine);
-		Block b = new Block(new ByteArrayInputStream(bytes), true, true);
-		System.out.println(b.contentId);
-	}
-
-	@Test
 	public void testZeroB_EOF_marker() throws IOException {
 		Container container;
 		container = CramIO.readContainer(new ByteArrayInputStream(CramIO.ZERO_B_EOF_MARKER));

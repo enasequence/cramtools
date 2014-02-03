@@ -15,16 +15,28 @@
  ******************************************************************************/
 package net.sf.cram.encoding;
 
+import static org.junit.Assert.assertArrayEquals;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import net.sf.cram.common.NullOutputStream;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
+import net.sf.cram.io.DefaultBitInputStream;
 import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.picard.util.Log;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import SevenZip.Compression.LZMA.Decoder;
+import SevenZip.Compression.LZMA.Encoder;
 
 public class ArithCodec extends AbstractBitCodec<byte[]> {
 	private byte curBit = 0;
@@ -70,7 +82,7 @@ public class ArithCodec extends AbstractBitCodec<byte[]> {
 		this.probs[this.probs.length - 1] = 1.0;
 
 		// initialize byte stream --------------------------
-		this.baos = new ByteArrayOutputStream();
+		this.baos = new ByteArrayOutputStream(2 * 215000000);
 		this.fileData = new ArrayList();
 	}
 
@@ -203,16 +215,14 @@ public class ArithCodec extends AbstractBitCodec<byte[]> {
 			encodeCharacter(bos, this.map[this.TERMINATOR]);
 			flush(bos);
 		} catch (Exception ex) {
-			Log.getInstance(ArithCodec.class).error(ex);
+			Log.getInstance(getClass()).error(ex);
 		}
 
 		return this.bitCount;
 	}
 
-	private void encodeCharacter(BitOutputStream bos, int character)
-			throws Exception {
-		if (probs.length < 2 || probs[probs.length - 1] != 1 || character < 0
-				|| character >= probs.length)
+	private void encodeCharacter(BitOutputStream bos, int character) throws Exception {
+		if (probs.length < 2 || probs[probs.length - 1] != 1 || character < 0 || character >= probs.length)
 			throw new Exception("Invalid input");
 		if (character > 0)
 			localMin = probs[character - 1];
@@ -230,7 +240,7 @@ public class ArithCodec extends AbstractBitCodec<byte[]> {
 					curBit = 0; // bit-position, left-to-right
 					this.bitCount += 8;
 				}
-				min = cur; // wrote 1 (go higer) adjust min
+				min = cur; // wrote 1 (go higher) adjust min
 			} else if (cur >= localMax) {
 				curBit++;
 				if (curBit == 8) {
@@ -312,4 +322,124 @@ public class ArithCodec extends AbstractBitCodec<byte[]> {
 		throw new RuntimeException("Not implemented.");
 	}
 
+	private static class AC_params {
+		int[] freqs;
+		int[] map;
+		byte[] data;
+	}
+
+	private static AC_params getAC_params(String filePath) {
+		AC_params p = new AC_params();
+		SAMFileReader reader = new SAMFileReader(new File(filePath));
+		// int[] values =
+		for (SAMRecord record : reader) {
+
+		}
+
+		return p;
+	}
+
+	public static void main(String[] args) throws IOException {
+		int[] freqs = { 10000000, 5000000, 1000000, 2500000, 3000000 };
+		int[] map = { 0, 1, 2, 3, 4 };
+
+		int len = 0;
+		for (int i = 0; i < map.length; i++)
+			len += freqs[i];
+		System.out.printf("%d distinct values, data size=%d\n", map.length, len);
+
+		byte[] data = new byte[len];
+		int k = 0;
+		for (int i = 0; i < map.length; i++)
+			for (int j = 0; j < freqs[i]; j++)
+				data[k++] = (byte) (map[i] & 0xFF);
+
+		shuffle(data);
+
+		{
+			ArithCodec codec = new ArithCodec(freqs, map);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			BitOutputStream bos = new DefaultBitOutputStream(baos);
+
+			long startTime = System.nanoTime();
+			long writtenBits = codec.write(bos, data);
+			codec.flush(bos);
+			bos.close();
+			long endTime = System.nanoTime();
+			float ms = (endTime - startTime) / 1000000f;
+			System.out.printf("write: b/b %.2f, time %.2fms, %.2f mb/s\n", ((float) writtenBits) / data.length, ms,
+					((float) len) / 1024 / 1024 / ms * 1000);
+
+			ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+			BitInputStream bis = new DefaultBitInputStream(bais);
+			startTime = System.nanoTime();
+			byte[] readData = codec.read(bis);
+			endTime = System.nanoTime();
+			ms = (endTime - startTime) / 1000000f;
+			System.out.printf("read: time %.2fms, %.2f mb/s\n", ms, ((float) len) / 1024 / 1024 / ms * 1000);
+
+			assertArrayEquals(data, readData);
+		}
+
+		{
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			GZIPOutputStream gos = new GZIPOutputStream(baos);
+			long startTime = System.nanoTime();
+			gos.write(data);
+			gos.close();
+			long endTime = System.nanoTime();
+			float ms = (endTime - startTime) / 1000000f;
+			System.out.printf("gzip write: b/b %.2f, time %.2fms, %.2f mb/s\n", (8f * baos.size()) / data.length, ms,
+					((float) len) / 1024 / 1024 / ms * 1000);
+
+			ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+			GZIPInputStream gis = new GZIPInputStream(bais);
+			byte[] readData = new byte[data.length];
+			startTime = System.nanoTime();
+			gis.read(readData);
+			endTime = System.nanoTime();
+			ms = (endTime - startTime) / 1000000f;
+			System.out.printf("gzip read: time %.2fms, %.2f mb/s\n", ms, ((float) len) / 1024 / 1024 / ms * 1000);
+
+		}
+
+		{
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			Encoder e = new Encoder();
+			ByteArrayOutputStream propStream = new ByteArrayOutputStream();
+			e.WriteCoderProperties(propStream);
+			byte[] propArray = propStream.toByteArray();
+			System.out.println("lzma prop data size " + propArray.length);
+
+			long startTime = System.nanoTime();
+			e.Code(new ByteArrayInputStream(data), baos, data.length, -1, null);
+			long endTime = System.nanoTime();
+			float ms = (endTime - startTime) / 1000000f;
+			System.out.printf("lzma write: b/b %.2f, time %.2fms, %.2f mb/s\n", (8f * baos.size()) / data.length, ms,
+					((float) len) / 1024 / 1024 / ms * 1000);
+
+			ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+			baos = new ByteArrayOutputStream();
+			Decoder d = new Decoder();
+			d.SetDecoderProperties(propArray);
+			startTime = System.nanoTime();
+			d.Code(bais, baos, data.length);
+			endTime = System.nanoTime();
+			ms = (endTime - startTime) / 1000000f;
+			System.out.printf("lzma read: time %.2fms, %.2f mb/s\n", ms, ((float) len) / 1024 / 1024 / ms * 1000);
+
+		}
+	}
+
+	private static void shuffle(byte[] data) {
+		Random random = new Random();
+		byte tmp;
+		int rPos;
+		for (int i = 0; i < data.length; i++) {
+			tmp = data[i];
+			rPos = random.nextInt(data.length);
+			data[i] = data[rPos];
+			data[rPos] = tmp;
+		}
+	}
 }

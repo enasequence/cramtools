@@ -21,8 +21,12 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.zip.Adler32;
+import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -353,7 +357,74 @@ public class ByteBufferUtils {
 
 	public static void main(String[] args) throws IOException {
 
+		sun.misc.CRC16 crc16 = new sun.misc.CRC16();
+		String eof = "00 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00";
+		eof = "01";
+		for (byte b : ByteBufferUtils.bytesFromHex(eof))
+			crc16.update(b);
+		crc16.reset();
+		crc16.update((byte) 1);
+		System.out.println("crc16: " + crc16.value);
+
+		System.out.println("fnv1a_32: " + fnv1a_32("a".getBytes()));
+		System.out.println("FNV_1a: " + my_fnv1a_32("a".getBytes()));
+		System.out.println(0x811c9dc5L);
+		System.out.println(0xe40c292cL);
+
+		byte[] data = new byte[1024 * 1024];
+		new Random().nextBytes(data);
+
+		// BigInteger hash = new BigInteger("0");
+		long hash = 0;
+		Adler32 a = new Adler32();
+		long aValue = 0;
+		long time1;
+		long time2;
+
+		time1 = System.currentTimeMillis();
+		for (int i = 0; i < 100; i++)
+			hash += my_fnv1a_32(data);
+		time2 = System.currentTimeMillis();
+
+		System.out.println(aValue);
+		System.out.printf("FNV_1A: %.2f s\n", (time2 - time1) / 1000f);
+
+		CRC32 crc32 = new CRC32();
+		time1 = System.currentTimeMillis();
+		for (int i = 0; i < 100; i++) {
+			crc32.reset();
+			crc32.update(data);
+			hash += crc32.getValue();
+		}
+		time2 = System.currentTimeMillis();
+
+		System.out.println(aValue);
+		System.out.printf("CRC32: %.2f s\n", (time2 - time1) / 1000f);
+
+		time1 = System.currentTimeMillis();
+		for (int i = 0; i < 100; i++) {
+			a.reset();
+			a.update(data);
+			aValue += a.getValue();
+		}
+
+		time2 = System.currentTimeMillis();
+		System.out.println(hash);
+		System.out.printf("Adler32: %.2f s\n", (time2 - time1) / 1000f);
+
+		if (true)
+			return;
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		writeUnsignedITF8(-1, baos);
+		baos.close();
+		System.out.println(Arrays.toString(baos.toByteArray()));
+
+		int n = readUnsignedITF8(new byte[] { (byte) (0xFF & 224), 69, 79, 70 });
+		System.out.println(n);
+
 		{
+
 			// test LTF8
 
 			if (!testLTF8(1125899906842622l))
@@ -568,6 +639,59 @@ public class ByteBufferUtils {
 		byte[] data = new byte[Math.min(len, buf.limit())];
 		buf.get(data);
 		return new String(data);
+	}
+
+	public static final long FNV_1a(byte[] data) {
+		long hash = 2166136261L;
+		long octet = 0;
+		ByteBuffer b = ByteBuffer.wrap(data);
+		for (int i = 0; i < data.length / 8; i++) {
+			hash = hash | b.getLong();
+			hash = hash * 1099511628211L;
+		}
+
+		for (int i = 0; i < data.length % 8; i++) {
+			octet = octet | (data[data.length - (data.length % 8) + i] << (64 - (i * 8)));
+		}
+		hash = hash * 1099511628211L;
+
+		return hash;
+	}
+
+	private static BigInteger HASH = new BigInteger("811c9dc5", 16);
+	private static final BigInteger PRIME32 = new BigInteger("01000193", 16);
+	private static final BigInteger MOD32 = new BigInteger("2").pow(32);
+
+	public static final BigInteger fnv1a_32(byte[] data) {
+		for (byte b : data) {
+			HASH = HASH.xor(BigInteger.valueOf(b & 0xff));
+			HASH = HASH.multiply(PRIME32).mod(MOD32);
+		}
+
+		return HASH;
+	}
+
+	private static long prime32 = PRIME32.longValue();
+	private static long mod32 = MOD32.longValue();
+
+	public static final long my_fnv1a(byte[] data) {
+		long hash = 0x811c9dc5L;
+		for (byte b : data) {
+			hash = hash ^ (b & 0xff);
+			hash = (hash * 0x01000193L) % 0x100000000L;
+		}
+
+		return hash;
+	}
+
+	public static final long my_fnv1a_32(byte[] data) {
+		long hash = 0x811c9dc5L;
+		for (byte b : data) {
+			hash = hash ^ (b & 0xff);
+			hash = (hash * 0x01000193);
+		}
+
+		return hash % 0x100000000L;
 	}
 
 	public static byte[] bytesFromHex(String s) {

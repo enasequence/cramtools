@@ -17,8 +17,9 @@ package net.sf.cram;
 
 public class AlignmentSliceQuery {
 	public String sequence;
+	public int sequenceId;
 	public int start;
-	public int end=Integer.MAX_VALUE;
+	public int end = Integer.MAX_VALUE;
 
 	public AlignmentSliceQuery(String spec) {
 		String[] chunks = spec.split(":");
@@ -32,5 +33,15 @@ public class AlignmentSliceQuery {
 				end = Integer.valueOf(chunks[1]);
 		}
 
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer(sequence);
+		if (start > 1 || end < Integer.MAX_VALUE)
+			sb.append(":").append(start);
+		if (end < Integer.MAX_VALUE)
+			sb.append("-").append(end);
+		return sb.toString();
 	}
 }

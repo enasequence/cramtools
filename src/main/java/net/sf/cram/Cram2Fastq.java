@@ -201,7 +201,7 @@ public class Cram2Fastq {
 						try {
 							if (!s.validateRefMD5(ref)) {
 								log.error(String
-										.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s\n",
+										.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
 												s.sequenceId, s.alignmentStart, s.alignmentSpan,
 												String.format("%032x", new BigInteger(1, s.refMD5))));
 								throw new RuntimeException("Reference checksum mismatch.");
