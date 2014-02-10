@@ -18,6 +18,8 @@ package net.sf.cram.encoding.reader;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.sf.cram.common.Utils;
 import net.sf.cram.structure.CramRecord;
@@ -39,6 +41,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 	public static final int maxReadBufferLength = 1024 * 1024;
 	public byte[] bases = new byte[maxReadBufferLength];
 	public byte[] scores = new byte[maxReadBufferLength];
+	private Map<Integer, Integer> nameCache = new HashMap<Integer, Integer>();
+	public long counterOffset = 0;
 
 	public int defaultQS = '?';
 
@@ -63,8 +67,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 	protected abstract byte[] refSeqChanged(int seqID);
 
 	public void read() throws IOException {
-
 		int seqId = refId;
+		readName = null;
 		try {
 			flags = bitFlagsC.readData();
 
@@ -94,8 +98,19 @@ public abstract class AbstractFastqReader extends AbstractReader {
 				malsc.skip();
 				tsc.skip();
 				detachedCount++;
-			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0)
-				distanceC.readData();
+			} else if ((compressionFlags & CramRecord.HAS_MATE_DOWNSTREAM_FLAG) != 0) {
+				int distance = distanceC.readData();
+				nameCache.put(recordCounter + distance + 1, recordCounter);
+			}
+
+			if (readName == null) {
+				// check cache:
+				if (nameCache.containsKey(recordCounter)) {
+					int order = nameCache.remove(recordCounter);
+					readName = Long.toString(order + counterOffset).getBytes();
+				} else
+					readName = Long.toString(recordCounter + counterOffset).getBytes();
+			}
 
 			Integer tagIdList = tagIdListCodec.readData();
 			byte[][] ids = tagIdDictionary[tagIdList];

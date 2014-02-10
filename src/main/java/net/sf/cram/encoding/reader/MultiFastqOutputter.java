@@ -32,11 +32,12 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	private SAMFileHeader header;
 
 	public MultiFastqOutputter(OutputStream[] streams, OutputStream cacheOverFlowStream,
-			ReferenceSource referenceSource, SAMFileHeader header) {
+			ReferenceSource referenceSource, SAMFileHeader header, long counter) {
 		this.streams = streams;
 		this.cacheOverFlowStream = cacheOverFlowStream;
 		this.referenceSource = referenceSource;
 		this.header = header;
+		super.counterOffset = counter;
 	}
 
 	public byte[] getPrefix() {
@@ -51,9 +52,9 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 		return counter;
 	}
 
-	public void setCounter(long counter) {
-		this.counter = counter;
-	}
+	// public void setCounter(long counter) {
+	// this.counter = counter;
+	// }
 
 	protected void write(FastqRead read, OutputStream stream) throws IOException {
 		if (prefix == null) {

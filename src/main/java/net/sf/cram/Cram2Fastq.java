@@ -311,10 +311,11 @@ public class Cram2Fastq {
 			if (multiFastqOutputter != null) {
 				counter = multiFastqOutputter.getCounter();
 			}
-			multiFastqOutputter = new MultiFastqOutputter(outputs, fo, referenceSource, cramHeader.samFileHeader);
+			multiFastqOutputter = new MultiFastqOutputter(outputs, fo, referenceSource, cramHeader.samFileHeader,
+					counter);
 			if (prefix != null) {
 				multiFastqOutputter.setPrefix(prefix.getBytes());
-				multiFastqOutputter.setCounter(counter);
+				// multiFastqOutputter.setCounter(counter);
 			}
 			multiFastqOutputter.defaultQS = this.defaultQS;
 			return multiFastqOutputter;
