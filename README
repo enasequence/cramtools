@@ -12,9 +12,10 @@ Download and run the program:
 Download the prebuilt runnable jar file from: https://github.com/vadimzalunin/crammer/blob/master/cramtools-1.0.jar?raw=true
 Execute the command line program: java -jar cramtools.jar
 Usage is printed if no arguments were given 
-To convert a BAM file to CRAM:
 
+To convert a BAM file to CRAM:
 java -jar cramtools.jar cram --input-bam-file <bam file> --reference-fasta-file <reference fasta file> [--output-cram-file <output cram file>]
+
 To convert a CRAM file to BAM:
 java -jar cramtools.jar bam --input-cram-file <input cram file> --reference-fasta-file <reference fasta file> --output-bam-file <output bam file>
 
