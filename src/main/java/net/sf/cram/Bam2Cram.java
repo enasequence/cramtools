@@ -406,6 +406,8 @@ public class Bam2Cram {
 
 		iterator.close();
 		samFileReader.close();
+		if (params.addEOF)
+			CramIO.issueZeroB_EOF_marker(os);
 		os.close();
 
 		StringBuilder sb = new StringBuilder();
@@ -477,5 +479,8 @@ public class Bam2Cram {
 
 		@Parameter(names = { "--ignore-md5-mismatch" }, description = "Fail on MD5 mismatch if true, or correct (overwrite) the checksums and continue if false.")
 		public boolean ignoreMD5Mismatch = false;
+
+		@Parameter(names = { "--issue-eof-marker" }, description = "Append the EOF marker to the end of the output file/stream.", hidden = true)
+		public boolean addEOF = false;
 	}
 }

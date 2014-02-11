@@ -470,9 +470,6 @@ public class Cram2Fastq {
 		@Parameter(names = { "--max-records" }, description = "Stop after reading this many records.")
 		long maxRecords = -1;
 
-		@Parameter(names = { "--collate" }, description = "Read name collation.")
-		boolean collate = false;
-
 		@Parameter(names = { "--read-name-prefix" }, description = "Replace read names with this prefix and a sequential integer.")
 		String prefix = null;
 
