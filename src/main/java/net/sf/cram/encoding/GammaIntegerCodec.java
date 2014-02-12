@@ -38,7 +38,7 @@ public class GammaIntegerCodec extends AbstractBitCodec<Integer> {
 	}
 
 	@Override
-	public final Integer  read(BitInputStream bis) throws IOException {
+	public final Integer read(BitInputStream bis) throws IOException {
 		int len = 1;
 		while (bis.readBit() == lenCodingBit)
 			len++;
@@ -48,12 +48,12 @@ public class GammaIntegerCodec extends AbstractBitCodec<Integer> {
 	}
 
 	@Override
-	public final long write(BitOutputStream bos, Integer  value) throws IOException {
+	public final long write(BitOutputStream bos, Integer value) throws IOException {
 		if (value + offset < 1)
 			throw new IllegalArgumentException("Gamma codec handles only positive values: " + value);
 
 		long newValue = value + offset;
-		int betaCodeLength = 1 + (int) (Math.log(newValue)/Math.log(2));
+		int betaCodeLength = 1 + (int) (Math.log(newValue) / Math.log(2));
 		if (betaCodeLength > 1)
 			bos.write(0L, betaCodeLength - 1);
 
@@ -62,9 +62,11 @@ public class GammaIntegerCodec extends AbstractBitCodec<Integer> {
 	}
 
 	@Override
-	public final long numberOfBits(Integer  value) {
+	public final long numberOfBits(Integer value) {
 		long newValue = value + offset;
-		int betaCodeLength = 1 + (int) (Math.log(newValue)/Math.log(2));
+		if (newValue < 1)
+			throw new RuntimeException("Invalid valid: " + newValue);
+		int betaCodeLength = 1 + (int) (Math.log(newValue) / Math.log(2));
 		return betaCodeLength * 2 - 1;
 	}
 
@@ -86,7 +88,7 @@ public class GammaIntegerCodec extends AbstractBitCodec<Integer> {
 
 	@Override
 	public Integer read(BitInputStream bis, int len) throws IOException {
-		throw new RuntimeException("Not implemented.") ;
+		throw new RuntimeException("Not implemented.");
 	}
 
 }
