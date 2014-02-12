@@ -824,7 +824,7 @@ public class SamRecordComparision {
 		@Parameter(names = { "--ignore-tlen-diff" }, description = "Ignore TLEN differences less of equal to this value.")
 		int ignoreTLENDiff = 0;
 
-		@Parameter(names = { "--score-diff", "-d" }, description = "Report differences in base quality scores.")
+		@Parameter(names = { "--score-diff", "-d" }, description = "Report differences only in base quality scores optionally using loosy spec.")
 		boolean scoreDiff = false;
 
 		@Parameter(names = { "--lossy-spec" }, description = "Test if quality scores in file2 obey this lossy spec.")
