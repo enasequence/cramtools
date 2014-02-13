@@ -54,6 +54,12 @@ public class FixBAMFileHeader {
 			if (confirmMD5) {
 				if (found_md5 != null) {
 					byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+					if (bytes == null) {
+						String message = String.format("Reference bases not found: name %s, length %d, md5 %s.",
+								sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength(), found_md5);
+						log.error(message);
+						throw new RuntimeException(message);
+					}
 					log.info("Confirming reference sequence md5: " + sequenceRecord.getSequenceName());
 					String md5 = Utils.calculateMD5String(bytes);
 					if (!md5.equals(found_md5)) {
@@ -75,6 +81,12 @@ public class FixBAMFileHeader {
 				} else {
 					log.info("Reference sequence MD5 not found, calculating: " + sequenceRecord.getSequenceName());
 					byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+					if (bytes == null) {
+						String message = String.format("Reference bases not found: name %s, length %d.",
+								sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength());
+						log.error(message);
+						throw new RuntimeException(message);
+					}
 					String md5 = Utils.calculateMD5String(bytes);
 					sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 				}
