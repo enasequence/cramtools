@@ -53,9 +53,39 @@ import com.beust.jcommander.JCommander;
 
 public class Utils {
 
-	public static final String CRAM_FORMAT_VERSION = "2.0";
-
 	private static Log log = Log.getInstance(Utils.class);
+
+	public static class Version {
+		public final int major;
+		public final int minor;
+		public final int build;
+
+		public Version(int major, int minor, int build) {
+			this.major = major;
+			this.minor = minor;
+			this.build = build;
+		}
+
+		public Version(String version) {
+			String[] numbers = version.split("[\\.\\-b]");
+			major = Integer.valueOf(numbers[0]);
+			minor = Integer.valueOf(numbers[1]);
+			if (numbers.length > 3)
+				build = Integer.valueOf(numbers[3]);
+			else
+				build = 0;
+		}
+
+		@Override
+		public String toString() {
+			if (build > 0)
+				return String.format("%d.%d-b%d", major, minor, build);
+			else
+				return String.format("%d.%d", major, minor);
+		}
+	}
+
+	public static final Version CRAM_VERSION = getVersion();
 
 	public static void reverse(final byte[] array, int offset, int len) {
 		final int lastIndex = len - 1;
@@ -618,12 +648,20 @@ public class Utils {
 		}
 	}
 
-	public static String getVersion() {
+	private static Version getVersion() {
 		String version = CramFixHeader.class.getPackage().getImplementationVersion();
 		if (version == null)
-			return CRAM_FORMAT_VERSION;
+			return new Version(2, 1, 0);
 		else
-			return version;
+			return new Version(version);
+	}
+
+	public static int getMajorVersion() {
+		return CRAM_VERSION.major;
+	}
+
+	public static int getMinorVersion() {
+		return CRAM_VERSION.minor;
 	}
 
 	public static String join(String[] words, String delimiter) {
@@ -646,7 +684,7 @@ public class Utils {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version " + Utils.getVersion());
+		System.out.println("Version " + CRAM_VERSION.toString());
 		System.out.println(sb.toString());
 	}
 }

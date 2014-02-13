@@ -110,7 +110,7 @@ public class FixBAMFileHeader {
 
 	public void addCramtoolsPG(SAMFileHeader header) {
 		String cmd = "java " + Utils.getJavaCommand();
-		String version = Utils.getVersion();
+		String version = Utils.CRAM_VERSION.toString();
 
 		addPG(header, "cramtools", cmd, version);
 	}
