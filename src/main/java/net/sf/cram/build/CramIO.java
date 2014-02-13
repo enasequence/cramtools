@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram.build;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -50,7 +51,10 @@ import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.util.BufferedLineReader;
+import net.sf.samtools.util.SeekableFileStream;
 import net.sf.samtools.util.SeekableStream;
+import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
+import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 public class CramIO {
 	public static int DEFINITION_LENGTH = 4 + 1 + 1 + 20;
@@ -58,6 +62,103 @@ public class CramIO {
 	private static Log log = Log.getInstance(CramIO.class);
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
 			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
+
+	/**
+	 * A convenience method.
+	 * <p>
+	 * If a file is supplied then it will be wrapped into a SeekableStream. If
+	 * file is null, then the fromIS argument will be used or System.in if null.
+	 * Optionally the input can be decrypted using provided password or the
+	 * password read from the console.
+	 * <p>
+	 * The method also checks for EOF marker and raise error if the marker is
+	 * not found for files with version 2.1 or greater. For version below 2.1 a
+	 * warning will be issued.
+	 * 
+	 * @param cramFile
+	 *            CRAM file to be read
+	 * @param fromIS
+	 *            input stream to be read
+	 * @param decrypt
+	 *            decrypt the input stream
+	 * @param password
+	 *            a password to use for decryption
+	 * @return an InputStream ready to be used for reading CRAM file definition
+	 * @throws IOException
+	 */
+	public static InputStream getCramInputStream(File cramFile, InputStream fromIS, boolean decrypt, String password)
+			throws IOException {
+		if (cramFile == null && fromIS == null)
+			fromIS = new BufferedInputStream(System.in);
+
+		InputStream is = null;
+		if (decrypt) {
+			char[] pass = null;
+			if (password == null) {
+				if (System.console() == null)
+					throw new RuntimeException("Cannot access console.");
+				pass = System.console().readPassword();
+			} else
+				pass = password.toCharArray();
+
+			if (cramFile == null)
+				is = new CipherInputStream_256(fromIS, pass, 128).getCipherInputStream();
+			else
+				is = new SeekableCipherStream_256(new SeekableFileStream(cramFile), pass, 1, 128);
+
+		} else {
+			if (cramFile == null) {
+				if (!(fromIS instanceof BufferedInputStream) && !(fromIS instanceof SeekableStream))
+					is = new BufferedInputStream(fromIS);
+				else
+					is = fromIS;
+			} else {
+				is = new SeekableFileStream(cramFile);
+			}
+		}
+
+		if (is instanceof SeekableStream) {
+			CramHeader cramHeader = CramIO.readFormatDefinition(is, new CramHeader());
+			SeekableStream s = (SeekableStream) is;
+			if (!CramIO.hasZeroB_EOF_marker(s))
+				eofNotFound(cramHeader.majorVersion, cramHeader.minorVersion);
+			s.seek(0);
+		} else
+			log.warn("CRAM file/stream completion cannot be verified.");
+
+		return is;
+	}
+
+	private static void eofNotFound(byte major, byte minor) {
+		if (major >= 2 && minor >= 1) {
+			log.error("Incomplete data: EOF marker not found.");
+			System.exit(1);
+		} else {
+			log.warn("EOF marker not found, possibly incomplete file/stream.");
+		}
+	}
+
+	/**
+	 * Reads a CRAM container from the input stream. Returns an EOF container
+	 * when there is no more data or the EOF marker found.
+	 * 
+	 * @param cramHeader
+	 * @param is
+	 * @return
+	 * @throws IOException
+	 */
+	public static Container readContainer(CramHeader cramHeader, InputStream is) throws IOException {
+		Container c = CramIO.readContainer(is);
+		if (c == null) {
+			// this will cause System.exit(1):
+			eofNotFound(cramHeader.majorVersion, cramHeader.minorVersion);
+			return CramIO.readContainer(new ByteArrayInputStream(CramIO.ZERO_B_EOF_MARKER));
+		}
+		if (c.isEOF())
+			log.info("EOF marker found, file/stream is complete.");
+
+		return c;
+	}
 
 	private static final boolean check(InputStream is) throws IOException {
 		DataInputStream dis = new DataInputStream(is);
@@ -119,7 +220,7 @@ public class CramIO {
 		return DEFINITION_LENGTH + len;
 	}
 
-	private static void readFormatDefinition(InputStream is, CramHeader header) throws IOException {
+	private static CramHeader readFormatDefinition(InputStream is, CramHeader header) throws IOException {
 		for (byte b : CramHeader.magick) {
 			if (b != is.read())
 				throw new RuntimeException("Unknown file format.");
@@ -130,6 +231,8 @@ public class CramIO {
 
 		DataInputStream dis = new DataInputStream(is);
 		dis.readFully(header.id);
+
+		return header;
 	}
 
 	public static CramHeader readCramHeader(InputStream is) throws IOException {
@@ -182,6 +285,14 @@ public class CramIO {
 		return len;
 	}
 
+	/**
+	 * Reads next container from the stream.
+	 * 
+	 * @param is
+	 *            the stream to read from
+	 * @return CRAM container or null if no more data
+	 * @throws IOException
+	 */
 	public static Container readContainer(InputStream is) throws IOException {
 		return readContainer(is, 0, Integer.MAX_VALUE);
 	}
@@ -189,18 +300,12 @@ public class CramIO {
 	public static Container readContainerHeader(InputStream is) throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		if (!chio.readContainerHeader(c, is)) {
-			log.info("No more data, must be the end of stream.");
+		if (!chio.readContainerHeader(c, is))
 			return null;
-		}
-		if (c.isEOF()) {
-			log.info("Found poison container, assuming end of stream.");
-			return null;
-		}
 		return c;
 	}
 
-	public static Container readContainer(InputStream is, int fromSlice, int howManySlices) throws IOException {
+	private static Container readContainer(InputStream is, int fromSlice, int howManySlices) throws IOException {
 
 		long time1 = System.nanoTime();
 		Container c = readContainerHeader(is);

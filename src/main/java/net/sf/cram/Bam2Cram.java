@@ -33,6 +33,7 @@ import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.build.ContainerFactory;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.build.Sam2CramRecordFactory;
+import net.sf.cram.common.Utils;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.ref.ReferenceTracks;
@@ -310,7 +311,8 @@ public class Bam2Cram {
 		}
 		fixBAMFileHeader.addCramtoolsPG(samFileHeader);
 
-		CramHeader h = new CramHeader(2, 0, params.bamFile == null ? "STDIN" : params.bamFile.getName(), samFileHeader);
+		CramHeader h = new CramHeader(Utils.getMajorVersion(), Utils.getMinorVersion(),
+				params.bamFile == null ? "STDIN" : params.bamFile.getName(), samFileHeader);
 		long offset = CramIO.writeCramHeader(h, os);
 
 		long bases = 0;

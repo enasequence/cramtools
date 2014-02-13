@@ -57,10 +57,7 @@ import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.util.SeekableFileStream;
 import net.sf.samtools.util.SeekableStream;
-import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
-import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -78,33 +75,6 @@ public class Cram2Bam {
 
 		System.out.println("Version " + Cram2Bam.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
-	}
-
-	private static InputStream getInputStream(Params params) throws IOException {
-		InputStream is = null;
-		if (params.decrypt) {
-			char[] pass = null;
-			if (System.console() == null)
-				throw new RuntimeException("Cannot access console.");
-			pass = System.console().readPassword();
-
-			if (params.cramFile == null)
-				return new CipherInputStream_256(System.in, pass, 128).getCipherInputStream();
-			else
-				return new SeekableCipherStream_256(new SeekableFileStream(params.cramFile), pass, 1, 128);
-
-		} else {
-			if (params.cramFile == null)
-				is = System.in;
-			else {
-				if (params.locations.isEmpty())
-					is = new BufferedInputStream(new FileInputStream(params.cramFile));
-				else
-					is = new SeekableFileStream(params.cramFile);
-			}
-		}
-
-		return is;
 	}
 
 	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
@@ -140,11 +110,12 @@ public class Cram2Bam {
 			System.exit(1);
 		}
 
-		InputStream is = getInputStream(params);
+		InputStream is = CramIO.getCramInputStream(params.cramFile, null, params.decrypt, params.password);
 
 		long offset = 0;
 		CountingInputStream cis = new CountingInputStream(is);
 		CramHeader cramHeader = CramIO.readCramHeader(cis);
+
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
 		fix.setConfirmMD5(!params.skipMD5Checks);
 		fix.setInjectURI(params.injectURI);
@@ -214,9 +185,10 @@ public class Cram2Bam {
 		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
 		while (true) {
 			time = System.nanoTime();
-			c = CramIO.readContainer(is);
-			if (c == null)
+			c = CramIO.readContainer(cramHeader, is);
+			if (c.isEOF())
 				break;
+
 			readTime += System.nanoTime() - time;
 
 			containerCounter++;
@@ -549,6 +521,9 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--resilient" }, description = "Report reference sequence md5 mismatch and keep going.", hidden = true)
 		public boolean resilient = false;
+
+		@Parameter(names = { "--password", "-p" }, description = "Password to decrypt the file.")
+		public String password;
 	}
 
 }
