@@ -167,12 +167,7 @@ public class CompressionHeaderFactory {
 			IntegerEncodingCalculator calc = new IntegerEncodingCalculator("records to next fragment", 0);
 			for (CramRecord r : records) {
 				if (r.isHasMateDownStream())
-					try {
-						calc.addValue(r.recordsToNextFragment);
-					} catch (Exception e) {
-						System.out.println(r.recordsToNextFragment);
-						throw new RuntimeException(e);
-					}
+					calc.addValue(r.recordsToNextFragment);
 			}
 
 			Encoding<Integer> bestEncoding = calc.getBestEncoding();
