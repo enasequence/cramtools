@@ -480,7 +480,8 @@ public class Bam2Cram {
 		@Parameter(names = { "--ignore-md5-mismatch" }, description = "Fail on MD5 mismatch if true, or correct (overwrite) the checksums and continue if false.")
 		public boolean ignoreMD5Mismatch = false;
 
-		@Parameter(names = { "--issue-eof-marker" }, description = "Append the EOF marker to the end of the output file/stream.", hidden = true)
-		public boolean addEOF = false;
+		@Deprecated
+		@Parameter(names = { "--issue-eof-marker" }, description = "Append the EOF marker to the end of the output file/stream.", hidden = true, arity = 1)
+		public boolean addEOF = true;
 	}
 }
