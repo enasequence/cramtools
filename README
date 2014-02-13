@@ -1,7 +1,10 @@
 CRAMTools is a set of Java tools and APIs for efficient compression of sequence read data. Although this is intended as a stable version the code is released as early access. Parts of the CRAMTools are experimental and may not be supported in the future.
 http://www.ebi.ac.uk/ena/about/cram_toolkit
 
-Version 2.0
+Version 2.1
+
+Change log:
+End of file marker has been added. This is an empty container with some fields set to specific values.    
 
 Input files:
 Reference sequence in fasta format <fasta file>
