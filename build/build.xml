@@ -10,7 +10,8 @@
 	<property name="target.dir" value="${basedir}/target" />
 	<property name="classes" value="${target.dir}/classes" />
 	<property name="crammerClasses" value="target/classes" />
-	<property name="jar.file.name" value="cramtools-2.0.jar" />
+	<property file="version.property" />
+	<property name="jar.file.name" value="cramtools-${version.num}.jar" />
 
 	<path id="classpath">
 		<fileset dir="${lib.home}" includes="*.jar" />
@@ -35,7 +36,7 @@
 
 	<target name="runnable" depends="clean,compile">
 
-		<property file="version.property" />
+
 		<buildnumber />
 
 		<tstamp>
