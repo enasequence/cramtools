@@ -438,7 +438,7 @@ public class Bam2Cram {
 		File outputCramFile = null;
 
 		@Parameter(names = { "--max-records" }, description = "Stop after compressing this many records. ")
-		int maxRecords = Integer.MAX_VALUE;
+		long maxRecords = Long.MAX_VALUE;
 
 		@Parameter
 		List<String> sequences;
