@@ -7,13 +7,13 @@ class Decoder0 {
 	private static final int TF_SHIFT = 16;
 	private static final int TOTFREQ = (1 << TF_SHIFT);
 
-	private static class FC {
-		int F, C;
+	public static class FC {
+		public int F, C;
 	}
 
-	private static class ari_decoder {
-		FC[] fc = new FC[256];
-		byte[] R;
+	public static class ari_decoder {
+		public FC[] fc = new FC[256];
+		public byte[] R;
 	}
 
 	void arith_uncompress_O0(ByteBuffer in, ByteBuffer out_buf) {
