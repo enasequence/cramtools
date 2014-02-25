@@ -67,6 +67,7 @@ public class SAMIterator implements SAMRecordIterator {
 	}
 
 	private long samRecordIndex;
+	private ArrayList<CramRecord> cramRecords;
 
 	public SAMIterator(InputStream is, ReferenceSource referenceSource) throws IOException {
 		this.is = is;
@@ -82,9 +83,8 @@ public class SAMIterator implements SAMRecordIterator {
 	}
 
 	private void nextContainer() throws IOException, IllegalArgumentException, IllegalAccessException {
-		if (records == null)
-			records = new ArrayList<SAMRecord>(100000);
-		records.clear();
+		if (records != null)
+			records.clear();
 		recordCounter = 0;
 
 		container = null;
@@ -92,8 +92,12 @@ public class SAMIterator implements SAMRecordIterator {
 		if (container == null)
 			return;
 
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
+		if (records == null)
+			records = new ArrayList<SAMRecord>(container.nofRecords);
+
 		try {
+			if (cramRecords == null)
+				cramRecords = new ArrayList<CramRecord>(container.nofRecords);
 			cramRecords.clear();
 			parser.getRecords(container, cramRecords);
 		} catch (EOFException e) {
@@ -140,6 +144,7 @@ public class SAMIterator implements SAMRecordIterator {
 
 			records.add(s);
 		}
+		cramRecords.clear();
 
 		log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
 				container.readTime / 1000000, container.parseTime / 1000000, c2sTime / 1000000,
