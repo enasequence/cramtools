@@ -62,20 +62,18 @@ public class SAMIterator implements SAMRecordIterator {
 		return validationStringency;
 	}
 
-	public void setValidationStringency(
-			ValidationStringency validationStringency) {
+	public void setValidationStringency(ValidationStringency validationStringency) {
 		this.validationStringency = validationStringency;
 	}
 
 	private long samRecordIndex;
 
-	public SAMIterator(InputStream is, ReferenceSource referenceSource)
-			throws IOException {
+	public SAMIterator(InputStream is, ReferenceSource referenceSource) throws IOException {
 		this.is = is;
 		this.referenceSource = referenceSource;
 		cramHeader = CramIO.readCramHeader(is);
 		records = new ArrayList<SAMRecord>(100000);
-		normalizer = new CramNormalizer(cramHeader.samFileHeader);
+		normalizer = new CramNormalizer(cramHeader.samFileHeader, referenceSource);
 		parser = new ContainerParser(cramHeader.samFileHeader);
 	}
 
@@ -83,8 +81,7 @@ public class SAMIterator implements SAMRecordIterator {
 		return cramHeader;
 	}
 
-	private void nextContainer() throws IOException, IllegalArgumentException,
-			IllegalAccessException {
+	private void nextContainer() throws IOException, IllegalArgumentException, IllegalAccessException {
 		if (records == null)
 			records = new ArrayList<SAMRecord>(100000);
 		records.clear();
@@ -105,21 +102,22 @@ public class SAMIterator implements SAMRecordIterator {
 
 		if (container.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 			refs = new byte[] {};
+		} else if (container.sequenceId == -2) {
+			refs = null;
+			prevSeqId = -2;
 		} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
-			SAMSequenceRecord sequence = cramHeader.samFileHeader
-					.getSequence(container.sequenceId);
+			SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(container.sequenceId);
 			refs = referenceSource.getReferenceBases(sequence, true);
 			prevSeqId = container.sequenceId;
 		}
 
 		long time1 = System.nanoTime();
 
-		normalizer.normalize(cramRecords, true, refs, container.alignmentStart,
-				container.h.substitutionMatrix, container.h.AP_seriesDelta);
+		normalizer.normalize(cramRecords, true, refs, container.alignmentStart, container.h.substitutionMatrix,
+				container.h.AP_seriesDelta);
 		long time2 = System.nanoTime();
 
-		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
-				cramHeader.samFileHeader);
+		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(cramHeader.samFileHeader);
 
 		long c2sTime = 0;
 
@@ -127,24 +125,25 @@ public class SAMIterator implements SAMRecordIterator {
 			long time = System.nanoTime();
 			SAMRecord s = c2sFactory.create(r);
 			c2sTime += System.nanoTime() - time;
-			if (!r.isSegmentUnmapped())
+			if (!r.isSegmentUnmapped()) {
+				SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(r.sequenceId);
+				refs = referenceSource.getReferenceBases(sequence, true);
 				Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
+			}
 
 			s.setValidationStringency(validationStringency);
 
 			if (validationStringency != ValidationStringency.SILENT) {
 				final List<SAMValidationError> validationErrors = s.isValid();
-				SAMUtils.processValidationErrors(validationErrors,
-						samRecordIndex, validationStringency);
+				SAMUtils.processValidationErrors(validationErrors, samRecordIndex, validationStringency);
 			}
 
 			records.add(s);
 		}
 
-		log.info(String.format(
-				"CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
-				container.readTime / 1000000, container.parseTime / 1000000,
-				c2sTime / 1000000, (time2 - time1) / 1000000));
+		log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
+				container.readTime / 1000000, container.parseTime / 1000000, c2sTime / 1000000,
+				(time2 - time1) / 1000000));
 	}
 
 	@Override
@@ -196,8 +195,7 @@ public class SAMIterator implements SAMRecordIterator {
 		}
 
 		public CramFileIterable(File cramFile, ReferenceSource referenceSource) {
-			this(cramFile, referenceSource,
-					ValidationStringency.DEFAULT_STRINGENCY);
+			this(cramFile, referenceSource, ValidationStringency.DEFAULT_STRINGENCY);
 		}
 
 		@Override
