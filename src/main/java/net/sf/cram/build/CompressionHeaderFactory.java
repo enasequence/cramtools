@@ -94,60 +94,28 @@ public class CompressionHeaderFactory {
 		h.tMap = new TreeMap<Integer, EncodingParams>();
 
 		{ // bit flags encoding:
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.flags);
-			calculator.calculate();
-			h.eMap.put(EncodingKey.BF_BitFlags,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			getOptmialIntegerEncoding(h, EncodingKey.BF_BitFlags, 0, records);
 		}
 
 		{ // compression bit flags encoding:
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.getCompressionFlags());
-			calculator.calculate();
-			h.eMap.put(EncodingKey.CF_CompressionBitFlags,
-					HuffmanByteEncoding.toParam(calculator.valuesAsBytes(), calculator.bitLens()));
+			getOptmialIntegerEncoding(h, EncodingKey.CF_CompressionBitFlags, 0, records);
 		}
 
 		{ // ref id:
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.sequenceId);
-			calculator.calculate();
-			h.eMap.put(EncodingKey.RI_RefId, HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+
+			getOptmialIntegerEncoding(h, EncodingKey.RI_RefId, -2, records);
 		}
 
 		{ // read length encoding:
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.readLength);
-			calculator.calculate();
-
-			h.eMap.put(EncodingKey.RL_ReadLength,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			getOptmialIntegerEncoding(h, EncodingKey.RL_ReadLength, 0, records);
 		}
 
 		{ // alignment offset:
-			IntegerEncodingCalculator calc = new IntegerEncodingCalculator("alignment offset", 0);
-			for (CramRecord r : records) {
-				calc.addValue(r.alignmentDelta);
-			}
-
-			Encoding<Integer> bestEncoding = calc.getBestEncoding();
-			h.eMap.put(EncodingKey.AP_AlignmentPositionOffset,
-					new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+			getOptmialIntegerEncoding(h, EncodingKey.AP_AlignmentPositionOffset, 0, records);
 		}
 
 		{ // read group
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.readGroupID);
-			calculator.calculate();
-
-			h.eMap.put(EncodingKey.RG_ReadGroup,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			getOptmialIntegerEncoding(h, EncodingKey.RG_ReadGroup, -1, records);
 		}
 
 		{ // read name encoding:
@@ -164,7 +132,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // records to next fragment
-			IntegerEncodingCalculator calc = new IntegerEncodingCalculator("records to next fragment", 0);
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(EncodingKey.NF_RecordsToNextFragment.name(),
+					0);
 			for (CramRecord r : records) {
 				if (r.isHasMateDownStream())
 					calc.addValue(r.recordsToNextFragment);
@@ -477,31 +446,32 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // hard clip length
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(EncodingKey.HC_HardClip.name(), 1);
 			for (CramRecord r : records)
 				if (r.readFeatures == null)
 					continue;
 				else
 					for (ReadFeature rf : r.readFeatures)
 						if (rf.getOperator() == HardClip.operator)
-							calculator.add(((HardClip) rf).getLength());
-			calculator.calculate();
+							calculator.addValue(((HardClip) rf).getLength());
 
-			h.eMap.put(EncodingKey.HC_HardClip, HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+			Encoding<Integer> bestEncoding = calculator.getBestEncoding();
+			h.eMap.put(EncodingKey.HC_HardClip, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
 		}
 
 		{ // padding length
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
+			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(EncodingKey.PD_padding.name(), 1);
 			for (CramRecord r : records)
 				if (r.readFeatures == null)
 					continue;
 				else
 					for (ReadFeature rf : r.readFeatures)
 						if (rf.getOperator() == Padding.operator)
-							calculator.add(((Padding) rf).getLength());
-			calculator.calculate();
+							calculator.addValue(((Padding) rf).getLength());
 
-			h.eMap.put(EncodingKey.PD_padding, HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+			Encoding<Integer> bestEncoding = calculator.getBestEncoding();
+			h.eMap.put(EncodingKey.PD_padding, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+
 		}
 
 		{ // ref skip length
@@ -568,6 +538,63 @@ public class CompressionHeaderFactory {
 		}
 
 		return h;
+	}
+
+	// private static final int getValue(EncodingKey key, ReadFeature f) {
+	// switch (key) {
+	// case BS_BaseSubstitutionCode:
+	//
+	// break;
+	//
+	// default:
+	// break;
+	// }
+	// }
+
+	private static final int getValue(EncodingKey key, CramRecord r) {
+		switch (key) {
+		case AP_AlignmentPositionOffset:
+			return r.alignmentDelta;
+		case BF_BitFlags:
+			return r.flags;
+		case CF_CompressionBitFlags:
+			return r.compressionFlags;
+		case FN_NumberOfReadFeatures:
+			return r.readFeatures == null ? 0 : r.readFeatures.size();
+		case MF_MateBitFlags:
+			return r.mateFlags;
+		case MQ_MappingQualityScore:
+			return r.mappingQuality;
+		case NF_RecordsToNextFragment:
+			return r.recordsToNextFragment;
+		case NP_NextFragmentAlignmentStart:
+			return r.mateAlignmentStart;
+		case NS_NextFragmentReferenceSequenceID:
+			return r.mateSequnceID;
+		case RG_ReadGroup:
+			return r.readGroupID;
+		case RI_RefId:
+			return r.sequenceId;
+		case RL_ReadLength:
+			return r.readLength;
+		case TC_TagCount:
+			return r.tags == null ? 0 : r.tags.length;
+
+		default:
+			throw new RuntimeException("Unexpected encoding key: " + key.name());
+		}
+	}
+
+	private static final void getOptmialIntegerEncoding(CompressionHeader h, EncodingKey key, int minValue,
+			List<CramRecord> records) {
+		IntegerEncodingCalculator calc = new IntegerEncodingCalculator(key.name(), minValue);
+		for (CramRecord r : records) {
+			int value = getValue(key, r);
+			calc.addValue(value);
+		}
+
+		Encoding<Integer> bestEncoding = calc.getBestEncoding();
+		h.eMap.put(key, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
 	}
 
 	private static class BitCode implements Comparable<BitCode> {
@@ -768,6 +795,14 @@ public class CompressionHeaderFactory {
 		}
 
 		public Encoding<Integer> getBestEncoding() {
+			if (dictionary != null && dictionary.size() == 1) {
+				int value = dictionary.keySet().iterator().next();
+				EncodingParams param = HuffmanIntegerEncoding.toParam(new int[] { value }, new int[] { 0 });
+				HuffmanIntegerEncoding he = new HuffmanIntegerEncoding();
+				he.fromByteArray(param.params);
+				return he;
+			}
+
 			EncodingLengthCalculator bestC = calcs.get(0);
 
 			for (EncodingLengthCalculator c : calcs) {

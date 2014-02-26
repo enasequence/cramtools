@@ -30,6 +30,7 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 	public static final EncodingID ENCODING_ID = EncodingID.HUFFMAN;
 	int[] bitLengths;
 	int[] values;
+	ByteBuffer buf = ByteBuffer.allocate(1024 * 10);
 
 	public HuffmanIntegerEncoding() {
 	}
@@ -41,7 +42,7 @@ public class HuffmanIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(1024 * 10);
+		buf.clear();
 		ByteBufferUtils.writeUnsignedITF8(values.length, buf);
 		for (int value : values)
 			ByteBufferUtils.writeUnsignedITF8(value, buf);
