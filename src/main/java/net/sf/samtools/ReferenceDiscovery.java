@@ -24,7 +24,7 @@ import java.util.Scanner;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.util.SeekableStream;
+import net.sf.samtools.seekablestream.SeekableStream;
 
 public class ReferenceDiscovery {
 	public static Map<Object, ReferenceSequenceFile> referenceFactory = new HashMap<Object, ReferenceSequenceFile>();
@@ -86,12 +86,12 @@ public class ReferenceDiscovery {
 
 				referenceSequenceFile = probeLocation(name);
 				if (referenceSequenceFile != null)
-					return new ReferenceSource(referenceSequenceFile) ;
+					return new ReferenceSource(referenceSequenceFile);
 
 				// could be an index file:
 				referenceSequenceFile = probeLocation(name.replaceAll(".crai$", ""));
 				if (referenceSequenceFile != null)
-					return new ReferenceSource(referenceSequenceFile) ;
+					return new ReferenceSource(referenceSequenceFile);
 			}
 
 		// try default rsf from java properties:
@@ -101,7 +101,7 @@ public class ReferenceDiscovery {
 			if (file.isFile())
 				return new ReferenceSource(file);
 		}
-		
-		return new ReferenceSource() ;
+
+		return new ReferenceSource();
 	}
 }

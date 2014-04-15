@@ -31,10 +31,10 @@ import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.seekablestream.SeekableFileStream;
+import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeEOFException;
-import net.sf.samtools.util.SeekableFileStream;
-import net.sf.samtools.util.SeekableStream;
 
 public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 	private File file;

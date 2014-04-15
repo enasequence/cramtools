@@ -26,6 +26,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
+import java.net.MalformedURLException;
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -50,11 +54,15 @@ import net.sf.cram.structure.SliceIO;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMTextHeaderCodec;
+import net.sf.samtools.seekablestream.SeekableBufferedStream;
+import net.sf.samtools.seekablestream.SeekableFTPStream;
+import net.sf.samtools.seekablestream.SeekableFileStream;
+import net.sf.samtools.seekablestream.SeekableHTTPStream;
+import net.sf.samtools.seekablestream.SeekableStream;
+import net.sf.samtools.seekablestream.UserPasswordInput;
 import net.sf.samtools.util.BufferedLineReader;
-import net.sf.samtools.util.SeekableFileStream;
-import net.sf.samtools.util.SeekableStream;
-import uk.ac.ebi.embl.ega_cipher.CipherInputStream_256;
-import uk.ac.ebi.embl.ega_cipher.SeekableCipherStream_256;
+import cipheronly.CipherInputStream_256;
+import cipheronly.SeekableCipherStream_256;
 
 public class CramIO {
 	public static int DEFINITION_LENGTH = 4 + 1 + 1 + 20;
@@ -62,6 +70,65 @@ public class CramIO {
 	private static Log log = Log.getInstance(CramIO.class);
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
 			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
+
+	public static String getFileName(String urlString) {
+		URL url = null;
+		try {
+			url = new URL(urlString);
+			return new File(url.getFile()).getName();
+		} catch (MalformedURLException e) {
+			return new File(urlString).getName();
+		}
+	}
+
+	public static InputStream openInputStreamFromURL(String source) throws SocketException, IOException,
+			URISyntaxException {
+		URL url = null;
+		try {
+			url = new URL(source);
+		} catch (MalformedURLException e) {
+			File file = new File(source);
+			return new SeekableBufferedStream(new SeekableFileStream(file));
+		}
+
+		String protocol = url.getProtocol();
+		if ("ftp".equalsIgnoreCase(protocol))
+			return new SeekableBufferedStream(new NamedSeekableFTPStream(url));
+
+		if ("http".equalsIgnoreCase(protocol))
+			return new SeekableBufferedStream(new SeekableHTTPStream(url));
+
+		if ("file".equalsIgnoreCase(protocol)) {
+			File file = new File(url.toURI());
+			return new SeekableBufferedStream(new SeekableFileStream(file));
+		}
+
+		throw new RuntimeException("Uknown protocol: " + protocol);
+	}
+
+	private static class NamedSeekableFTPStream extends SeekableFTPStream {
+		/**
+		 * This class purpose is to preserve and pass the URL string as the
+		 * source.
+		 */
+		private URL source;
+
+		public NamedSeekableFTPStream(URL url) throws IOException {
+			super(url);
+			source = url;
+		}
+
+		public NamedSeekableFTPStream(URL url, UserPasswordInput userPasswordInput) throws IOException {
+			super(url, userPasswordInput);
+			source = url;
+		}
+
+		@Override
+		public String getSource() {
+			return source.toString();
+		}
+
+	}
 
 	/**
 	 * A convenience method.
@@ -85,13 +152,17 @@ public class CramIO {
 	 *            a password to use for decryption
 	 * @return an InputStream ready to be used for reading CRAM file definition
 	 * @throws IOException
+	 * @throws URISyntaxException
 	 */
-	public static InputStream getCramInputStream(File cramFile, InputStream fromIS, boolean decrypt, String password)
-			throws IOException {
-		if (cramFile == null && fromIS == null)
-			fromIS = new BufferedInputStream(System.in);
+	public static InputStream openCramInputStream(String cramURL, boolean decrypt, String password) throws IOException,
+			URISyntaxException {
 
 		InputStream is = null;
+		if (cramURL == null)
+			is = new BufferedInputStream(System.in);
+		else
+			is = openInputStreamFromURL(cramURL);
+
 		if (decrypt) {
 			char[] pass = null;
 			if (password == null) {
@@ -101,20 +172,11 @@ public class CramIO {
 			} else
 				pass = password.toCharArray();
 
-			if (cramFile == null)
-				is = new CipherInputStream_256(fromIS, pass, 128).getCipherInputStream();
+			if (is instanceof SeekableStream)
+				is = new SeekableCipherStream_256((SeekableStream) is, pass, 1, 128);
 			else
-				is = new SeekableCipherStream_256(new SeekableFileStream(cramFile), pass, 1, 128);
+				is = new CipherInputStream_256(is, pass, 128).getCipherInputStream();
 
-		} else {
-			if (cramFile == null) {
-				if (!(fromIS instanceof BufferedInputStream) && !(fromIS instanceof SeekableStream))
-					is = new BufferedInputStream(fromIS);
-				else
-					is = fromIS;
-			} else {
-				is = new SeekableFileStream(cramFile);
-			}
 		}
 
 		if (is instanceof SeekableStream) {

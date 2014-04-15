@@ -5,10 +5,10 @@
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="lib" path="lib/jcommander-1.7.jar"/>
-	<classpathentry kind="lib" path="lib/ega-Cipher.jar" sourcepath="/picard"/>
 	<classpathentry kind="lib" path="lib/h2-1.3.170.jar"/>
 	<classpathentry kind="lib" path="lib/picard-1.103.jar" sourcepath="/picard"/>
 	<classpathentry kind="lib" path="lib/sam-1.103.jar"/>
+	<classpathentry kind="lib" path="lib/webin-CipherOnly.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -704,4 +704,33 @@ public class ByteBufferUtils {
 		}
 		return data;
 	}
+
+	public static void reverse(byte[] array, int offset, int size) {
+		if (array == null) {
+			return;
+		}
+		int i = offset;
+		int j = size - 1;
+		byte tmp;
+		while (j > i) {
+			tmp = array[j];
+			array[j] = array[i];
+			array[i] = tmp;
+			j--;
+			i++;
+		}
+	}
+
+	public static void reverse(ByteBuffer ptr) {
+		byte tmp = 0;
+		if (ptr.hasArray()) {
+			reverse(ptr.array(), ptr.arrayOffset(), ptr.limit());
+		} else {
+			for (int i = 0; i < ptr.limit(); i++) {
+				tmp = ptr.get(i);
+				ptr.put(i, ptr.get(ptr.limit() - i - 1));
+				ptr.put(ptr.limit() - i - 1, tmp);
+			}
+		}
+	}
 }

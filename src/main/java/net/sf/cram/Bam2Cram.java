@@ -50,7 +50,7 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
-import uk.ac.ebi.embl.ega_cipher.CipherOutputStream_256;
+import cipheronly.CipherOutputStream_256;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

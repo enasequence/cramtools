@@ -49,8 +49,8 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.seekablestream.SeekableFileStream;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.SeekableFileStream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

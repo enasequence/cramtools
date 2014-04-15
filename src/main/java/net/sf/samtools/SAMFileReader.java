@@ -53,15 +53,15 @@ import java.util.zip.GZIPInputStream;
 
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.CramHeader;
+import net.sf.samtools.seekablestream.SeekableBufferedStream;
+import net.sf.samtools.seekablestream.SeekableHTTPStream;
+import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.BlockCompressedStreamConstants;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.CoordMath;
 import net.sf.samtools.util.IOUtil;
 import net.sf.samtools.util.RuntimeIOException;
-import net.sf.samtools.util.SeekableBufferedStream;
-import net.sf.samtools.util.SeekableHTTPStream;
-import net.sf.samtools.util.SeekableStream;
 
 /**
  * Class for reading and querying SAM/BAM files. Delegates to appropriate
