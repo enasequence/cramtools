@@ -40,7 +40,7 @@ class FrequencyTable {
 		}
 
 		for (int s = 1; s < slices; s++) {
-			F[0][data.get(s * (in_size / slices))]++;
+			F[0][0xFF & data.get(s * (in_size / slices))]++;
 		}
 		T[0] += slices - 1;
 

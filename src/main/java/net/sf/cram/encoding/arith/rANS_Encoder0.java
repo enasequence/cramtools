@@ -30,7 +30,7 @@ public class rANS_Encoder0 {
 	 * are easier to understand, but can be up to 2x slower.
 	 */
 
-	ByteBuffer rans_compress_O0(ByteBuffer in, ByteBuffer out_buf) {
+	public ByteBuffer rans_compress_O0(ByteBuffer in, ByteBuffer out_buf) {
 		int in_size = in.remaining();
 		if (out_buf == null)
 			out_buf = ByteBuffer.allocate((int) (1.05 * in_size + 257 * 257 * 3 + 4));
@@ -73,11 +73,11 @@ public class rANS_Encoder0 {
 
 		switch (i = (in_size & 3)) {
 		case 3:
-			rans2 = rans_byte.RansEncPutSymbol(rans2, ptr, syms[in.get(in_size - (i - 2))], TF_SHIFT);
+			rans2 = rans_byte.RansEncPutSymbol(rans2, ptr, syms[0xFF & in.get(in_size - (i - 2))], TF_SHIFT);
 		case 2:
-			rans1 = rans_byte.RansEncPutSymbol(rans1, ptr, syms[in.get(in_size - (i - 1))], TF_SHIFT);
+			rans1 = rans_byte.RansEncPutSymbol(rans1, ptr, syms[0xFF & in.get(in_size - (i - 1))], TF_SHIFT);
 		case 1:
-			rans0 = rans_byte.RansEncPutSymbol(rans0, ptr, syms[in.get(in_size - (i - 0))], TF_SHIFT);
+			rans0 = rans_byte.RansEncPutSymbol(rans0, ptr, syms[0xFF & in.get(in_size - (i - 0))], TF_SHIFT);
 		case 0:
 			break;
 		}

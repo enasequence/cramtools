@@ -28,6 +28,7 @@ import net.sf.samtools.seekablestream.SeekableStream;
 
 public class ReferenceDiscovery {
 	public static Map<Object, ReferenceSequenceFile> referenceFactory = new HashMap<Object, ReferenceSequenceFile>();
+	public static ReferenceSource referenceSource = new ReferenceSource();
 
 	public static ReferenceSequenceFile probeLocation(String location) {
 		ReferenceSequenceFile referenceSequenceFile = referenceFactory.get(location);
@@ -102,6 +103,6 @@ public class ReferenceDiscovery {
 				return new ReferenceSource(file);
 		}
 
-		return new ReferenceSource();
+		return referenceSource;
 	}
 }

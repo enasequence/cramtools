@@ -16,8 +16,8 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.seekablestream.SeekableFileStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.SeekableFileStream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

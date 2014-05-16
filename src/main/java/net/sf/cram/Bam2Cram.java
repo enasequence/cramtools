@@ -300,7 +300,7 @@ public class Bam2Cram {
 		}
 
 		FixBAMFileHeader fixBAMFileHeader = new FixBAMFileHeader(referenceSource);
-		fixBAMFileHeader.setConfirmMD5(true);
+		fixBAMFileHeader.setConfirmMD5(params.confirmMD5);
 		fixBAMFileHeader.setInjectURI(params.injectURI);
 		fixBAMFileHeader.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
 		try {
@@ -485,5 +485,8 @@ public class Bam2Cram {
 		@Deprecated
 		@Parameter(names = { "--issue-eof-marker" }, description = "Append the EOF marker to the end of the output file/stream.", hidden = true, arity = 1)
 		public boolean addEOF = true;
+
+		@Parameter(names = { "--confirm-md5" }, description = "Confirm MD5 checksums of the reference sequences.", hidden = true, arity = 1)
+		public boolean confirmMD5 = true;
 	}
 }

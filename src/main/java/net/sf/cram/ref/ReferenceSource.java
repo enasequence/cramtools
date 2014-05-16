@@ -77,7 +77,7 @@ public class ReferenceSource {
 		return null;
 	}
 
-	public byte[] getReferenceBases(SAMSequenceRecord record, boolean tryNameVariants) {
+	public synchronized byte[] getReferenceBases(SAMSequenceRecord record, boolean tryNameVariants) {
 		{ // check cache by sequence name:
 			String name = record.getSequenceName();
 			byte[] bases = findInCache(name);

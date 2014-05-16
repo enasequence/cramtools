@@ -50,10 +50,15 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 
 	private ValidationStringency validationStringency;
 
+	private static volatile long counter = 1L;
+
 	public CRAMFileReader(File file, InputStream is, ReferenceSource referenceSource) {
 		this.file = file;
 		this.is = is;
 		this.referenceSource = referenceSource;
+		counter++;
+		if (counter % 1000 == 0)
+			System.err.println("open cram files: " + counter);
 
 		if (file == null)
 			getIterator();
@@ -63,6 +68,9 @@ public class CRAMFileReader extends SAMFileReader.ReaderImplementation {
 		this.file = bamFile;
 		this.mIndexFile = indexFile;
 		this.referenceSource = referenceSource;
+		counter++;
+		if (counter % 1000 == 0)
+			System.err.println("open cram files: " + counter);
 
 		if (file == null)
 			getIterator();

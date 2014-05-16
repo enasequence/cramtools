@@ -8,8 +8,8 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import net.sf.picard.util.Log;
+import net.sf.samtools.seekablestream.SeekableFileStream;
 import net.sf.samtools.util.BlockCompressedInputStream;
-import net.sf.samtools.util.SeekableFileStream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

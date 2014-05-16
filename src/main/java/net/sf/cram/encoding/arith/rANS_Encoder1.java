@@ -24,7 +24,7 @@ public class rANS_Encoder1 {
 	// Room to allow for expanded BLK_SIZE on worst case compression.
 	static int BLK_SIZE2 = ((int) (1.05 * BLK_SIZE));
 
-	ByteBuffer rans_compress_O1(ByteBuffer in, ByteBuffer out_buf) {
+	public ByteBuffer rans_compress_O1(ByteBuffer in, ByteBuffer out_buf) {
 		int in_size = in.remaining();
 		if (out_buf == null)
 			out_buf = ByteBuffer.allocate((int) (1.05 * in_size + 257 * 257 * 3 + 4));
@@ -103,7 +103,7 @@ public class rANS_Encoder1 {
 		int l7 = in.get(i7 + 1);
 
 		// Deal with the remainder
-		l7 = in.get(in_size - 1);
+		l7 = 0xFF & in.get(in_size - 1);
 		for (i7 = in_size - 2; i7 > 8 * isz4 - 2; i7--) {
 			int c7 = 0xFF & in.get(i7);
 			rans7 = rans_byte.RansEncPutSymbol(rans7, ptr, syms[c7][l7], TF_SHIFT);
