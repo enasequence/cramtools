@@ -5,7 +5,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +28,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(value = Parameterized.class)
 public class TestReadingV3 {
+	private static File testFileRoot = new File("C:/temp/CRAM3");
 	private String path;
 	private InputStream is;
 	private ReferenceSource referenceSource;
@@ -38,14 +41,12 @@ public class TestReadingV3 {
 	public static Collection<Object[]> data() {
 		Object[][] data = new Object[][] {
 		// @formatter:off
-		// { "data/v21.cram" },
-		// { "data/v21_embeddedref.cram" }, { "data/v21_java.cram" },
-		{ "data/v30_bz2.cram" },
-		// { "data/v30_bz2_rans.cram" }, {
-		// "data/v30_bz2_rans_lzma.cram" },
-		// { "data/v30.cram" }, { "data/v30_embeddedref.cram" }, {
-		// "data/v30_lzma.cram" },
-		// { "data/v30_noref.cram" }, { "data/v30_rans.cram" },
+		// { "v21.cram" },
+		// { "v21_embeddedref.cram" }, { "v21_java.cram" },
+		// { "v30_bz2.cram" }, { "v30_bz2_rans.cram" }, {
+		// "v30_bz2_rans_lzma.cram" }, { "v30.cram" },
+		{ "v30_embeddedref.cram" },
+		// { "v30_lzma.cram" }, { "v30_noref.cram" }, { "v30_rans.cram" },
 		// @formatter:on
 		};
 		return Arrays.asList(data);
@@ -54,10 +55,10 @@ public class TestReadingV3 {
 	@Before
 	public void before() throws FileNotFoundException {
 		Log.setGlobalLogLevel(LogLevel.WARNING);
-		is = getClass().getClassLoader().getResourceAsStream(path);
+		is = new BufferedInputStream(new FileInputStream(new File(testFileRoot, path)));
 		if (is == null)
 			throw new FileNotFoundException(path);
-		referenceSource = new ReferenceSource(new File("src/test/resources/data/ref.fa"));
+		referenceSource = new ReferenceSource(new File(testFileRoot, "ref.fa"));
 	}
 
 	@Test

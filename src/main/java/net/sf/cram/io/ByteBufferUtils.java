@@ -626,7 +626,12 @@ public class ByteBufferUtils {
 	}
 
 	public static byte[] bunzip2(byte[] data) throws IOException {
-		CBZip2InputStream bis = new CBZip2InputStream(new ByteArrayInputStream(data));
+		CBZip2InputStream bis = null;
+		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+		// hello, apache!
+		byteArrayInputStream.read();
+		byteArrayInputStream.read();
+		bis = new CBZip2InputStream(byteArrayInputStream);
 		return readFully(bis);
 	}
 

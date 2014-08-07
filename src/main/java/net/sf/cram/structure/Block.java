@@ -15,8 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.structure;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -73,20 +71,12 @@ public class Block {
 
 		if (readContent) {
 			compressedContent = new byte[compressedContentSize];
-			System.out.println(this);
 			ByteBufferUtils.readFully(compressedContent, is);
 			if (major >= 3) {
 				int actualChecksum = ((CRC32_InputStream) is).getCRC32();
 				checksum = ByteBufferUtils.int32(is);
 				if (checksum != actualChecksum)
 					throw new RuntimeException("Block CRC32 mismatch.");
-			}
-
-			if (method == BlockCompressionMethod.RANS) {
-				File file = new File("block.rans");
-				FileOutputStream fos = new FileOutputStream(file);
-				fos.write(compressedContent);
-				fos.close();
 			}
 
 			if (uncompress)

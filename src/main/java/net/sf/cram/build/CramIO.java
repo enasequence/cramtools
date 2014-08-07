@@ -379,12 +379,6 @@ public class CramIO {
 			throws IOException {
 
 		long time1 = System.nanoTime();
-		{
-			BufferedInputStream bis = new BufferedInputStream(is);
-			byte[] peek = peek(bis, 50);
-			System.out.println("container peek: " + ByteBufferUtils.toHex(peek));
-			is = bis;
-		}
 		Container c = readContainerHeader(major, is);
 		if (c == null)
 			return null;
@@ -497,22 +491,7 @@ public class CramIO {
 		return containerHeaderByteSize + baos.size();
 	}
 
-	private static byte[] peek(BufferedInputStream bis, int len) throws IOException {
-		bis.mark(len);
-		byte[] peek = new byte[len];
-		ByteBufferUtils.readFully(peek, bis);
-		bis.reset();
-		return peek;
-	}
-
 	public static SAMFileHeader readSAMFileHeader(CramHeader header, InputStream is) throws IOException {
-		{
-			// TODO: causes EOF later for some reason, check
-			BufferedInputStream bis = new BufferedInputStream(is);
-			byte[] peek = peek(bis, 50);
-			System.out.println("container peek: " + ByteBufferUtils.toHex(peek));
-			is = bis;
-		}
 		Container container = readContainerHeader(header.majorVersion, is);
 		Block b = null;
 		{
