@@ -90,7 +90,7 @@ public class TestEOFMarker {
 		assertThat(c.bases, is(0L));
 		assertThat(c.blockCount, is(1));
 
-		CompressionHeaderBLock chb = new CompressionHeaderBLock(bais);
+		CompressionHeaderBLock chb = new CompressionHeaderBLock(2, bais);
 		c.h = chb.getCompressionHeader();
 
 		assertThat(c.h, notNullValue());

@@ -25,6 +25,10 @@ import net.sf.cram.io.ByteBufferUtils;
 public class ContainerHeaderIO {
 
 	public boolean readContainerHeader(Container c, InputStream is) throws IOException {
+		return readContainerHeader(2, c, is);
+	}
+
+	public boolean readContainerHeader(int major, Container c, InputStream is) throws IOException {
 		byte[] peek = new byte[4];
 		int ch = is.read();
 		if (ch == -1)
@@ -47,6 +51,8 @@ public class ContainerHeaderIO {
 		c.bases = ByteBufferUtils.readUnsignedLTF8(is);
 		c.blockCount = ByteBufferUtils.readUnsignedITF8(is);
 		c.landmarks = ByteBufferUtils.array(is);
+		if (major >= 3)
+			c.checksum = ByteBufferUtils.int32(is);
 
 		return true;
 	}

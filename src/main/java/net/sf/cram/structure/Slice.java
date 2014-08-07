@@ -125,6 +125,14 @@ public class Slice {
 		return sb.toString();
 	}
 
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(String.format("slice: seqid %d, start %d, span %d, records %d.", sequenceId, alignmentStart,
+				alignmentSpan, nofRecords));
+		return sb.toString();
+	}
+
 	public static void main(String[] args) {
 		String s = "0123456789";
 		byte[] bases = s.getBytes();

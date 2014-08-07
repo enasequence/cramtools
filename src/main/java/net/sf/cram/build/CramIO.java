@@ -302,7 +302,7 @@ public class CramIO {
 
 		readFormatDefinition(is, header);
 
-		header.samFileHeader = readSAMFileHeader(new String(header.id), is);
+		header.samFileHeader = readSAMFileHeader(header, is);
 		return header;
 	}
 
@@ -355,26 +355,41 @@ public class CramIO {
 	 * @return CRAM container or null if no more data
 	 * @throws IOException
 	 */
+	public static Container readContainer(int major, InputStream is) throws IOException {
+		return readContainer(major, is, 0, Integer.MAX_VALUE);
+	}
+
 	public static Container readContainer(InputStream is) throws IOException {
-		return readContainer(is, 0, Integer.MAX_VALUE);
+		return readContainer(2, is, 0, Integer.MAX_VALUE);
 	}
 
 	public static Container readContainerHeader(InputStream is) throws IOException {
+		return readContainerHeader(2, is);
+	}
+
+	public static Container readContainerHeader(int major, InputStream is) throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		if (!chio.readContainerHeader(c, is))
+		if (!chio.readContainerHeader(major, c, is))
 			return null;
 		return c;
 	}
 
-	private static Container readContainer(InputStream is, int fromSlice, int howManySlices) throws IOException {
+	private static Container readContainer(int major, InputStream is, int fromSlice, int howManySlices)
+			throws IOException {
 
 		long time1 = System.nanoTime();
-		Container c = readContainerHeader(is);
+		{
+			BufferedInputStream bis = new BufferedInputStream(is);
+			byte[] peek = peek(bis, 50);
+			System.out.println("container peek: " + ByteBufferUtils.toHex(peek));
+			is = bis;
+		}
+		Container c = readContainerHeader(major, is);
 		if (c == null)
 			return null;
 
-		CompressionHeaderBLock chb = new CompressionHeaderBLock(is);
+		CompressionHeaderBLock chb = new CompressionHeaderBLock(major, is);
 		c.h = chb.getCompressionHeader();
 		howManySlices = Math.min(c.landmarks.length, howManySlices);
 
@@ -385,8 +400,8 @@ public class CramIO {
 		List<Slice> slices = new ArrayList<Slice>();
 		for (int s = fromSlice; s < howManySlices - fromSlice; s++) {
 			Slice slice = new Slice();
-			sio.readSliceHeadBlock(slice, is);
-			sio.readSliceBlocks(slice, true, is);
+			sio.readSliceHeadBlock(major, slice, is);
+			sio.readSliceBlocks(major, slice, true, is);
 			slices.add(slice);
 		}
 
@@ -482,9 +497,30 @@ public class CramIO {
 		return containerHeaderByteSize + baos.size();
 	}
 
-	public static SAMFileHeader readSAMFileHeader(String id, InputStream is) throws IOException {
-		Container container = readContainerHeader(is);
-		Block b = new Block(is, true, true);
+	private static byte[] peek(BufferedInputStream bis, int len) throws IOException {
+		bis.mark(len);
+		byte[] peek = new byte[len];
+		ByteBufferUtils.readFully(peek, bis);
+		bis.reset();
+		return peek;
+	}
+
+	public static SAMFileHeader readSAMFileHeader(CramHeader header, InputStream is) throws IOException {
+		{
+			// TODO: causes EOF later for some reason, check
+			BufferedInputStream bis = new BufferedInputStream(is);
+			byte[] peek = peek(bis, 50);
+			System.out.println("container peek: " + ByteBufferUtils.toHex(peek));
+			is = bis;
+		}
+		Container container = readContainerHeader(header.majorVersion, is);
+		Block b = null;
+		{
+			byte[] bytes = new byte[container.containerByteSize];
+			ByteBufferUtils.readFully(bytes, is);
+			b = new Block(header.majorVersion, new ByteArrayInputStream(bytes), true, true);
+			// ignore the rest of the container
+		}
 
 		is = new ByteArrayInputStream(b.getRawContent());
 
@@ -501,8 +537,7 @@ public class CramIO {
 
 		BufferedLineReader r = new BufferedLineReader(new ByteArrayInputStream(bytes));
 		SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
-		SAMFileHeader header = codec.decode(r, id);
-		return header;
+		return codec.decode(r, new String(header.id));
 	}
 
 	public static boolean replaceCramHeader(File file, CramHeader newHeader) throws IOException {

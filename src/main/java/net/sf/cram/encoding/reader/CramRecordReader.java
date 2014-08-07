@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 
 import net.sf.cram.encoding.read_features.BaseQualityScore;
+import net.sf.cram.encoding.read_features.Bases;
 import net.sf.cram.encoding.read_features.Deletion;
 import net.sf.cram.encoding.read_features.HardClip;
 import net.sf.cram.encoding.read_features.InsertBase;
@@ -28,6 +29,7 @@ import net.sf.cram.encoding.read_features.Padding;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
 import net.sf.cram.encoding.read_features.RefSkip;
+import net.sf.cram.encoding.read_features.Scores;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.structure.CramRecord;
@@ -95,8 +97,14 @@ public class CramRecordReader extends AbstractReader {
 			}
 
 			if (!r.isSegmentUnmapped()) {
-				// writing read features:
-				int size = nfc.readData();
+				// reading read features:
+				int size;
+				try {
+					size = nfc.readData();
+				} catch (Exception e) {
+					System.out.println("recordCoutner=" + recordCounter);
+					throw new RuntimeException(e);
+				}
 				int prevPos = 0;
 				java.util.List<ReadFeature> rf = new LinkedList<ReadFeature>();
 				r.readFeatures = rf;
@@ -149,6 +157,14 @@ public class CramRecordReader extends AbstractReader {
 					case BaseQualityScore.operator:
 						BaseQualityScore bqs = new BaseQualityScore(pos, qc.readData());
 						rf.add(bqs);
+						break;
+					case Bases.operator:
+						Bases bases = new Bases(pos, basesCodec.readData());
+						rf.add(bases);
+						break;
+					case Scores.operator:
+						Scores scores = new Scores(pos, basesCodec.readData());
+						rf.add(scores);
 						break;
 					default:
 						throw new RuntimeException("Unknown read feature operator: " + operator);

@@ -88,7 +88,7 @@ public class SAMIterator implements SAMRecordIterator {
 		recordCounter = 0;
 
 		container = null;
-		container = CramIO.readContainer(is);
+		container = CramIO.readContainer(cramHeader.majorVersion, is);
 		if (container == null)
 			return;
 

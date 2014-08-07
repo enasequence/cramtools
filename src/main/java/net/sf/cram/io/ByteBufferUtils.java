@@ -30,6 +30,11 @@ import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import net.sf.cram.encoding.rANS.rANS;
+
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
+import org.apache.tools.bzip2.CBZip2InputStream;
+
 public class ByteBufferUtils {
 
 	public static final int readUnsignedITF8(InputStream is) throws IOException {
@@ -516,10 +521,10 @@ public class ByteBufferUtils {
 		}
 	}
 
-	private static String toHex(byte[] bytes) {
+	public static String toHex(byte[] bytes) {
 		StringBuffer sb = new StringBuffer();
 		for (byte t : bytes) {
-			sb.append(Integer.toHexString(0xFF & t));
+			sb.append(Integer.toHexString(0xFF & t)).append(' ');
 		}
 		return sb.toString();
 	}
@@ -620,6 +625,21 @@ public class ByteBufferUtils {
 		return readFully(gis);
 	}
 
+	public static byte[] bunzip2(byte[] data) throws IOException {
+		CBZip2InputStream bis = new CBZip2InputStream(new ByteArrayInputStream(data));
+		return readFully(bis);
+	}
+
+	public static byte[] unrans(byte[] data) throws IOException {
+		ByteBuffer buf = rANS.uncompress(ByteBuffer.wrap(data));
+		return toByteArray(buf);
+	}
+
+	public static byte[] unxz(byte[] data) throws IOException {
+		XZCompressorInputStream is = new XZCompressorInputStream(new ByteArrayInputStream(data));
+		return readFully(is);
+	}
+
 	public static int GZIP_COMPRESSION_LEVEL = Integer.valueOf(System.getProperty("gzip.compression.level", "5"));
 
 	public static byte[] gzip(byte[] data) throws IOException {
@@ -703,6 +723,15 @@ public class ByteBufferUtils {
 			data[i / 2] = (Integer.decode("0x" + clean.charAt(i) + clean.charAt(i + 1))).byteValue();
 		}
 		return data;
+	}
+
+	public static byte[] toByteArray(ByteBuffer buf) {
+		if (buf.hasArray() && buf.arrayOffset() == 0 && buf.array().length == buf.limit())
+			return buf.array();
+
+		byte[] bytes = new byte[buf.remaining()];
+		buf.get(bytes);
+		return bytes;
 	}
 
 	public static void reverse(byte[] array, int offset, int size) {

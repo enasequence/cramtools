@@ -9,6 +9,8 @@
 	<classpathentry kind="lib" path="lib/picard-1.103.jar" sourcepath="/picard"/>
 	<classpathentry kind="lib" path="lib/sam-1.103.jar" sourcepath="/picard/src/java"/>
 	<classpathentry kind="lib" path="lib/CipherOnly.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.4.1.jar"/>
+	<classpathentry kind="lib" path="lib/xz-1.5.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

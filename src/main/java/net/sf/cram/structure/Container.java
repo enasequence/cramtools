@@ -30,6 +30,7 @@ public class Container {
 	public long bases = 0;
 	public int blockCount = -1;
 	public int[] landmarks;
+	public int checksum = 0;
 
 	/**
 	 * Container data

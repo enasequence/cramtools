@@ -16,5 +16,5 @@
 package net.sf.cram.structure;
 
 public enum BlockCompressionMethod {
-	RAW, GZIP ;
+	RAW, GZIP, BZIP2, LZMA, RANS;
 }

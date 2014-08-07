@@ -88,7 +88,7 @@ public abstract class AbstractReader {
 
 	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.INT)
 	public DataReader<Integer> hardClipCodec;
-	
+
 	@DataSeries(key = EncodingKey.PD_padding, type = DataSeriesType.INT)
 	public DataReader<Integer> paddingCodec;
 
@@ -124,6 +124,12 @@ public abstract class AbstractReader {
 
 	@DataSeries(key = EncodingKey.RS_RefSkip, type = DataSeriesType.INT)
 	public DataReader<Integer> refSkipCodec;
+
+	@DataSeries(key = EncodingKey.BB_bases, type = DataSeriesType.BYTE_ARRAY)
+	public DataReader<byte[]> basesCodec;
+
+	@DataSeries(key = EncodingKey.QQ_scores, type = DataSeriesType.BYTE_ARRAY)
+	public DataReader<byte[]> scoresCodec;
 
 	public int refId;
 	public SubstitutionMatrix substitutionMatrix;
