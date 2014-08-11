@@ -16,7 +16,6 @@
 package net.sf.samtools;
 
 import java.io.BufferedInputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,6 +33,7 @@ import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
 import net.sf.cram.structure.CramRecord;
+import net.sf.cram.structure.Slice;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
@@ -67,7 +67,7 @@ public class SAMIterator implements SAMRecordIterator {
 	}
 
 	private long samRecordIndex;
-	private ArrayList<CramRecord> cramRecords;
+	private Cram2BamRecordFactory c2sFactory;
 
 	public SAMIterator(InputStream is, ReferenceSource referenceSource) throws IOException {
 		this.is = is;
@@ -76,6 +76,7 @@ public class SAMIterator implements SAMRecordIterator {
 		records = new ArrayList<SAMRecord>(100000);
 		normalizer = new CramNormalizer(cramHeader.samFileHeader, referenceSource);
 		parser = new ContainerParser(cramHeader.samFileHeader);
+		c2sFactory = new Cram2BamRecordFactory(cramHeader.samFileHeader);
 	}
 
 	public CramHeader getCramHeader() {
@@ -95,60 +96,47 @@ public class SAMIterator implements SAMRecordIterator {
 		if (records == null)
 			records = new ArrayList<SAMRecord>(container.nofRecords);
 
-		try {
-			if (cramRecords == null)
-				cramRecords = new ArrayList<CramRecord>(container.nofRecords);
-			cramRecords.clear();
-			parser.getRecords(container, cramRecords);
-		} catch (EOFException e) {
-			throw e;
-		}
+		ArrayList<CramRecord> sliceRecords = null;
+		for (Slice slice : container.slices) {
+			sliceRecords = parser.getRecords(sliceRecords, slice, container.h);
 
-		if (container.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-			refs = new byte[] {};
-		} else if (container.sequenceId == -2) {
-			refs = null;
-			prevSeqId = -2;
-		} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
-			SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(container.sequenceId);
-			refs = referenceSource.getReferenceBases(sequence, true);
-			prevSeqId = container.sequenceId;
-		}
-
-		long time1 = System.nanoTime();
-
-		normalizer.normalize(cramRecords, true, refs, container.alignmentStart, container.h.substitutionMatrix,
-				container.h.AP_seriesDelta);
-		long time2 = System.nanoTime();
-
-		Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(cramHeader.samFileHeader);
-
-		long c2sTime = 0;
-
-		for (CramRecord r : cramRecords) {
-			long time = System.nanoTime();
-			SAMRecord s = c2sFactory.create(r);
-			c2sTime += System.nanoTime() - time;
-			if (!r.isSegmentUnmapped()) {
-				SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(r.sequenceId);
+			int refOffset_zeroBased = 0;
+			if (container.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				refs = new byte[] {};
+			} else if (container.sequenceId == -2) {
+				refs = null;
+				prevSeqId = -2;
+			} else if (prevSeqId < 0 || prevSeqId != container.sequenceId) {
+				SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(container.sequenceId);
 				refs = referenceSource.getReferenceBases(sequence, true);
-				Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
+				prevSeqId = container.sequenceId;
+			} else if (slice.embeddedRefBlock != null) {
+				refs = slice.embeddedRefBlock.getRawContent();
+				refOffset_zeroBased = slice.alignmentStart - 1;
 			}
 
-			s.setValidationStringency(validationStringency);
+			normalizer.normalize(sliceRecords, true, refs, refOffset_zeroBased, container.h.substitutionMatrix,
+					container.h.AP_seriesDelta);
 
-			if (validationStringency != ValidationStringency.SILENT) {
-				final List<SAMValidationError> validationErrors = s.isValid();
-				SAMUtils.processValidationErrors(validationErrors, samRecordIndex, validationStringency);
+			for (CramRecord r : sliceRecords) {
+				SAMRecord s = c2sFactory.create(r);
+				if (!r.isSegmentUnmapped()) {
+					SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(r.sequenceId);
+					refs = referenceSource.getReferenceBases(sequence, true);
+					Utils.calculateMdAndNmTags(s, refs, restoreMDTag, restoreNMTag);
+				}
+
+				s.setValidationStringency(validationStringency);
+
+				if (validationStringency != ValidationStringency.SILENT) {
+					final List<SAMValidationError> validationErrors = s.isValid();
+					SAMUtils.processValidationErrors(validationErrors, samRecordIndex, validationStringency);
+				}
+
+				records.add(s);
 			}
-
-			records.add(s);
+			sliceRecords.clear();
 		}
-		cramRecords.clear();
-
-		log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms",
-				container.readTime / 1000000, container.parseTime / 1000000, c2sTime / 1000000,
-				(time2 - time1) / 1000000));
 	}
 
 	@Override

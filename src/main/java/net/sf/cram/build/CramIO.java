@@ -495,10 +495,18 @@ public class CramIO {
 		Container container = readContainerHeader(header.majorVersion, is);
 		Block b = null;
 		{
-			byte[] bytes = new byte[container.containerByteSize];
-			ByteBufferUtils.readFully(bytes, is);
-			b = new Block(header.majorVersion, new ByteArrayInputStream(bytes), true, true);
-			// ignore the rest of the container
+			if (header.majorVersion >= 3) {
+				byte[] bytes = new byte[container.containerByteSize];
+				ByteBufferUtils.readFully(bytes, is);
+				b = new Block(header.majorVersion, new ByteArrayInputStream(bytes), true, true);
+				// ignore the rest of the container
+			} else {
+				/*
+				 * pending issue: container.containerByteSize is 2 bytes shorter
+				 * then needed in the v21 test cram files.
+				 */
+				b = new Block(header.majorVersion, is, true, true);
+			}
 		}
 
 		is = new ByteArrayInputStream(b.getRawContent());

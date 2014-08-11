@@ -40,13 +40,10 @@ public class TestReadingV3 {
 	@Parameters
 	public static Collection<Object[]> data() {
 		Object[][] data = new Object[][] {
-		// @formatter:off
-		// { "v21.cram" },
-		// { "v21_embeddedref.cram" }, { "v21_java.cram" },
-		// { "v30_bz2.cram" }, { "v30_bz2_rans.cram" }, {
-		// "v30_bz2_rans_lzma.cram" }, { "v30.cram" },
-		{ "v30_embeddedref.cram" },
-		// { "v30_lzma.cram" }, { "v30_noref.cram" }, { "v30_rans.cram" },
+				// @formatter:off
+				{ "v21.cram" }, { "v21_embeddedref.cram" }, { "v21_java.cram" }, { "v30_bz2.cram" },
+				{ "v30_bz2_rans.cram" }, { "v30_bz2_rans_lzma.cram" }, { "v30.cram" }, { "v30_embeddedref.cram" },
+				{ "v30_lzma.cram" }, { "v30_noref.cram" }, { "v30_rans.cram" },
 		// @formatter:on
 		};
 		return Arrays.asList(data);
