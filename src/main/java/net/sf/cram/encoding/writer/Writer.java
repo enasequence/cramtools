@@ -35,7 +35,6 @@ import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.EncodingKey;
-import net.sf.cram.structure.ReadTag;
 import net.sf.cram.structure.SubstitutionMatrix;
 
 public class Writer {
@@ -100,10 +99,10 @@ public class Writer {
 
 	@DataSeries(key = EncodingKey.SC_SoftClip, type = DataSeriesType.BYTE_ARRAY)
 	public DataWriter<byte[]> softClipCodec;
-	
+
 	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.INT)
 	public DataWriter<Integer> hardClipCodec;
-	
+
 	@DataSeries(key = EncodingKey.PD_padding, type = DataSeriesType.INT)
 	public DataWriter<Integer> paddingCodec;
 
@@ -182,8 +181,7 @@ public class Writer {
 		tagIdListCodec.writeData(r.tagIdsIndex.value);
 		if (r.tags != null) {
 			for (int i = 0; i < r.tags.length; i++) {
-				DataWriter<byte[]> writer = tagValueCodecs
-						.get(r.tags[i].keyType3BytesAsInt);
+				DataWriter<byte[]> writer = tagValueCodecs.get(r.tags[i].keyType3BytesAsInt);
 				writer.writeData(r.tags[i].getValueAsByteArray());
 			}
 		}
@@ -214,8 +212,7 @@ public class Writer {
 				case Substitution.operator:
 					Substitution sv = (Substitution) f;
 					if (sv.getCode() < 0)
-						bsc.writeData(substitutionMatrix.code(
-								sv.getRefernceBase(), sv.getBase()));
+						bsc.writeData(substitutionMatrix.code(sv.getRefernceBase(), sv.getBase()));
 					else
 						bsc.writeData(sv.getCode());
 					// bsc.writeData((byte) sv.getBaseChange().getChange());
@@ -253,9 +250,7 @@ public class Writer {
 					qc.writeData(bqs.getQualityScore());
 					break;
 				default:
-					throw new RuntimeException(
-							"Unknown read feature operator: "
-									+ (char) f.getOperator());
+					throw new RuntimeException("Unknown read feature operator: " + (char) f.getOperator());
 				}
 			}
 

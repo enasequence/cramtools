@@ -51,8 +51,12 @@ public class CramRecordReader extends AbstractReader {
 			r.compressionFlags = compBitFlagsC.readData();
 			if (refId == -2)
 				r.sequenceId = refIdCodec.readData();
-			else
-				r.sequenceId = refId;
+			else {
+				if (r.isSegmentUnmapped())
+					r.sequenceId = -1;
+				else
+					r.sequenceId = refId;
+			}
 
 			r.readLength = readLengthC.readData();
 			if (AP_delta)
