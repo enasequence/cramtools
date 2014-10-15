@@ -39,6 +39,9 @@ import net.sf.picard.util.Log;
 import net.sf.samtools.SAMSequenceRecord;
 
 public class ReferenceSource {
+	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
+	private static String URL_PATTERN=System.getProperty("REF_URL_TEMPLATE", "http://www.ebi.ac.uk/ena/cram/md5/%s");
+	
 	private static Log log = Log.getInstance(ReferenceSource.class);
 	private ReferenceSequenceFile rsFile;
 	private FastaSequenceIndex fastaSequenceIndex;
@@ -152,7 +155,8 @@ public class ReferenceSource {
 	}
 
 	protected byte[] findBasesByMD5(String md5) throws MalformedURLException, IOException {
-		String url = String.format("http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
+		String url = String.format(URL_PATTERN, md5);
+		log.debug("Opening URL: " + url);
 
 		for (int i = 0; i < downloadTriesBeforeFailing; i++) {
 			InputStream is = new URL(url).openStream();
@@ -180,7 +184,6 @@ public class ReferenceSource {
 		throw new RuntimeException("Giving up on downloading sequence for md5 " + md5);
 	}
 
-	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
 
 	protected List<String> getVariants(String name) {
 		List<String> variants = new ArrayList<String>();
