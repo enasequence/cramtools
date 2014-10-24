@@ -31,6 +31,7 @@ import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramRecord;
+import net.sf.cram.structure.EncodingKey;
 import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.samtools.SAMFileHeader;
@@ -208,7 +209,10 @@ public class ContainerFactory {
 
 			Block externalBlock = new Block();
 			externalBlock.contentType = BlockContentType.EXTERNAL;
-			externalBlock.method = BlockCompressionMethod.GZIP;
+			if (EncodingKey.QS_QualityScore == h.dataKeyMap.get(i))
+				externalBlock.method = BlockCompressionMethod.RANS;
+			else
+				externalBlock.method = BlockCompressionMethod.GZIP;
 			externalBlock.contentId = i;
 
 			externalBlock.setRawContent(os.toByteArray());

@@ -37,7 +37,7 @@ public class Slice {
 	public int nofBlocks = -1;
 	public int[] contentIDs;
 	public int embeddedRefBlockContentID = -1;
-	public byte[] refMD5;
+	public byte[] refMD5 = new byte[16];
 
 	// content associated with ids:
 	public Block headerBlock;

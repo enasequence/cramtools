@@ -61,7 +61,8 @@ public class CompressionHeaderFactory {
 	private static final int oqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 	private static final int bqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 
-	public CompressionHeader build(List<CramRecord> records, SubstitutionMatrix substitutionMatrix) {
+	public CompressionHeader build(List<CramRecord> records,
+			SubstitutionMatrix substitutionMatrix) {
 		CompressionHeader h = new CompressionHeader();
 		h.externalIds = new ArrayList<Integer>();
 		int exCounter = 0;
@@ -70,6 +71,7 @@ public class CompressionHeaderFactory {
 		h.externalIds.add(baseID);
 
 		int qualityScoreID = exCounter++;
+		h.dataKeyMap.put(qualityScoreID, EncodingKey.QS_QualityScore);
 		h.externalIds.add(qualityScoreID);
 
 		int readNameID = exCounter++;
@@ -98,7 +100,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // compression bit flags encoding:
-			getOptmialIntegerEncoding(h, EncodingKey.CF_CompressionBitFlags, 0, records);
+			getOptmialIntegerEncoding(h, EncodingKey.CF_CompressionBitFlags, 0,
+					records);
 		}
 
 		{ // ref id:
@@ -111,7 +114,8 @@ public class CompressionHeaderFactory {
 		}
 
 		{ // alignment offset:
-			getOptmialIntegerEncoding(h, EncodingKey.AP_AlignmentPositionOffset, 0, records);
+			getOptmialIntegerEncoding(h,
+					EncodingKey.AP_AlignmentPositionOffset, 0, records);
 		}
 
 		{ // read group
@@ -125,23 +129,26 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.RN_ReadName, ByteArrayLenEncoding.toParam(
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()),
-					ExternalByteArrayEncoding.toParam(readNameID)));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens()), ExternalByteArrayEncoding
+							.toParam(readNameID)));
 			// h.eMap.put(EncodingKey.RN_ReadName,
 			// ByteArrayStopEncoding.toParam((byte) 0, readNameID));
 		}
 
 		{ // records to next fragment
-			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(EncodingKey.NF_RecordsToNextFragment.name(),
-					0);
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
+					EncodingKey.NF_RecordsToNextFragment.name(), 0);
 			for (CramRecord r : records) {
 				if (r.isHasMateDownStream())
 					calc.addValue(r.recordsToNextFragment);
 			}
 
 			Encoding<Integer> bestEncoding = calc.getBestEncoding();
-			h.eMap.put(EncodingKey.NF_RecordsToNextFragment,
-					new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+			h.eMap.put(
+					EncodingKey.NF_RecordsToNextFragment,
+					new EncodingParams(bestEncoding.id(), bestEncoding
+							.toByteArray()));
 		}
 
 		{ // tag count
@@ -150,8 +157,8 @@ public class CompressionHeaderFactory {
 				calculator.add(r.tags == null ? 0 : r.tags.length);
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.TC_TagCount,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			h.eMap.put(EncodingKey.TC_TagCount, HuffmanIntegerEncoding.toParam(
+					calculator.values(), calculator.bitLens()));
 		}
 
 		{ // tag name and type
@@ -164,8 +171,8 @@ public class CompressionHeaderFactory {
 			}
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.TN_TagNameAndType,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			h.eMap.put(EncodingKey.TN_TagNameAndType, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
 		}
 
 		{
@@ -193,7 +200,8 @@ public class CompressionHeaderFactory {
 				}
 			};
 
-			Map<byte[], MutableInt> map = new TreeMap<byte[], MutableInt>(baComparator);
+			Map<byte[], MutableInt> map = new TreeMap<byte[], MutableInt>(
+					baComparator);
 			MutableInt noTagCounter = new MutableInt();
 			map.put(new byte[0], noTagCounter);
 			for (CramRecord r : records) {
@@ -208,9 +216,12 @@ public class CompressionHeaderFactory {
 
 				int tagIndex = 0;
 				for (int i = 0; i < r.tags.length; i++) {
-					r.tagIds[i * 3] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(0);
-					r.tagIds[i * 3 + 1] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(1);
-					r.tagIds[i * 3 + 2] = (byte) r.tags[tagIndex].keyType3Bytes.charAt(2);
+					r.tagIds[i * 3] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(0);
+					r.tagIds[i * 3 + 1] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(1);
+					r.tagIds[i * 3 + 2] = (byte) r.tags[tagIndex].keyType3Bytes
+							.charAt(2);
 					tagIndex++;
 				}
 
@@ -241,8 +252,8 @@ public class CompressionHeaderFactory {
 			}
 
 			calculator.calculate();
-			h.eMap.put(EncodingKey.TL_TagIdList,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+			h.eMap.put(EncodingKey.TL_TagIdList, HuffmanIntegerEncoding
+					.toParam(calculator.values(), calculator.bitLens()));
 			h.dictionary = dic;
 		}
 
@@ -267,7 +278,8 @@ public class CompressionHeaderFactory {
 					// break;
 
 					default:
-						HuffmanParamsCalculator c = cc.get(tag.keyType3BytesAsInt);
+						HuffmanParamsCalculator c = cc
+								.get(tag.keyType3BytesAsInt);
 						if (c == null) {
 							c = new HuffmanParamsCalculator();
 							cc.put(tag.keyType3BytesAsInt, c);
@@ -284,12 +296,14 @@ public class CompressionHeaderFactory {
 					c.calculate();
 
 					h.tMap.put(key, ByteArrayLenEncoding.toParam(
-							HuffmanIntegerEncoding.toParam(c.values(), c.bitLens()),
+							HuffmanIntegerEncoding.toParam(c.values(),
+									c.bitLens()),
 							ExternalByteArrayEncoding.toParam(tagValueExtID)));
 				}
 
 			for (Integer key : h.tMap.keySet()) {
-				log.debug(String.format("TAG ENCODING: %d, %s", key, h.tMap.get(key)));
+				log.debug(String.format("TAG ENCODING: %d, %s", key,
+						h.tMap.get(key)));
 			}
 
 			// for (CramRecord r : records) {
@@ -309,15 +323,18 @@ public class CompressionHeaderFactory {
 		{ // number of read features
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records)
-				calculator.add(r.readFeatures == null ? 0 : r.readFeatures.size());
+				calculator.add(r.readFeatures == null ? 0 : r.readFeatures
+						.size());
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.FN_NumberOfReadFeatures,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens()));
 		}
 
 		{ // feature position
-			IntegerEncodingCalculator calc = new IntegerEncodingCalculator("read feature position", 0);
+			IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
+					"read feature position", 0);
 			for (CramRecord r : records) {
 				int prevPos = 0;
 				if (r.readFeatures == null)
@@ -329,8 +346,8 @@ public class CompressionHeaderFactory {
 			}
 
 			Encoding<Integer> bestEncoding = calc.getBestEncoding();
-			h.eMap.put(EncodingKey.FP_FeaturePosition,
-					new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+			h.eMap.put(EncodingKey.FP_FeaturePosition, new EncodingParams(
+					bestEncoding.id(), bestEncoding.toByteArray()));
 		}
 
 		{ // feature code
@@ -343,12 +360,13 @@ public class CompressionHeaderFactory {
 						calculator.add(rf.getOperator());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.FC_FeatureCode,
-					HuffmanByteEncoding.toParam(calculator.valuesAsBytes(), calculator.bitLens));
+			h.eMap.put(EncodingKey.FC_FeatureCode, HuffmanByteEncoding.toParam(
+					calculator.valuesAsBytes(), calculator.bitLens));
 		}
 
 		{ // bases:
-			h.eMap.put(EncodingKey.BA_Base, ExternalByteEncoding.toParam(baseID));
+			h.eMap.put(EncodingKey.BA_Base,
+					ExternalByteEncoding.toParam(baseID));
 		}
 
 		{ // quality scores:
@@ -377,7 +395,8 @@ public class CompressionHeaderFactory {
 			// HuffmanByteEncoding.toParam(
 			// calculator.valuesAsBytes(), calculator.bitLens));
 
-			h.eMap.put(EncodingKey.QS_QualityScore, ExternalByteEncoding.toParam(qualityScoreID));
+			h.eMap.put(EncodingKey.QS_QualityScore,
+					ExternalByteEncoding.toParam(qualityScoreID));
 		}
 
 		{ // base substitution code
@@ -411,7 +430,8 @@ public class CompressionHeaderFactory {
 							if (s.getCode() == -1) {
 								byte refBase = s.getRefernceBase();
 								byte base = s.getBase();
-								s.setCode(h.substitutionMatrix.code(refBase, base));
+								s.setCode(h.substitutionMatrix.code(refBase,
+										base));
 							}
 							calculator.add(s.getCode());
 						}
@@ -419,15 +439,18 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.BS_BaseSubstitutionCode,
-					HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+					HuffmanIntegerEncoding.toParam(calculator.values,
+							calculator.bitLens));
 		}
 
 		{ // insertion bases
-			h.eMap.put(EncodingKey.IN_Insertion, ByteArrayStopEncoding.toParam((byte) 0, baseID));
+			h.eMap.put(EncodingKey.IN_Insertion,
+					ByteArrayStopEncoding.toParam((byte) 0, baseID));
 		}
 
 		{ // insertion bases
-			h.eMap.put(EncodingKey.SC_SoftClip, ByteArrayStopEncoding.toParam((byte) 0, baseID));
+			h.eMap.put(EncodingKey.SC_SoftClip,
+					ByteArrayStopEncoding.toParam((byte) 0, baseID));
 		}
 
 		{ // deletion length
@@ -441,12 +464,13 @@ public class CompressionHeaderFactory {
 							calculator.add(((Deletion) rf).getLength());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.DL_DeletionLength,
-					HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.DL_DeletionLength, HuffmanIntegerEncoding
+					.toParam(calculator.values, calculator.bitLens));
 		}
 
 		{ // hard clip length
-			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(EncodingKey.HC_HardClip.name(), 1);
+			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(
+					EncodingKey.HC_HardClip.name(), 1);
 			for (CramRecord r : records)
 				if (r.readFeatures == null)
 					continue;
@@ -456,11 +480,15 @@ public class CompressionHeaderFactory {
 							calculator.addValue(((HardClip) rf).getLength());
 
 			Encoding<Integer> bestEncoding = calculator.getBestEncoding();
-			h.eMap.put(EncodingKey.HC_HardClip, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+			h.eMap.put(
+					EncodingKey.HC_HardClip,
+					new EncodingParams(bestEncoding.id(), bestEncoding
+							.toByteArray()));
 		}
 
 		{ // padding length
-			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(EncodingKey.PD_padding.name(), 1);
+			IntegerEncodingCalculator calculator = new IntegerEncodingCalculator(
+					EncodingKey.PD_padding.name(), 1);
 			for (CramRecord r : records)
 				if (r.readFeatures == null)
 					continue;
@@ -470,7 +498,10 @@ public class CompressionHeaderFactory {
 							calculator.addValue(((Padding) rf).getLength());
 
 			Encoding<Integer> bestEncoding = calculator.getBestEncoding();
-			h.eMap.put(EncodingKey.PD_padding, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+			h.eMap.put(
+					EncodingKey.PD_padding,
+					new EncodingParams(bestEncoding.id(), bestEncoding
+							.toByteArray()));
 
 		}
 
@@ -485,7 +516,8 @@ public class CompressionHeaderFactory {
 							calculator.add(((RefSkip) rf).getLength());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.RS_RefSkip, HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.RS_RefSkip, HuffmanIntegerEncoding.toParam(
+					calculator.values, calculator.bitLens));
 		}
 
 		{ // mapping quality score
@@ -496,7 +528,8 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 
 			h.eMap.put(EncodingKey.MQ_MappingQualityScore,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens));
 		}
 
 		{ // mate bit flags
@@ -505,8 +538,8 @@ public class CompressionHeaderFactory {
 				calculator.add(r.getMateFlags());
 			calculator.calculate();
 
-			h.eMap.put(EncodingKey.MF_MateBitFlags,
-					HuffmanIntegerEncoding.toParam(calculator.values, calculator.bitLens));
+			h.eMap.put(EncodingKey.MF_MateBitFlags, HuffmanIntegerEncoding
+					.toParam(calculator.values, calculator.bitLens));
 		}
 
 		{ // next fragment ref id:
@@ -517,19 +550,24 @@ public class CompressionHeaderFactory {
 			calculator.calculate();
 
 			if (calculator.values.length == 0)
-				h.eMap.put(EncodingKey.NS_NextFragmentReferenceSequenceID, NullEncoding.toParam());
+				h.eMap.put(EncodingKey.NS_NextFragmentReferenceSequenceID,
+						NullEncoding.toParam());
 
 			h.eMap.put(EncodingKey.NS_NextFragmentReferenceSequenceID,
-					HuffmanIntegerEncoding.toParam(calculator.values(), calculator.bitLens()));
-			log.debug("NS: " + h.eMap.get(EncodingKey.NS_NextFragmentReferenceSequenceID));
+					HuffmanIntegerEncoding.toParam(calculator.values(),
+							calculator.bitLens()));
+			log.debug("NS: "
+					+ h.eMap.get(EncodingKey.NS_NextFragmentReferenceSequenceID));
 		}
 
 		{ // next fragment alignment start
-			h.eMap.put(EncodingKey.NP_NextFragmentAlignmentStart, ExternalIntegerEncoding.toParam(mateInfoID));
+			h.eMap.put(EncodingKey.NP_NextFragmentAlignmentStart,
+					ExternalIntegerEncoding.toParam(mateInfoID));
 		}
 
 		{ // template size
-			h.eMap.put(EncodingKey.TS_InsetSize, ExternalIntegerEncoding.toParam(mateInfoID));
+			h.eMap.put(EncodingKey.TS_InsetSize,
+					ExternalIntegerEncoding.toParam(mateInfoID));
 		}
 
 		{ // test mark
@@ -585,16 +623,20 @@ public class CompressionHeaderFactory {
 		}
 	}
 
-	private static final void getOptmialIntegerEncoding(CompressionHeader h, EncodingKey key, int minValue,
-			List<CramRecord> records) {
-		IntegerEncodingCalculator calc = new IntegerEncodingCalculator(key.name(), minValue);
+	private static final void getOptmialIntegerEncoding(CompressionHeader h,
+			EncodingKey key, int minValue, List<CramRecord> records) {
+		IntegerEncodingCalculator calc = new IntegerEncodingCalculator(
+				key.name(), minValue);
 		for (CramRecord r : records) {
 			int value = getValue(key, r);
 			calc.addValue(value);
 		}
 
 		Encoding<Integer> bestEncoding = calc.getBestEncoding();
-		h.eMap.put(key, new EncodingParams(bestEncoding.id(), bestEncoding.toByteArray()));
+		h.eMap.put(
+				key,
+				new EncodingParams(bestEncoding.id(), bestEncoding
+						.toByteArray()));
 	}
 
 	private static class BitCode implements Comparable<BitCode> {
@@ -739,7 +781,8 @@ public class CompressionHeaderFactory {
 		private HashMap<Integer, MutableInt> dictionary = new HashMap<Integer, MutableInt>();
 		private int dictionaryThreshold = 100;
 
-		public IntegerEncodingCalculator(String name, int dictionaryThreshold, int minValue) {
+		public IntegerEncodingCalculator(String name, int dictionaryThreshold,
+				int minValue) {
 			this.name = name;
 			// for (int i = 2; i < 10; i++)
 			// calcs.add(new EncodingLengthCalculator(
@@ -749,10 +792,12 @@ public class CompressionHeaderFactory {
 			// calcs.add(new EncodingLengthCalculator(
 			// new GolombRiceIntegerEncoding(i)));
 
-			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(1 - minValue)));
+			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(
+					1 - minValue)));
 
 			for (int i = 2; i < 5; i++)
-				calcs.add(new EncodingLengthCalculator(new SubexpIntegerEncoding(0 - minValue, i)));
+				calcs.add(new EncodingLengthCalculator(
+						new SubexpIntegerEncoding(0 - minValue, i)));
 
 			if (dictionaryThreshold < 1)
 				dictionary = null;
@@ -797,7 +842,8 @@ public class CompressionHeaderFactory {
 		public Encoding<Integer> getBestEncoding() {
 			if (dictionary != null && dictionary.size() == 1) {
 				int value = dictionary.keySet().iterator().next();
-				EncodingParams param = HuffmanIntegerEncoding.toParam(new int[] { value }, new int[] { 0 });
+				EncodingParams param = HuffmanIntegerEncoding.toParam(
+						new int[] { value }, new int[] { 0 });
 				HuffmanIntegerEncoding he = new HuffmanIntegerEncoding();
 				he.fromByteArray(param.params);
 				return he;
@@ -815,7 +861,8 @@ public class CompressionHeaderFactory {
 
 			{ // check if beta is better:
 
-				int betaLength = (int) Math.round(Math.log(max) / Math.log(2) + 0.5);
+				int betaLength = (int) Math.round(Math.log(max) / Math.log(2)
+						+ 0.5);
 				if (bits > betaLength * count) {
 					bestEncoding = new BetaIntegerEncoding(betaLength);
 					bits = betaLength * count;
@@ -830,10 +877,12 @@ public class CompressionHeaderFactory {
 
 					c.calculate();
 
-					EncodingParams param = HuffmanIntegerEncoding.toParam(c.values(), c.bitLens());
+					EncodingParams param = HuffmanIntegerEncoding.toParam(
+							c.values(), c.bitLens());
 					HuffmanIntegerEncoding he = new HuffmanIntegerEncoding();
 					he.fromByteArray(param.params);
-					EncodingLengthCalculator lc = new EncodingLengthCalculator(he);
+					EncodingLengthCalculator lc = new EncodingLengthCalculator(
+							he);
 					for (Integer value : dictionary.keySet())
 						lc.add(value, dictionary.get(value).value);
 
@@ -846,7 +895,8 @@ public class CompressionHeaderFactory {
 
 			byte[] params = bestEncoding.toByteArray();
 			params = Arrays.copyOf(params, Math.min(params.length, 20));
-			log.debug("Best encoding for " + name + ": " + bestEncoding.id().name() + Arrays.toString(params));
+			log.debug("Best encoding for " + name + ": "
+					+ bestEncoding.id().name() + Arrays.toString(params));
 
 			return bestEncoding;
 		}
