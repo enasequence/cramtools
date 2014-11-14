@@ -596,6 +596,17 @@ public class ByteBufferUtils {
 		return n;
 	}
 
+	public static int readInto(ByteBuffer buf, InputStream inputStream) throws IOException {
+		int read = 0;
+		while (buf.hasRemaining()) {
+			int count = inputStream.read(buf.array(), buf.position(), buf.remaining());
+			if (count < 0)
+				throw new EOFException();
+			read += count;
+		}
+		return read;
+	}
+
 	public static long copyLarge(InputStream input, OutputStream output) throws IOException {
 		byte[] buffer = new byte[1024 * 4];
 		long count = 0;

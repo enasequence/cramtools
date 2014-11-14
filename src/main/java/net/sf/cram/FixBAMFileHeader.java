@@ -18,7 +18,6 @@ package net.sf.cram;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import net.sf.cram.build.CramIO;
@@ -49,55 +48,51 @@ public class FixBAMFileHeader {
 	}
 
 	public void fixSequence(SAMSequenceRecord sequenceRecord) throws MD5MismatchError {
-		try {
-			String found_md5 = sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG);
-			if (confirmMD5) {
-				if (found_md5 != null) {
-					byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
-					if (bytes == null) {
-						String message = String.format("Reference bases not found: name %s, length %d, md5 %s.",
-								sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength(), found_md5);
-						log.error(message);
-						throw new RuntimeException(message);
-					}
-					log.info("Confirming reference sequence md5: " + sequenceRecord.getSequenceName());
-					String md5 = Utils.calculateMD5String(bytes);
-					if (!md5.equals(found_md5)) {
-						if (ignoreMD5Mismatch) {
-							log.warn(String.format(
-									"Sequence id=%d, len=%d, name=%s has incorrect md5=%s. Replaced with %s.",
-									sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceLength(),
-									sequenceRecord.getSequenceName(), found_md5, md5));
-							sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
-						} else
-							throw new MD5MismatchError(sequenceRecord, md5);
-					}
-					if (sequenceRecord.getSequenceLength() != bytes.length) {
-						log.warn(String.format("Sequence id=%d, name=%s has incorrect length=%d. Replaced with %d.",
-								sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceName(),
-								sequenceRecord.getSequenceLength(), bytes.length));
-						sequenceRecord.setSequenceLength(bytes.length);
-					}
-				} else {
-					log.info("Reference sequence MD5 not found, calculating: " + sequenceRecord.getSequenceName());
-					byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
-					if (bytes == null) {
-						String message = String.format("Reference bases not found: name %s, length %d.",
-								sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength());
-						log.error(message);
-						throw new RuntimeException(message);
-					}
-					String md5 = Utils.calculateMD5String(bytes);
-					sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+		String found_md5 = sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG);
+		if (confirmMD5) {
+			if (found_md5 != null) {
+				byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+				if (bytes == null) {
+					String message = String.format("Reference bases not found: name %s, length %d, md5 %s.",
+							sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength(), found_md5);
+					log.error(message);
+					throw new RuntimeException(message);
 				}
+				log.info("Confirming reference sequence md5: " + sequenceRecord.getSequenceName());
+				String md5 = Utils.calculateMD5String(bytes);
+				if (!md5.equals(found_md5)) {
+					if (ignoreMD5Mismatch) {
+						log.warn(String.format(
+								"Sequence id=%d, len=%d, name=%s has incorrect md5=%s. Replaced with %s.",
+								sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceLength(),
+								sequenceRecord.getSequenceName(), found_md5, md5));
+						sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+					} else
+						throw new MD5MismatchError(sequenceRecord, md5);
+				}
+				if (sequenceRecord.getSequenceLength() != bytes.length) {
+					log.warn(String.format("Sequence id=%d, name=%s has incorrect length=%d. Replaced with %d.",
+							sequenceRecord.getSequenceIndex(), sequenceRecord.getSequenceName(),
+							sequenceRecord.getSequenceLength(), bytes.length));
+					sequenceRecord.setSequenceLength(bytes.length);
+				}
+			} else {
+				log.info("Reference sequence MD5 not found, calculating: " + sequenceRecord.getSequenceName());
+				byte[] bytes = referenceSource.getReferenceBases(sequenceRecord, true);
+				if (bytes == null) {
+					String message = String.format("Reference bases not found: name %s, length %d.",
+							sequenceRecord.getSequenceName(), sequenceRecord.getSequenceLength());
+					log.error(message);
+					throw new RuntimeException(message);
+				}
+				String md5 = Utils.calculateMD5String(bytes);
+				sequenceRecord.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 			}
+		}
 
-			if (injectURI) {
-				sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG,
-						String.format(sequenceUrlPattern, sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG)));
-			}
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
+		if (injectURI) {
+			sequenceRecord.setAttribute(SAMSequenceRecord.URI_TAG,
+					String.format(sequenceUrlPattern, sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG)));
 		}
 	}
 

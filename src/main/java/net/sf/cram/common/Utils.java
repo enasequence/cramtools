@@ -557,7 +557,7 @@ public class Utils {
 		}
 	}
 
-	public static String calculateMD5String(byte[] data) throws NoSuchAlgorithmException {
+	public static String calculateMD5String(byte[] data) {
 		return calculateMD5String(data, 0, data.length);
 	}
 
@@ -686,5 +686,35 @@ public class Utils {
 
 		System.out.println("Version " + CRAM_VERSION.toString());
 		System.out.println(sb.toString());
+	}
+
+	public static boolean isValidSequence(byte[] bases, int checkOnlyThisManyBases) {
+		for (int i = 0; i < checkOnlyThisManyBases && i < bases.length; i++) {
+			switch (bases[i]) {
+			case 'A':
+			case 'C':
+			case 'G':
+			case 'T':
+			case 'U':
+			case 'R':
+			case 'Y':
+			case 'S':
+			case 'W':
+			case 'K':
+			case 'M':
+			case 'B':
+			case 'D':
+			case 'H':
+			case 'V':
+			case 'N':
+			case '.':
+			case '-':
+				break;
+
+			default:
+				return false;
+			}
+		}
+		return true;
 	}
 }

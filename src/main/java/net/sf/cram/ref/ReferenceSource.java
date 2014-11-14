@@ -15,7 +15,14 @@
  ******************************************************************************/
 package net.sf.cram.ref;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -38,15 +45,51 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.util.Log;
 import net.sf.samtools.SAMSequenceRecord;
 
+/**
+ * A central class for automated discovery of reference sequences. The algorithm
+ * is expected similar to that of samtools:
+ * <ul>
+ * <li>
+ * Search in memory cache by sequence name.</li>
+ * <li>
+ * Use local fasta file is supplied as a reference file and cache the found
+ * sequence in memory.</li>
+ * <li>
+ * Try REF_CACHE env variable.</li>
+ * <li>
+ * Try all entries in REF_PATH. The default value is the EBI reference service.</li>
+ * <li>
+ * Try @SQ:UR as a URL for a fasta file with the fasta index next to it.</li>
+ * </ul>
+ * 
+ * @author vadim
+ * 
+ */
 public class ReferenceSource {
+	private static final int REF_BASES_TO_CHECK_FOR_SANITY = 1000;
 	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
-	private static String URL_PATTERN=System.getProperty("REF_URL_TEMPLATE", "http://www.ebi.ac.uk/ena/cram/md5/%s");
-	
+	private static String REF_CACHE = System.getenv("REF_CACHE");
+	private static String REF_PATH = System.getenv("REF_PATH");
+	private static List<PathPattern> refPatterns = new ArrayList<PathPattern>();
+	static {
+		if (REF_PATH == null)
+			REF_PATH = "http://www.ebi.ac.uk/ena/cram/md5/%s";
+
+		if (REF_CACHE != null)
+			refPatterns.add(new PathPattern(REF_CACHE));
+		for (String s : REF_PATH.split("(?i)(?<!(http|ftp)):"))
+			refPatterns.add(new PathPattern(s));
+	}
+
 	private static Log log = Log.getInstance(ReferenceSource.class);
 	private ReferenceSequenceFile rsFile;
 	private FastaSequenceIndex fastaSequenceIndex;
 	private int downloadTriesBeforeFailing = 2;
 
+	/*
+	 * In-memory cache of ref bases by sequence name. Garbage collector will
+	 * automatically clean it if memory is low.
+	 */
 	private Map<String, WeakReference<byte[]>> cacheW = new HashMap<String, WeakReference<byte[]>>();
 
 	public ReferenceSource() {
@@ -81,19 +124,42 @@ public class ReferenceSource {
 	}
 
 	public synchronized byte[] getReferenceBases(SAMSequenceRecord record, boolean tryNameVariants) {
+		byte[] bases = findBases(record, tryNameVariants);
+		if (bases == null)
+			return null;
+
+		cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(bases));
+
+		String md5 = record.getAttribute(SAMSequenceRecord.MD5_TAG);
+		if (md5 == null) {
+			md5 = Utils.calculateMD5String(bases);
+			record.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+		}
+
+		if (REF_CACHE != null)
+			addToRefCache(md5, bases);
+
+		return bases;
+	}
+
+	protected byte[] findBases(SAMSequenceRecord record, boolean tryNameVariants) {
 		{ // check cache by sequence name:
 			String name = record.getSequenceName();
 			byte[] bases = findInCache(name);
-			if (bases != null)
+			if (bases != null) {
+				log.debug("Reference found in memory cache by name: " + name);
 				return bases;
+			}
 		}
 
 		String md5 = record.getAttribute(SAMSequenceRecord.MD5_TAG);
 		{ // check cache by md5:
 			if (md5 != null) {
 				byte[] bases = findInCache(md5);
-				if (bases != null)
+				if (bases != null) {
+					log.debug("Reference found in memory cache by md5: " + md5);
 					return bases;
+				}
 			}
 		}
 
@@ -103,7 +169,6 @@ public class ReferenceSource {
 			bases = findBasesByName(record.getSequenceName(), tryNameVariants);
 			if (bases != null) {
 				Utils.upperCase(bases);
-				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(bases));
 				return bases;
 			}
 		}
@@ -113,16 +178,24 @@ public class ReferenceSource {
 				try {
 					bases = findBasesByMD5(md5);
 				} catch (Exception e) {
+					if (e instanceof RuntimeException)
+						throw (RuntimeException) e;
 					throw new RuntimeException(e);
 				}
 			if (bases != null) {
-				Utils.upperCase(bases);
-				cacheW.put(md5, new WeakReference<byte[]>(bases));
 				return bases;
 			}
 		}
 
-		// sequence not found, give up:
+		{ // try @SQ:UR file location
+			if (record.getAttribute(SAMSequenceRecord.URI_TAG) != null) {
+				ReferenceSequenceFromSeekable s = ReferenceSequenceFromSeekable.fromString(record
+						.getAttribute(SAMSequenceRecord.URI_TAG));
+				bases = s.getSubsequenceAt(record.getSequenceName(), 1, record.getSequenceLength());
+				Utils.upperCase(bases);
+				return bases;
+			}
+		}
 		return null;
 	}
 
@@ -147,43 +220,121 @@ public class ReferenceSource {
 				} catch (PicardException e) {
 					log.info("Sequence not found: " + variant);
 				}
-				if (sequence != null)
+				if (sequence != null) {
+					log.debug("Reference found in memory cache for name %s by variant %s", name, variant);
 					return sequence.getBases();
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * @param path
+	 * @return true if the path is a valid URL, false otherwise.
+	 */
+	private static boolean isURL(String path) {
+		try {
+			URL url = new URL(path);
+			return true;
+		} catch (MalformedURLException e) {
+			return false;
+		}
+	}
+
+	private byte[] loadFromPath(String path, String md5) throws IOException {
+		if (isURL(path)) {
+			URL url = new URL(path);
+			for (int i = 0; i < downloadTriesBeforeFailing; i++) {
+				InputStream is = url.openStream();
+				if (is == null)
+					return null;
+
+				byte[] data = ByteBufferUtils.readFully(is);
+				is.close();
+
+				if (confirmMD5(md5, data)) {
+					// sanitize, Internet is a wild place:
+					if (Utils.isValidSequence(data, REF_BASES_TO_CHECK_FOR_SANITY))
+						return data;
+					else {
+						// reject, it looks like garbage
+						log.error("Downloaded sequence looks suspicous, rejected: " + url.toExternalForm());
+						break;
+					}
+				}
+			}
+		} else {
+			File file = new File(path);
+			if (file.exists()) {
+				byte[] data = ByteBufferUtils.readFully(new FileInputStream(file));
+				if (confirmMD5(md5, data))
+					return data;
+				else
+					throw new RuntimeException("MD5 mismatch for cached file: " + file.getAbsolutePath());
 			}
 		}
 		return null;
 	}
 
 	protected byte[] findBasesByMD5(String md5) throws MalformedURLException, IOException {
-		String url = String.format(URL_PATTERN, md5);
-		log.debug("Opening URL: " + url);
+		for (PathPattern p : refPatterns) {
+			String path = p.format(md5);
+			byte[] data = loadFromPath(path, md5);
+			if (data == null)
+				continue;
+			log.debug("Reference found at the location ", path);
+			return data;
+		}
 
-		for (int i = 0; i < downloadTriesBeforeFailing; i++) {
-			InputStream is = new URL(url).openStream();
-			if (is == null)
-				return null;
+		return null;
+	}
 
-			log.info("Downloading reference sequence: " + url);
-			byte[] data = ByteBufferUtils.readFully(is);
-			log.info("Downloaded " + data.length + " bytes for md5 " + md5);
-			is.close();
-
+	private static void addToRefCache(String md5, byte[] data) {
+		File cachedFile = new File(new PathPattern(REF_CACHE).format(md5));
+		if (!cachedFile.exists()) {
+			log.debug(String.format("Adding to REF_CACHE: md5=%s, length=%d", md5, data.length));
+			cachedFile.getParentFile().mkdirs();
+			File tmpFile;
 			try {
-				String downloadedMD5 = Utils.calculateMD5String(data);
-				if (md5.equals(downloadedMD5)) {
-					return data;
-				} else {
-					String message = String.format("Downloaded sequence is corrupt: requested md5=%s, received md5=%s",
-							md5, downloadedMD5);
-					log.error(message);
-				}
-			} catch (NoSuchAlgorithmException e) {
+				tmpFile = File.createTempFile(md5, ".tmp", cachedFile.getParentFile());
+				FileOutputStream fos = new FileOutputStream(tmpFile);
+				fos.write(data);
+				fos.close();
+				tmpFile.renameTo(cachedFile);
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
-		throw new RuntimeException("Giving up on downloading sequence for md5 " + md5);
 	}
 
+	public static void main(String[] args) throws NoSuchAlgorithmException {
+		ReferenceSource s = new ReferenceSource();
+		SAMSequenceRecord record = new SAMSequenceRecord("20", 1518);
+		byte[] bases = s.getReferenceBases(record, false);
+		assertThat(bases, is(nullValue()));
+
+		String md5 = "0000259a289a94ef5f10220539b79e7e";
+		record.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
+		bases = s.getReferenceBases(record, false);
+		assertThat(bases, is(notNullValue()));
+		assertThat(bases.length, is(record.getSequenceLength()));
+		assertThat(Utils.calculateMD5String(bases), is(record.getAttribute(SAMSequenceRecord.MD5_TAG)));
+		assertThat(s.cacheW.containsKey(record.getSequenceName()), is(true));
+		assertThat(s.cacheW.containsKey(md5), is(false));
+	}
+
+	private boolean confirmMD5(String md5, byte[] data) {
+		String downloadedMD5 = Utils.calculateMD5String(data);
+		if (md5.equals(downloadedMD5)) {
+			return true;
+		} else {
+			String message = String.format("Downloaded sequence is corrupt: requested md5=%s, received md5=%s", md5,
+					downloadedMD5);
+			log.error(message);
+			return false;
+		}
+	}
 
 	protected List<String> getVariants(String name) {
 		List<String> variants = new ArrayList<String>();
