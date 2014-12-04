@@ -2,73 +2,11 @@ package net.sf.cram.encoding.rans2;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
 
-import net.sf.cram.encoding.rans2.Decoding.FC;
 import net.sf.cram.encoding.rans2.Decoding.RansDecSymbol;
 import net.sf.cram.encoding.rans2.Decoding.ari_decoder;
 
 class D14 {
-	private static void readStats(ByteBuffer cp, ari_decoder[] D,
-			RansDecSymbol[][] syms) {
-		int i, j = -999, x, rle_i = 0, rle_j;
-		i = 0xFF & cp.get();
-		do {
-			rle_j = x = 0;
-			j = 0xFF & cp.get();
-			if (D[i] == null)
-				D[i] = new ari_decoder();
-			do {
-				if (D[i].fc[j] == null)
-					D[i].fc[j] = new FC();
-				if ((D[i].fc[j].F = (0xFF & cp.get())) >= 128) {
-					D[i].fc[j].F &= ~128;
-					D[i].fc[j].F = ((D[i].fc[j].F & 127) << 8)
-							| (0xFF & cp.get());
-				}
-				D[i].fc[j].C = x;
-
-				if (D[i].fc[j].F == 0)
-					D[i].fc[j].F = Constants.TOTFREQ;
-
-				if (syms[i][j] == null)
-					syms[i][j] = new RansDecSymbol();
-
-				Decoding.RansDecSymbolInit(syms[i][j], D[i].fc[j].C,
-						D[i].fc[j].F);
-
-				/* Build reverse lookup table */
-				if (D[i].R == null)
-					D[i].R = new byte[Constants.TOTFREQ];
-				Arrays.fill(D[i].R, x, x + D[i].fc[j].F, (byte) j);
-				// memset(&D[i].R[x], j, D[i].fc[j].F);
-
-				x += D[i].fc[j].F;
-				assert (x <= Constants.TOTFREQ);
-
-				if (rle_j == 0 && j + 1 == (0xFF & cp.get(cp.position()))) {
-					j = (0xFF & cp.get());
-					rle_j = (0xFF & cp.get());
-				} else if (rle_j != 0) {
-					rle_j--;
-					j++;
-				} else {
-					j = (0xFF & cp.get());
-				}
-			} while (j != 0);
-
-			if (rle_i == 0 && i + 1 == (0xFF & cp.get(cp.position()))) {
-				i = (0xFF & cp.get());
-				rle_i = (0xFF & cp.get());
-			} else if (rle_i != 0) {
-				rle_i--;
-				i++;
-			} else {
-				i = (0xFF & cp.get());
-			}
-		} while (i != 0);
-	}
-
 	static ByteBuffer decode(ByteBuffer in, ByteBuffer out_buf) {
 		in.order(ByteOrder.LITTLE_ENDIAN);
 		int in_sz = in.getInt();
@@ -88,7 +26,7 @@ class D14 {
 		for (int i = 0; i < syms.length; i++)
 			for (int j = 0; j < syms[i].length; j++)
 				syms[i][j] = new RansDecSymbol();
-		readStats(cp, D, syms);
+		Freqs.readStats_o1(cp, D, syms);
 
 		// Precompute reverse lookup of frequency.
 
@@ -151,6 +89,7 @@ class D14 {
 			out_buf.put(i7, (byte) c7);
 			rans7 = Decoding.RansDecAdvanceSymbol(rans7, ptr, syms[l7][c7],
 					Constants.TF_SHIFT);
+			// rans7 = Decoding.RansDecRenorm(rans7, ptr);
 			l7 = c7;
 		}
 
