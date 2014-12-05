@@ -1,74 +1,80 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import net.sf.cram.encoding.rans2.Encoding.RansEncSymbol;
+import net.sf.cram.encoding.rans.Decoding.RansDecSymbol;
+import net.sf.cram.encoding.rans.Decoding.ari_decoder;
+import net.sf.cram.encoding.rans.Encoding.RansEncSymbol;
 
-public class Codec {
+public class RANS {
+	public enum ORDER {
+		ZERO, ONE;
+
+		public static ORDER fromInt(int value) {
+			try {
+				return ORDER.values()[value];
+			} catch (ArrayIndexOutOfBoundsException e) {
+				throw new RuntimeException("Uknown rANS order: " + value);
+			}
+		}
+	}
+
 	public static final int ORDER_BYTE_LENGTH = 1;
 	public static final int COMPRESSED_BYTE_LENGTH = 4;
 	public static final int RAW_BYTE_LENGTH = 4;
 	public static final int PREFIX_BYTE_LENGTH = ORDER_BYTE_LENGTH
 			+ COMPRESSED_BYTE_LENGTH + RAW_BYTE_LENGTH;
+	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
-	public static ByteBuffer uncompress(ByteBuffer in) {
+	public static ByteBuffer uncompress(ByteBuffer in, ByteBuffer out) {
 		if (in.remaining() == 0)
 			return ByteBuffer.allocate(0);
 
-		int order = in.get();
+		ORDER order = ORDER.fromInt(in.get());
+
+		in.order(ByteOrder.LITTLE_ENDIAN);
+		int in_sz = in.getInt();
+		if (in_sz - COMPRESSED_BYTE_LENGTH - RAW_BYTE_LENGTH != in.remaining())
+			throw new RuntimeException("Incorrect input length.");
+		int out_sz = in.getInt();
+		if (out == null)
+			out = ByteBuffer.allocate(out_sz);
+		else
+			out.limit(out_sz);
+		if (out.remaining() < out_sz)
+			throw new RuntimeException("Output buffer too small to fit "
+					+ out_sz + " bytes.");
 
 		switch (order) {
-		case 0:
-			return D04.decode(in);
+		case ZERO:
+			return uncompress_order0_way4(in, out);
 
-		case 1:
-			return D14.decode(in.slice(), null);
+		case ONE:
+			return uncompress_order1_way4(in, out);
 
 		default:
 			throw new RuntimeException("Unknown rANS order: " + order);
 		}
 	}
 
-	public static ByteBuffer compress(ByteBuffer in, int order) {
+	public static ByteBuffer compress(ByteBuffer in, ORDER order, ByteBuffer out) {
 		if (in.remaining() == 0)
-			return ByteBuffer.allocate(0);
+			return EMPTY_BUFFER;
 
 		if (in.remaining() < 4)
-			return encode_order0_way4(in, null);
+			return encode_order0_way4(in, out);
 
 		switch (order) {
-		case 0:
-			return encode_order0_way4(in, null);
-		case 1:
-			return encode_order1_way4(in, null);
+		case ZERO:
+			return encode_order0_way4(in, out);
+		case ONE:
+			return encode_order1_way4(in, out);
 
 		default:
 			throw new RuntimeException("Unknown rANS order: " + order);
 		}
 	}
-
-	// private static ByteBuffer compress(ByteBuffer in, int order, int
-	// parallel) {
-	// switch (order) {
-	// case 0:
-	// switch (parallel) {
-	// case 1:
-	// return E01.encode(in, null);
-	// case 4:
-	// return encode_order0_way4(in, null);
-	//
-	// default:
-	// throw new RuntimeException(
-	// "Unknown compression request: parallel=" + parallel);
-	// }
-	// case 1:
-	// return E14.encode(in.slice(), null);
-	//
-	// default:
-	// throw new RuntimeException("Unknown rANS order: " + order);
-	// }
-	// }
 
 	private static final ByteBuffer allocateIfNeeded(int in_size,
 			ByteBuffer out_buf) {
@@ -135,5 +141,34 @@ public class Codec {
 		int rawSizeOffset = ORDER_BYTE_LENGTH + COMPRESSED_BYTE_LENGTH;
 		out_buf.putInt(rawSizeOffset, in_size);
 		out_buf.rewind();
+	}
+
+	private static final ByteBuffer uncompress_order0_way4(ByteBuffer in,
+			ByteBuffer out) {
+		in.order(ByteOrder.LITTLE_ENDIAN);
+		Decoding.ari_decoder D = new Decoding.ari_decoder();
+		Decoding.RansDecSymbol[] syms = new Decoding.RansDecSymbol[256];
+		for (int i = 0; i < syms.length; i++)
+			syms[i] = new Decoding.RansDecSymbol();
+
+		Freqs.readStats_o0(in, D, syms);
+
+		D04.uncompress(in, D, syms, out);
+
+		return out;
+	}
+
+	private static final ByteBuffer uncompress_order1_way4(ByteBuffer in,
+			ByteBuffer out_buf) {
+		ari_decoder[] D = new ari_decoder[256];
+		RansDecSymbol[][] syms = new RansDecSymbol[256][256];
+		for (int i = 0; i < syms.length; i++)
+			for (int j = 0; j < syms[i].length; j++)
+				syms[i][j] = new RansDecSymbol();
+		Freqs.readStats_o1(in, D, syms);
+
+		D14.uncompress(in, out_buf, D, syms);
+
+		return out_buf;
 	}
 }

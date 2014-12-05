@@ -1,4 +1,4 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -10,10 +10,12 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 
+import net.sf.cram.encoding.rans.RANS;
+import net.sf.cram.encoding.rans.RANS.ORDER;
+
 import org.junit.Test;
 
 public class TestRansCodec {
-	private static final int[] orders = new int[] { 0, 1 };
 
 	@Test
 	public void testEmpty() {
@@ -140,45 +142,40 @@ public class TestRansCodec {
 	}
 
 	@Test
-	public void testInputBufferHasNoRemaining() {
-		int size = 1000;
-		ByteBuffer buf = ByteBuffer.wrap(randomBytes_GD(size, 0.01));
-		for (int order = 0; order <= 1; order++) {
-			Codec.compress(buf, order);
-			assertFalse(buf.hasRemaining());
-			assertThat(buf.limit(), is(size));
-			buf.rewind();
-		}
-	}
-
-	@Test
-	public void testOutputBufferIsFlipped() {
-		int size = 1000;
-		ByteBuffer buf = ByteBuffer.wrap(randomBytes_GD(size, 0.01));
-		for (int order = 0; order <= 1; order++) {
-			ByteBuffer compressed = Codec.compress(buf, order);
-			assertTrue(compressed.hasRemaining());
+	public void testBuffersMeetBoundaryExpectations() {
+		int size = 1001;
+		ByteBuffer raw = ByteBuffer.wrap(randomBytes_GD(size, 0.01));
+		for (ORDER order : ORDER.values()) {
+			ByteBuffer compressed = RANS.compress(raw, order, null);
+			assertFalse(raw.hasRemaining());
+			assertThat(raw.limit(), is(size));
 			assertThat(compressed.position(), is(0));
-			assertTrue(compressed.limit() > 0);
-			buf.rewind();
+			assertTrue(compressed.limit() > 10);
+
+			ByteBuffer uncompressed = RANS.uncompress(compressed, null);
+			assertFalse(compressed.hasRemaining());
+			assertThat(uncompressed.limit(), is(size));
+			assertThat(uncompressed.position(), is(0));
+
+			raw.rewind();
 		}
 	}
 
 	private static void roundTrip(ByteBuffer data) {
-		for (int order : orders) {
+		for (ORDER order : ORDER.values()) {
 			roundTrip(data, order);
 			data.rewind();
 		}
 	}
 
 	private static void roundTrip(byte[] data) {
-		for (int order : orders)
+		for (ORDER order : ORDER.values())
 			roundTrip(data, order);
 	}
 
-	private static void roundTrip(ByteBuffer data, int order) {
-		ByteBuffer compressed = Codec.compress(data, order);
-		ByteBuffer uncompressed = Codec.uncompress(compressed);
+	private static void roundTrip(ByteBuffer data, ORDER order) {
+		ByteBuffer compressed = RANS.compress(data, order, null);
+		ByteBuffer uncompressed = RANS.uncompress(compressed, null);
 		data.rewind();
 		while (data.hasRemaining()) {
 			if (!uncompressed.hasRemaining())
@@ -188,7 +185,7 @@ public class TestRansCodec {
 		assertFalse(uncompressed.hasRemaining());
 	}
 
-	private static void roundTrip(byte[] data, int order) {
+	private static void roundTrip(byte[] data, ORDER order) {
 		roundTrip(ByteBuffer.wrap(data), order);
 	}
 

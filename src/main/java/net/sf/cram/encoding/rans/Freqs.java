@@ -1,12 +1,12 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import net.sf.cram.encoding.rans2.Decoding.FC;
-import net.sf.cram.encoding.rans2.Decoding.RansDecSymbol;
-import net.sf.cram.encoding.rans2.Decoding.ari_decoder;
-import net.sf.cram.encoding.rans2.Encoding.RansEncSymbol;
+import net.sf.cram.encoding.rans.Decoding.FC;
+import net.sf.cram.encoding.rans.Decoding.RansDecSymbol;
+import net.sf.cram.encoding.rans.Decoding.ari_decoder;
+import net.sf.cram.encoding.rans.Encoding.RansEncSymbol;
 
 class Freqs {
 

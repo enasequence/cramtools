@@ -30,7 +30,8 @@ import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import net.sf.cram.encoding.rans2.Codec;
+import net.sf.cram.encoding.rans.RANS;
+import net.sf.cram.encoding.rans.RANS.ORDER;
 
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.apache.tools.bzip2.CBZip2InputStream;
@@ -287,6 +288,14 @@ public class ByteBufferUtils {
 		return array;
 	}
 
+	public static final byte[] writeUnsignedLTF8(long value) throws IOException {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream(20);
+		ByteBufferUtils.writeUnsignedLTF8(value, baos);
+
+		byte[] array = new byte[baos.size()];
+		return baos.toByteArray();
+	}
+
 	public static final int readUnsignedITF8(ByteBuffer buf) {
 		int b1 = 0xFF & buf.get();
 
@@ -349,6 +358,25 @@ public class ByteBufferUtils {
 	private static ByteArrayInputStream ltf8TestBAIS = new ByteArrayInputStream(
 			ltf8TestBAOS.getBuffer());
 
+	private static boolean testLTF8vwITF8(long value) throws IOException {
+		ltf8TestBAOS.reset();
+		int len = writeUnsignedLTF8(value, ltf8TestBAOS);
+
+		if (len > 8 * 9) {
+			System.out.println("Written length is too big: " + len);
+			return false;
+		}
+
+		ltf8TestBAIS.reset();
+		long result = readUnsignedITF8(ltf8TestBAIS);
+
+		if (value != result) {
+			System.out.printf("Value=%d, result=%d\n", value, result);
+			return false;
+		}
+		return true;
+	}
+
 	private static boolean testLTF8(long value) throws IOException {
 		ltf8TestBAOS.reset();
 		int len = writeUnsignedLTF8(value, ltf8TestBAOS);
@@ -369,6 +397,17 @@ public class ByteBufferUtils {
 	}
 
 	public static void main(String[] args) throws IOException {
+		testLTF8vwITF8(0x3f12);
+		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils
+				.writeUnsignedITF8(0x3f12)));
+		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils
+				.writeUnsignedLTF8(0x3f12)));
+
+		for (int i = 0; i < 10000000; i++)
+			testLTF8vwITF8(i);
+
+		if (true)
+			return;
 
 		sun.misc.CRC16 crc16 = new sun.misc.CRC16();
 		String eof = "00 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00";
@@ -653,12 +692,13 @@ public class ByteBufferUtils {
 	}
 
 	public static byte[] unrans(byte[] data) {
-		ByteBuffer buf = Codec.uncompress(ByteBuffer.wrap(data));
+		ByteBuffer buf = RANS.uncompress(ByteBuffer.wrap(data), null);
 		return toByteArray(buf);
 	}
 
 	public static byte[] rans(byte[] data, int order) {
-		ByteBuffer buf = Codec.compress(ByteBuffer.wrap(data), order);
+		ByteBuffer buf = RANS.compress(ByteBuffer.wrap(data),
+				ORDER.fromInt(order), null);
 		return toByteArray(buf);
 	}
 

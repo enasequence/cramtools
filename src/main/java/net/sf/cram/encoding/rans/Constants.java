@@ -1,4 +1,4 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 class Constants {
 	static final int TF_SHIFT = 12;

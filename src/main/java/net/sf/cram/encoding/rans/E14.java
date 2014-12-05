@@ -1,9 +1,9 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import net.sf.cram.encoding.rans2.Encoding.RansEncSymbol;
+import net.sf.cram.encoding.rans.Encoding.RansEncSymbol;
 import net.sf.cram.io.ByteBufferUtils;
 
 class E14 {
@@ -18,6 +18,9 @@ class E14 {
 		rans2 = Constants.RANS_BYTE_L;
 		rans3 = Constants.RANS_BYTE_L;
 
+		/*
+		 * Slicing is needed for buffer reversing later.
+		 */
 		ByteBuffer ptr = out_buf.slice();
 
 		int isz4 = in_size >> 2;
@@ -77,6 +80,10 @@ class E14 {
 		ptr.flip();
 		compressedBlob_size = ptr.limit();
 		ByteBufferUtils.reverse(ptr);
+		/*
+		 * Depletion of the in buffer cannot be confirmed because of the get(int
+		 * position) method use during encoding, hence enforcing:
+		 */
 		in.position(in.limit());
 		return compressedBlob_size;
 	}

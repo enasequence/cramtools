@@ -1,15 +1,14 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import java.nio.ByteBuffer;
 
-import net.sf.cram.encoding.rans2.Encoding.RansEncSymbol;
+import net.sf.cram.encoding.rans.Encoding.RansEncSymbol;
 import net.sf.cram.io.ByteBufferUtils;
 
 class E04 {
 
 	static final int compress(ByteBuffer in, RansEncSymbol[] syms,
 			ByteBuffer cp) {
-		// output compressed bytes in FORWARD order:
 		int cdata_size;
 		int in_size = in.remaining();
 		int rans0, rans1, rans2, rans3;

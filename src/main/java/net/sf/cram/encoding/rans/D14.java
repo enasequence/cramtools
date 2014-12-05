@@ -1,37 +1,17 @@
-package net.sf.cram.encoding.rans2;
+package net.sf.cram.encoding.rans;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import net.sf.cram.encoding.rans2.Decoding.RansDecSymbol;
-import net.sf.cram.encoding.rans2.Decoding.ari_decoder;
+import net.sf.cram.encoding.rans.Decoding.RansDecSymbol;
+import net.sf.cram.encoding.rans.Decoding.ari_decoder;
 
 class D14 {
-	static ByteBuffer decode(ByteBuffer in, ByteBuffer out_buf) {
-		in.order(ByteOrder.LITTLE_ENDIAN);
-		int in_sz = in.getInt();
-		int out_sz = in.getInt();
-		if (out_buf == null)
-			out_buf = ByteBuffer.allocate(out_sz);
-		else
-			out_buf.limit(out_sz);
-		if (out_buf.remaining() < out_sz)
-			throw new RuntimeException("Output buffer too small to fit "
-					+ out_sz + " bytes.");
-
-		/* Load in the static tables */
-		ByteBuffer cp = in.slice();
-		ari_decoder[] D = new ari_decoder[256];
-		RansDecSymbol[][] syms = new RansDecSymbol[256][256];
-		for (int i = 0; i < syms.length; i++)
-			for (int j = 0; j < syms[i].length; j++)
-				syms[i][j] = new RansDecSymbol();
-		Freqs.readStats_o1(cp, D, syms);
-
-		// Precompute reverse lookup of frequency.
-
+	static void uncompress(ByteBuffer in, ByteBuffer out_buf, ari_decoder[] D,
+			RansDecSymbol[][] syms) {
+		int out_sz = out_buf.remaining();
 		int rans0, rans1, rans2, rans7;
-		ByteBuffer ptr = cp.slice();
+		ByteBuffer ptr = in;
 		ptr.order(ByteOrder.LITTLE_ENDIAN);
 		rans0 = ptr.getInt();
 		rans1 = ptr.getInt();
@@ -92,7 +72,5 @@ class D14 {
 			// rans7 = Decoding.RansDecRenorm(rans7, ptr);
 			l7 = c7;
 		}
-
-		return out_buf;
 	}
 }
