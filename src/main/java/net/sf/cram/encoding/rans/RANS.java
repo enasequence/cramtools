@@ -1,5 +1,9 @@
 package net.sf.cram.encoding.rans;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -30,6 +34,22 @@ public class RANS {
 	public static ByteBuffer uncompress(ByteBuffer in, ByteBuffer out) {
 		if (in.remaining() == 0)
 			return ByteBuffer.allocate(0);
+
+		try {
+			File file = new File("rans." + in.limit());
+			FileOutputStream fos = new FileOutputStream(file);
+			byte[] data = new byte[in.limit()];
+			in.get(data);
+			in.rewind();
+			fos.write(data);
+			fos.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		ORDER order = ORDER.fromInt(in.get());
 

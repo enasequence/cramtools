@@ -123,13 +123,12 @@ public class CramNormalizer {
 				continue;
 
 			byte[] refBases = ref;
-			if (referenceSource != null)
+			if (ref == null && referenceSource != null)
 				refBases = referenceSource.getReferenceBases(
 						header.getSequence(r.sequenceId), true);
 
-			// transient bug: refOffset_zeroBased usage unclear, setting to
-			// zero:
-			byte[] bases = restoreReadBases(r, refBases, 0, substitutionMatrix);
+			byte[] bases = restoreReadBases(r, refBases, refOffset_zeroBased,
+					substitutionMatrix);
 			r.readBases = bases;
 		}
 

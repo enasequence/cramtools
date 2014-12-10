@@ -40,7 +40,9 @@ public class DownloadReferences {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version " + DownloadReferences.class.getPackage().getImplementationVersion());
+		System.out.println("Version "
+				+ DownloadReferences.class.getPackage()
+						.getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -50,7 +52,8 @@ public class DownloadReferences {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out.println("Failed to parse parameteres, detailed message below: ");
+			System.out
+					.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -72,16 +75,17 @@ public class DownloadReferences {
 
 		if (params.cramFile != null) {
 			SAMFileReader reader = new SAMFileReader(params.cramFile);
-			for (SAMSequenceRecord s : reader.getFileHeader().getSequenceDictionary().getSequences()) {
+			for (SAMSequenceRecord s : reader.getFileHeader()
+					.getSequenceDictionary().getSequences()) {
 				String md5 = s.getAttribute(SAMSequenceRecord.MD5_TAG);
 				if (md5 != null)
-					idList.add(new SeqID(s.getSequenceName(), md5));
+					idList.add(new SeqID(s.getSequenceName(), md5.toLowerCase()));
 			}
 			reader.close();
 		}
 
-		OutputStream os = (params.destFile != null ? os = openOptionallyGzippedFile(params.destFile.getAbsolutePath(),
-				params.gzip) : System.out);
+		OutputStream os = (params.destFile != null ? os = openOptionallyGzippedFile(
+				params.destFile.getAbsolutePath(), params.gzip) : System.out);
 
 		downloadSequences(os, idList, params.ignoreNotFound, params.lineLength);
 
@@ -114,10 +118,12 @@ public class DownloadReferences {
 		}
 	}
 
-	private static void downloadSequences(OutputStream bos, List<SeqID> idList, boolean ignoreNotFound, int lineLength) {
+	private static void downloadSequences(OutputStream bos, List<SeqID> idList,
+			boolean ignoreNotFound, int lineLength) {
 		try {
 			for (SeqID id : idList) {
-				log.info(String.format("Locating sequence %s for MD5 %s", id.name, id.md5));
+				log.info(String.format("Locating sequence %s for MD5 %s",
+						id.name, id.md5));
 				InputStream is = null;
 				try {
 					is = getInputStreamForMD5(id.md5);
@@ -133,14 +139,18 @@ public class DownloadReferences {
 					// }
 				} catch (IOException ioe) {
 					String message = ioe.getMessage();
-					if (message != null & message.startsWith("Server returned HTTP response code: 500")) {
+					if (message != null
+							& message
+									.startsWith("Server returned HTTP response code: 500")) {
 						if (ignoreNotFound) {
-							log.warn(String.format("Not found in the remote repository: sequence '%s' for MD5 %s",
-									id.name, id.md5));
+							log.warn(String
+									.format("Not found in the remote repository: sequence '%s' for MD5 %s",
+											id.name, id.md5));
 							continue;
 						} else {
-							log.error(String.format("Not found in the remote repository: sequence '%s' for MD5 %s",
-									id.name, id.md5));
+							log.error(String
+									.format("Not found in the remote repository: sequence '%s' for MD5 %s",
+											id.name, id.md5));
 							throw ioe;
 						}
 					} else
@@ -155,7 +165,8 @@ public class DownloadReferences {
 		}
 	}
 
-	private static void printSequence(InputStream is, SeqID id, OutputStream bos, int lineLength) throws IOException {
+	private static void printSequence(InputStream is, SeqID id,
+			OutputStream bos, int lineLength) throws IOException {
 		bos.write('>');
 		bos.write(id.name.getBytes());
 		bos.write(' ');
@@ -164,7 +175,8 @@ public class DownloadReferences {
 		copy(is, bos, lineLength);
 	}
 
-	private static OutputStream openOptionallyGzippedFile(String name, boolean gzip) throws IOException {
+	private static OutputStream openOptionallyGzippedFile(String name,
+			boolean gzip) throws IOException {
 		FileOutputStream fos = new FileOutputStream(name + (gzip ? ".gz" : ""));
 		OutputStream bos = new BufferedOutputStream(fos);
 		if (gzip)
@@ -172,7 +184,8 @@ public class DownloadReferences {
 		return bos;
 	}
 
-	private static void copy(InputStream in, OutputStream out, int lineLength) throws IOException {
+	private static void copy(InputStream in, OutputStream out, int lineLength)
+			throws IOException {
 		int count;
 		byte[] buffer = new byte[8192];
 		int posInLine = 0, posInBuf = 0;
@@ -206,7 +219,8 @@ public class DownloadReferences {
 		copy(bais, baos, lineLength);
 		baos.close();
 
-		Scanner scanner = new Scanner(new ByteArrayInputStream(baos.toByteArray()));
+		Scanner scanner = new Scanner(new ByteArrayInputStream(
+				baos.toByteArray()));
 		int bufPos = 0;
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
@@ -217,8 +231,10 @@ public class DownloadReferences {
 		}
 	}
 
-	private static InputStream getInputStreamForMD5(String md5) throws IOException {
-		String urlString = String.format("http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
+	private static InputStream getInputStreamForMD5(String md5)
+			throws IOException {
+		String urlString = String.format(
+				"http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
 		URL url = new URL(urlString);
 		return url.openStream();
 	}

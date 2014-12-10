@@ -51,7 +51,8 @@ public class ReferenceSource {
 
 	public ReferenceSource(File file) {
 		if (file != null) {
-			rsFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(file);
+			rsFile = ReferenceSequenceFileFactory
+					.getReferenceSequenceFile(file);
 
 			File indexFile = new File(file.getAbsoluteFile() + ".fai");
 			if (indexFile.exists())
@@ -77,7 +78,8 @@ public class ReferenceSource {
 		return null;
 	}
 
-	public synchronized byte[] getReferenceBases(SAMSequenceRecord record, boolean tryNameVariants) {
+	public synchronized byte[] getReferenceBases(SAMSequenceRecord record,
+			boolean tryNameVariants) {
 		{ // check cache by sequence name:
 			String name = record.getSequenceName();
 			byte[] bases = findInCache(name);
@@ -91,6 +93,12 @@ public class ReferenceSource {
 				byte[] bases = findInCache(md5);
 				if (bases != null)
 					return bases;
+				bases = findInCache(md5.toLowerCase());
+				if (bases != null)
+					return bases;
+				bases = findInCache(md5.toUpperCase());
+				if (bases != null)
+					return bases;
 			}
 		}
 
@@ -100,7 +108,8 @@ public class ReferenceSource {
 			bases = findBasesByName(record.getSequenceName(), tryNameVariants);
 			if (bases != null) {
 				Utils.upperCase(bases);
-				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(bases));
+				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(
+						bases));
 				return bases;
 			}
 		}
@@ -108,7 +117,7 @@ public class ReferenceSource {
 		{ // try to fetch sequence by md5:
 			if (md5 != null)
 				try {
-					bases = findBasesByMD5(md5);
+					bases = findBasesByMD5(md5.toLowerCase());
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -151,7 +160,8 @@ public class ReferenceSource {
 		return null;
 	}
 
-	protected byte[] findBasesByMD5(String md5) throws MalformedURLException, IOException {
+	protected byte[] findBasesByMD5(String md5) throws MalformedURLException,
+			IOException {
 		String url = String.format("http://www.ebi.ac.uk/ena/cram/md5/%s", md5);
 
 		for (int i = 0; i < downloadTriesBeforeFailing; i++) {
@@ -169,18 +179,21 @@ public class ReferenceSource {
 				if (md5.equals(downloadedMD5)) {
 					return data;
 				} else {
-					String message = String.format("Downloaded sequence is corrupt: requested md5=%s, received md5=%s",
-							md5, downloadedMD5);
+					String message = String
+							.format("Downloaded sequence is corrupt: requested md5=%s, received md5=%s",
+									md5, downloadedMD5);
 					log.error(message);
 				}
 			} catch (NoSuchAlgorithmException e) {
 				throw new RuntimeException(e);
 			}
 		}
-		throw new RuntimeException("Giving up on downloading sequence for md5 " + md5);
+		throw new RuntimeException("Giving up on downloading sequence for md5 "
+				+ md5);
 	}
 
-	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern chrPattern = Pattern.compile("chr.*",
+			Pattern.CASE_INSENSITIVE);
 
 	protected List<String> getVariants(String name) {
 		List<String> variants = new ArrayList<String>();

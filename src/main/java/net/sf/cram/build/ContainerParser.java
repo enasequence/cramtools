@@ -49,8 +49,9 @@ public class ContainerParser {
 		this.samFileHeader = samFileHeader;
 	}
 
-	public List<CramRecord> getRecords(Container container, ArrayList<CramRecord> records)
-			throws IllegalArgumentException, IllegalAccessException, IOException {
+	public List<CramRecord> getRecords(Container container,
+			ArrayList<CramRecord> records) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
 		long time1 = System.nanoTime();
 		if (records == null)
 			records = new ArrayList<CramRecord>(container.nofRecords);
@@ -64,15 +65,17 @@ public class ContainerParser {
 
 		if (log.isEnabled(LogLevel.DEBUG)) {
 			for (String key : nanoMap.keySet()) {
-				log.debug(String.format("%s: %dms.", key, nanoMap.get(key).longValue() / 1000000));
+				log.debug(String.format("%s: %dms.", key, nanoMap.get(key)
+						.longValue() / 1000000));
 			}
 		}
 
 		return records;
 	}
 
-	public ArrayList<CramRecord> getRecords(ArrayList<CramRecord> records, Slice s, CompressionHeader h)
-			throws IllegalArgumentException, IllegalAccessException, IOException {
+	public ArrayList<CramRecord> getRecords(ArrayList<CramRecord> records,
+			Slice s, CompressionHeader h) throws IllegalArgumentException,
+			IllegalAccessException, IOException {
 		String seqName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
 		switch (s.sequenceId) {
 		case SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX:
@@ -80,7 +83,8 @@ public class ContainerParser {
 			break;
 
 		default:
-			SAMSequenceRecord sequence = samFileHeader.getSequence(s.sequenceId);
+			SAMSequenceRecord sequence = samFileHeader
+					.getSequence(s.sequenceId);
 			seqName = sequence.getSequenceName();
 			break;
 		}
@@ -88,12 +92,15 @@ public class ContainerParser {
 		DataReaderFactory f = new DataReaderFactory();
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
-			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId).getRawContent()));
+			log.debug("Adding external data: " + exId);
+			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId)
+					.getRawContent()));
 		}
 
 		long time = 0;
 		CramRecordReader reader = new CramRecordReader();
-		f.buildReader(reader, new DefaultBitInputStream(new ByteArrayInputStream(s.coreBlock.getRawContent())),
+		f.buildReader(reader, new DefaultBitInputStream(
+				new ByteArrayInputStream(s.coreBlock.getRawContent())),
 				inputMap, h, s.sequenceId);
 
 		if (records == null)
@@ -121,7 +128,8 @@ public class ContainerParser {
 				if (r.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
 					r.sequenceName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
 				else {
-					String name = samFileHeader.getSequence(r.sequenceId).getSequenceName();
+					String name = samFileHeader.getSequence(r.sequenceId)
+							.getSequenceName();
 					r.sequenceName = name;
 				}
 			}
@@ -148,8 +156,9 @@ public class ContainerParser {
 		return records;
 	}
 
-	public List<CramRecord> getRecords(Slice s, CompressionHeader h) throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+	public List<CramRecord> getRecords(Slice s, CompressionHeader h)
+			throws IllegalArgumentException, IllegalAccessException,
+			IOException {
 		return getRecords(null, s, h);
 	}
 }

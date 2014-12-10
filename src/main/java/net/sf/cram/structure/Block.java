@@ -21,7 +21,6 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 import net.sf.cram.io.ByteBufferUtils;
-import net.sf.cram.io.CountingInputStream;
 
 public class Block {
 	public BlockCompressionMethod method;
@@ -54,12 +53,6 @@ public class Block {
 
 	public Block(int major, InputStream is, boolean readContent,
 			boolean uncompress) throws IOException {
-		long start = 0;
-		CountingInputStream cis = null;
-		if (is instanceof CountingInputStream)
-			cis = (CountingInputStream) is;
-		if (cis != null)
-			start = cis.getCount();
 		if (major >= 3)
 			is = new CRC32_InputStream(is);
 		method = BlockCompressionMethod.values()[is.read()];
@@ -78,7 +71,9 @@ public class Block {
 				int actualChecksum = ((CRC32_InputStream) is).getCRC32();
 				checksum = ByteBufferUtils.int32(is);
 				if (checksum != actualChecksum)
-					throw new RuntimeException("Block CRC32 mismatch.");
+					throw new RuntimeException(String.format(
+							"Block CRC32 mismatch: %04x vs %04x", checksum,
+							actualChecksum));
 			}
 
 			if (uncompress)
@@ -206,18 +201,22 @@ public class Block {
 	}
 
 	public void write(OutputStream os) throws IOException {
+		CRC32_OutputStream cos = new CRC32_OutputStream(os);
+
 		if (!isCompressed())
 			compress();
 		if (!isUncompressed())
 			uncompress();
 
-		os.write(method.ordinal());
-		os.write(contentType.ordinal());
-		os.write(contentId);
+		cos.write(method.ordinal());
+		cos.write(contentType.ordinal());
 
-		ByteBufferUtils.writeUnsignedITF8(compressedContentSize, os);
-		ByteBufferUtils.writeUnsignedITF8(rawContentSize, os);
+		ByteBufferUtils.writeUnsignedITF8(contentId, cos);
+		ByteBufferUtils.writeUnsignedITF8(compressedContentSize, cos);
+		ByteBufferUtils.writeUnsignedITF8(rawContentSize, cos);
 
-		os.write(getCompressedContent());
+		cos.write(getCompressedContent());
+
+		os.write(cos.getCrc32_LittleEndian());
 	}
 }

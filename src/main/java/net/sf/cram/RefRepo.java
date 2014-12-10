@@ -208,7 +208,7 @@ public class RefRepo {
 
 	private static Entry parse(String line) {
 		Pattern pattern = Pattern
-				.compile("^@SQ\tSN:(\\w+)\tLN:(\\d+)\tUR:(\\w+)\tM5:([a-z0-9]+)$");
+				.compile("^@SQ\tSN:(\\w+)\tLN:(\\d+)\tUR:([^\t]+)\tM5:([a-z0-9]+)$");
 		Matcher m = pattern.matcher(line);
 		if (!m.matches())
 			throw new RuntimeException("Improper format: " + line);

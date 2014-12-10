@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.cram.encoding.ExternalCompressor;
 import net.sf.cram.encoding.writer.DataWriterFactory;
 import net.sf.cram.encoding.writer.Writer;
 import net.sf.cram.io.DefaultBitOutputStream;
@@ -31,7 +32,6 @@ import net.sf.cram.structure.BlockContentType;
 import net.sf.cram.structure.CompressionHeader;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramRecord;
-import net.sf.cram.structure.EncodingKey;
 import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.samtools.SAMFileHeader;
@@ -208,14 +208,15 @@ public class ContainerFactory {
 			ExposedByteArrayOutputStream os = map.get(i);
 
 			Block externalBlock = new Block();
-			externalBlock.contentType = BlockContentType.EXTERNAL;
-			if (EncodingKey.QS_QualityScore == h.dataKeyMap.get(i))
-				externalBlock.method = BlockCompressionMethod.RANS;
-			else
-				externalBlock.method = BlockCompressionMethod.GZIP;
 			externalBlock.contentId = i;
+			externalBlock.contentType = BlockContentType.EXTERNAL;
 
-			externalBlock.setRawContent(os.toByteArray());
+			ExternalCompressor compressor = h.externalCompressors.get(i);
+			byte[] rawData = os.toByteArray();
+			externalBlock.setRawContent(rawData);
+			byte[] compressed = compressor.compress(rawData);
+			externalBlock.setCompressedContent(compressor.compress(rawData));
+			externalBlock.method = compressor.getMethod();
 			slice.external.put(i, externalBlock);
 		}
 

@@ -9,8 +9,8 @@
 	<classpathentry kind="lib" path="lib/picard-1.103.jar" sourcepath="/picard"/>
 	<classpathentry kind="lib" path="lib/sam-1.103.jar" sourcepath="/picard/src/java"/>
 	<classpathentry kind="lib" path="lib/CipherOnly.jar"/>
-	<classpathentry kind="lib" path="lib/commons-compress-1.4.1.jar"/>
-	<classpathentry kind="lib" path="lib/xz-1.5.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.4.1.jar" sourcepath="C:/Users/vadim/.m2/repository/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1-sources.jar"/>
+	<classpathentry kind="lib" path="lib/xz-1.5.jar" sourcepath="C:/Users/vadim/.m2/repository/org/tukaani/xz/1.5/xz-1.5-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

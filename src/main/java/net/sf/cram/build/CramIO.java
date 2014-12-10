@@ -213,7 +213,7 @@ public class CramIO {
 			CramHeader cramHeader = CramIO.readFormatDefinition(is,
 					new CramHeader());
 			SeekableStream s = (SeekableStream) is;
-			if (!CramIO.hasZeroB_EOF_marker(s))
+			if (!CramIO.hasZeroB_EOF_marker(s) && CramIO.hasZeroF_EOF_marker(s))
 				eofNotFound(cramHeader.majorVersion, cramHeader.minorVersion);
 			s.seek(0);
 		} else
@@ -242,7 +242,7 @@ public class CramIO {
 	 */
 	public static Container readContainer(CramHeader cramHeader, InputStream is)
 			throws IOException {
-		Container c = CramIO.readContainer(is);
+		Container c = CramIO.readContainer(cramHeader.majorVersion, is);
 		if (c == null) {
 			// this will cause System.exit(1):
 			eofNotFound(cramHeader.majorVersion, cramHeader.minorVersion);
@@ -279,6 +279,12 @@ public class CramIO {
 		return ZERO_B_EOF_MARKER.length;
 	}
 
+	public static long issueZeroF_EOF_marker(OutputStream os)
+			throws IOException {
+		os.write(ZERO_F_EOF_MARKER);
+		return ZERO_F_EOF_MARKER.length;
+	}
+
 	public static boolean hasZeroB_EOF_marker(SeekableStream s)
 			throws IOException {
 		byte[] tail = new byte[ZERO_B_EOF_MARKER.length];
@@ -289,6 +295,18 @@ public class CramIO {
 		// relaxing the ITF8 hanging bits:
 		tail[8] |= 0xf0;
 		return Arrays.equals(tail, ZERO_B_EOF_MARKER);
+	}
+
+	public static boolean hasZeroF_EOF_marker(SeekableStream s)
+			throws IOException {
+		byte[] tail = new byte[ZERO_F_EOF_MARKER.length];
+
+		s.seek(s.length() - ZERO_F_EOF_MARKER.length);
+		ByteBufferUtils.readFully(tail, s);
+
+		// relaxing the ITF8 hanging bits:
+		tail[8] |= 0xf0;
+		return Arrays.equals(tail, ZERO_F_EOF_MARKER);
 	}
 
 	public static boolean hasZeroB_EOF_marker(File file) throws IOException {
@@ -311,6 +329,9 @@ public class CramIO {
 
 	public static long writeCramHeader(CramHeader h, OutputStream os)
 			throws IOException {
+		if (h.majorVersion < 3)
+			throw new RuntimeException("Deprecated CRAM version: "
+					+ h.majorVersion);
 		os.write("CRAM".getBytes("US-ASCII"));
 		os.write(h.majorVersion);
 		os.write(h.minorVersion);
@@ -416,8 +437,11 @@ public class CramIO {
 			throws IOException {
 		Container c = new Container();
 		ContainerHeaderIO chio = new ContainerHeaderIO();
-		if (!chio.readContainerHeader(major, c, is))
-			return null;
+		if (!chio.readContainerHeader(major, c, is)) {
+			chio.readContainerHeader(c, new ByteArrayInputStream(
+					(major >= 3 ? ZERO_F_EOF_MARKER : ZERO_B_EOF_MARKER)));
+			return c;
+		}
 		return c;
 	}
 
@@ -426,8 +450,8 @@ public class CramIO {
 
 		long time1 = System.nanoTime();
 		Container c = readContainerHeader(major, is);
-		if (c == null)
-			return null;
+		if (c.isEOF())
+			return c;
 
 		CompressionHeaderBLock chb = new CompressionHeaderBLock(major, is);
 		c.h = chb.getCompressionHeader();
