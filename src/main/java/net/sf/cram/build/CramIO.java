@@ -75,7 +75,7 @@ public class CramIO {
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
 			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
 	public static byte[] ZERO_F_EOF_MARKER = ByteBufferUtils
-			.bytesFromHex("0f 00 00 00 ff ff ff ff 0f e0 45 4f 46 00 00 00 00 01 00 8b d7 72 2f 00 01 00 06 06 01 00 01 00 01 00 ee 63 01 4b");
+			.bytesFromHex("0f 00 00 00 ff ff ff ff 0f e0 45 4f 46 00 00 00 00 01 00 05 bd d9 4f 00 01 00 06 06 01 00 01 00 01 00 ee 63 01 4b");
 
 	public static void main(String[] args) throws IOException {
 		CRC32 c = new CRC32();
