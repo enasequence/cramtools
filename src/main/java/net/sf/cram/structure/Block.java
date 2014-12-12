@@ -121,6 +121,21 @@ public class Block {
 		return rawContentSize;
 	}
 
+	public void setContent(byte[] raw, byte[] compressed) {
+		rawContent = raw;
+		compressedContent = compressed;
+
+		if (raw == null)
+			rawContentSize = 0;
+		else
+			rawContentSize = raw.length;
+
+		if (compressed == null)
+			compressedContentSize = 0;
+		else
+			compressedContentSize = compressed.length;
+	}
+
 	public void setCompressedContent(byte[] compressed) {
 		this.compressedContent = compressed;
 		compressedContentSize = compressed == null ? 0 : compressed.length;

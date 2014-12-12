@@ -1,9 +1,5 @@
 package net.sf.cram.encoding.rans;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -35,27 +31,11 @@ public class RANS {
 		if (in.remaining() == 0)
 			return ByteBuffer.allocate(0);
 
-		try {
-			File file = new File("rans." + in.limit());
-			FileOutputStream fos = new FileOutputStream(file);
-			byte[] data = new byte[in.limit()];
-			in.get(data);
-			in.rewind();
-			fos.write(data);
-			fos.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		ORDER order = ORDER.fromInt(in.get());
 
 		in.order(ByteOrder.LITTLE_ENDIAN);
 		int in_sz = in.getInt();
-		if (in_sz - COMPRESSED_BYTE_LENGTH - RAW_BYTE_LENGTH != in.remaining())
+		if (in_sz != in.remaining() - RAW_BYTE_LENGTH)
 			throw new RuntimeException("Incorrect input length.");
 		int out_sz = in.getInt();
 		if (out == null)
@@ -156,8 +136,8 @@ public class RANS {
 		out_buf.put(0, (byte) order);
 		out_buf.order(ByteOrder.LITTLE_ENDIAN);
 		int compressedSizeOffset = ORDER_BYTE_LENGTH;
-		out_buf.putInt(compressedSizeOffset, out_buf.limit()
-				- ORDER_BYTE_LENGTH + COMPRESSED_BYTE_LENGTH);
+		out_buf.putInt(compressedSizeOffset, frequencyTable_size
+				+ compressedBlob_size);
 		int rawSizeOffset = ORDER_BYTE_LENGTH + COMPRESSED_BYTE_LENGTH;
 		out_buf.putInt(rawSizeOffset, in_size);
 		out_buf.rewind();

@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 
-import net.sf.cram.encoding.rans.RANS;
 import net.sf.cram.encoding.rans.RANS.ORDER;
 
 import org.junit.Test;
@@ -149,8 +148,13 @@ public class TestRansCodec {
 			ByteBuffer compressed = RANS.compress(raw, order, null);
 			assertFalse(raw.hasRemaining());
 			assertThat(raw.limit(), is(size));
+
 			assertThat(compressed.position(), is(0));
 			assertTrue(compressed.limit() > 10);
+			assertThat(compressed.get(), is((byte) order.ordinal()));
+			assertThat(compressed.getInt(), is(compressed.limit() - 1 - 4 - 4));
+			assertThat(compressed.getInt(), is(size));
+			compressed.rewind();
 
 			ByteBuffer uncompressed = RANS.uncompress(compressed, null);
 			assertFalse(compressed.hasRemaining());
@@ -159,6 +163,16 @@ public class TestRansCodec {
 
 			raw.rewind();
 		}
+	}
+
+	@Test
+	public void testRansHeader() {
+		byte[] data = randomBytes_GD(1000, 0.01);
+		ByteBuffer compressed = RANS.compress(ByteBuffer.wrap(data),
+				ORDER.ZERO, null);
+		assertThat(compressed.get(), is((byte) 0));
+		assertThat(compressed.getInt(), is(compressed.limit() - 9));
+		assertThat(compressed.getInt(), is(data.length));
 	}
 
 	private static void roundTrip(ByteBuffer data) {

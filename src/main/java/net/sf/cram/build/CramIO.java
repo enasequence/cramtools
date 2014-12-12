@@ -80,7 +80,7 @@ public class CramIO {
 	public static void main(String[] args) throws IOException {
 		CRC32 c = new CRC32();
 		c.update(ByteBufferUtils
-				.bytesFromHex("0f 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00"));
+				.bytesFromHex("0f 00 00 00 ff ff ff ff 0f e0 45 4f 46 00 00 00 00 01 00"));
 		int value = (int) (0xFFFFFFFF & c.getValue());
 		System.out.println(Integer.toHexString(value));
 		System.out.println(value);

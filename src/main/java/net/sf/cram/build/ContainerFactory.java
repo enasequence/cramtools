@@ -213,9 +213,8 @@ public class ContainerFactory {
 
 			ExternalCompressor compressor = h.externalCompressors.get(i);
 			byte[] rawData = os.toByteArray();
-			externalBlock.setRawContent(rawData);
 			byte[] compressed = compressor.compress(rawData);
-			externalBlock.setCompressedContent(compressor.compress(rawData));
+			externalBlock.setContent(rawData, compressed);
 			externalBlock.method = compressor.getMethod();
 			slice.external.put(i, externalBlock);
 		}
