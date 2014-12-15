@@ -23,6 +23,10 @@ import java.io.OutputStream;
 import java.util.HashMap;
 
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.samtools.BinaryTagCodec;
+import net.sf.samtools.SAMBinaryTagAndValue;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.util.BinaryCodec;
 
 public class SliceIO {
 
@@ -47,6 +51,10 @@ public class SliceIO {
 		s.embeddedRefBlockContentID = ByteBufferUtils.readUnsignedITF8(is);
 		s.refMD5 = new byte[16];
 		ByteBufferUtils.readFully(s.refMD5, is);
+
+		byte[] bytes = ByteBufferUtils.readFully(is);
+		s.sliceTags = BinaryTagCodec.readTags(bytes, 0, bytes.length,
+				ValidationStringency.DEFAULT_STRINGENCY);
 	}
 
 	public byte[] createSliceHeaderBlockContent(Slice s) throws IOException {
@@ -65,9 +73,19 @@ public class SliceIO {
 		ByteBufferUtils.write(s.contentIDs, baos);
 		ByteBufferUtils.writeUnsignedITF8(s.embeddedRefBlockContentID, baos);
 		baos.write(s.refMD5 == null ? new byte[16] : s.refMD5);
-		ByteBufferUtils.writeUnsignedITF8(s.sequenceId, baos);
-		ByteBufferUtils.writeUnsignedITF8(s.sequenceId, baos);
-		ByteBufferUtils.writeUnsignedITF8(s.sequenceId, baos);
+
+		if (s.sliceTags != null) {
+			BinaryCodec bc = new BinaryCodec(baos);
+			BinaryTagCodec tc = new BinaryTagCodec(bc);
+			SAMBinaryTagAndValue tv = s.sliceTags;
+			do {
+				tc.writeTag(tv.tag, tv.value, tv.isUnsignedArray());
+
+			} while ((tv = tv.getNext()) != null);
+			// BinaryCodec doesn't seem to cache things.
+			// In any case, not calling bc.close() because it's behaviour is
+			// irrelevant here.
+		}
 
 		return baos.toByteArray();
 	}

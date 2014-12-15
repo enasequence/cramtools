@@ -35,8 +35,6 @@ import net.sf.cram.build.ContainerFactory;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.build.Sam2CramRecordFactory;
 import net.sf.cram.common.Utils;
-import net.sf.cram.io.ByteBufferUtils;
-import net.sf.cram.io.ByteBufferUtils.CRC32SUM;
 import net.sf.cram.lossy.QualityScorePreservation;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.ref.ReferenceTracks;
@@ -362,17 +360,7 @@ public class Bam2Cram {
 				long convertNanos = 0;
 				if (!samRecords.isEmpty()) {
 					convertNanos = System.nanoTime();
-					ByteBufferUtils.CRC32SUM base_crc32sum = new CRC32SUM();
-					ByteBufferUtils.CRC32SUM scores_crc32sum = new CRC32SUM();
-					ByteBufferUtils.SHA512SUM base_sha512sum = new ByteBufferUtils.SHA512SUM();
-					ByteBufferUtils.SHA512SUM scores_sha512sum = new ByteBufferUtils.SHA512SUM();
-					for (SAMRecord record : samRecords) {
-						base_crc32sum.add(record.getReadBases());
-						scores_crc32sum.add(record.getBaseQualities());
 
-						base_sha512sum.add(record.getReadBases());
-						scores_sha512sum.add(record.getBaseQualities());
-					}
 					List<CramRecord> records = convert(samRecords,
 							samFileHeader, ref, tracks, preservation,
 							params.captureAllTags, params.captureTags,
@@ -381,15 +369,10 @@ public class Bam2Cram {
 					samRecords.clear();
 
 					Container container = cf.buildContainer(records);
-					container.h.basesDigest = base_crc32sum.getByteValue();
-					container.h.scoresDigest = scores_crc32sum.getByteValue();
 
-					container.h.bases5Digest = base_sha512sum.getByteValue();
-					container.h.scores5Digest = scores_sha512sum.getByteValue();
-
-					for (Slice s : container.slices) {
+					for (Slice s : container.slices)
 						s.setRefMD5(ref);
-					}
+
 					records.clear();
 					long len = CramIO.writeContainer(container, os);
 					container.offset = offset;

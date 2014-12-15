@@ -40,19 +40,11 @@ public class CompressionHeader {
 	private static final String TD_tagIdsDictionary = "TD";
 	private static final String SM_substitutionMatrix = "SM";
 
-	private static final String BD_basesDigest = "BD";
-	private static final String SD_scoresDigest = "SD";
-
-	private static final String B5_basesDigest = "B5";
-	private static final String S5_scoresDigest = "S5";
-
 	private static Log log = Log.getInstance(CompressionHeader.class);
 
 	public boolean readNamesIncluded;
 	public boolean AP_seriesDelta = true;
 	public boolean referenceRequired = true;
-	public byte[] basesDigest, scoresDigest;
-	public byte[] bases5Digest, scores5Digest;
 
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;
@@ -157,18 +149,6 @@ public class CompressionHeader {
 					byte[] matrixBytes = new byte[5];
 					buf.get(matrixBytes);
 					substitutionMatrix = new SubstitutionMatrix(matrixBytes);
-				} else if (BD_basesDigest.equals(key)) {
-					basesDigest = new byte[4];
-					buf.get(basesDigest);
-				} else if (SD_scoresDigest.equals(key)) {
-					scoresDigest = new byte[4];
-					buf.get(scores5Digest);
-				} else if (B5_basesDigest.equals(key)) {
-					bases5Digest = new byte[4];
-					buf.get(basesDigest);
-				} else if (S5_scoresDigest.equals(key)) {
-					scores5Digest = new byte[4];
-					buf.get(scores5Digest);
 				} else
 					throw new RuntimeException("Unknown preservation map key: "
 							+ key);
@@ -255,26 +235,6 @@ public class CompressionHeader {
 				byte[] dBytes = dictionaryToByteArray();
 				ByteBufferUtils.writeUnsignedITF8(dBytes.length, mapBuf);
 				mapBuf.put(dBytes);
-			}
-
-			if (basesDigest != null) {
-				mapBuf.put(BD_basesDigest.getBytes());
-				mapBuf.put(basesDigest);
-			}
-
-			if (scoresDigest != null) {
-				mapBuf.put(SD_scoresDigest.getBytes());
-				mapBuf.put(scoresDigest);
-			}
-
-			if (bases5Digest != null) {
-				mapBuf.put(B5_basesDigest.getBytes());
-				mapBuf.put(bases5Digest);
-			}
-
-			if (scores5Digest != null) {
-				mapBuf.put(S5_scoresDigest.getBytes());
-				mapBuf.put(scores5Digest);
 			}
 
 			mapBuf.flip();

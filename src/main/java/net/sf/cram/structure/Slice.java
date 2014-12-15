@@ -22,6 +22,7 @@ import java.util.Map;
 
 import net.sf.cram.common.Utils;
 import net.sf.picard.util.Log;
+import net.sf.samtools.SAMBinaryTagAndValue;
 
 public class Slice {
 	public static final int UNMAPPED_OR_NOREF = -1;
@@ -55,6 +56,8 @@ public class Slice {
 	// to pass this to the container:
 	public long bases;
 
+	public SAMBinaryTagAndValue sliceTags;
+
 	private static final int shoulder = 10;
 
 	/**
@@ -67,15 +70,17 @@ public class Slice {
 			throw new NullPointerException("Mapped slice reference is null.");
 
 		if (alignmentStart > ref.length) {
-			log.error(String.format("Slice mapped outside of reference: seqid=%d, alstart=%d, counter=%d.", sequenceId,
-					alignmentStart, globalRecordCounter));
+			log.error(String
+					.format("Slice mapped outside of reference: seqid=%d, alstart=%d, counter=%d.",
+							sequenceId, alignmentStart, globalRecordCounter));
 			throw new RuntimeException("Slice mapped outside of the reference.");
 		}
 
 		if (alignmentStart - 1 + alignmentSpan > ref.length) {
-			log.warn(String.format(
-					"Slice partially mapped outside of reference: seqid=%d, alstart=%d, alspan=%d, counter=%d.",
-					sequenceId, alignmentStart, alignmentSpan, globalRecordCounter));
+			log.warn(String
+					.format("Slice partially mapped outside of reference: seqid=%d, alstart=%d, alspan=%d, counter=%d.",
+							sequenceId, alignmentStart, alignmentSpan,
+							globalRecordCounter));
 			return false;
 		}
 
@@ -86,29 +91,37 @@ public class Slice {
 		alignmentBordersSanityCheck(ref);
 
 		if (!validateRefMD5(ref, alignmentStart, alignmentSpan, refMD5)) {
-			String excerpt = getBrief(alignmentStart, alignmentSpan, ref, shoulder, null);
+			String excerpt = getBrief(alignmentStart, alignmentSpan, ref,
+					shoulder, null);
 
 			if (validateRefMD5(ref, alignmentStart, alignmentSpan - 1, refMD5)) {
-				log.warn(String.format("Reference MD5 matches partially for slice %d:%d-%d, %s", sequenceId,
-						alignmentStart, alignmentStart + alignmentSpan - 1, excerpt));
+				log.warn(String
+						.format("Reference MD5 matches partially for slice %d:%d-%d, %s",
+								sequenceId, alignmentStart, alignmentStart
+										+ alignmentSpan - 1, excerpt));
 				return true;
 			}
 
-			log.error(String.format("Reference MD5 mismatch for slice %d:%d-%d, %s", sequenceId, alignmentStart,
-					alignmentStart + alignmentSpan - 1, excerpt));
+			log.error(String.format(
+					"Reference MD5 mismatch for slice %d:%d-%d, %s",
+					sequenceId, alignmentStart, alignmentStart + alignmentSpan
+							- 1, excerpt));
 			return false;
 		}
 
 		return true;
 	}
 
-	private static boolean validateRefMD5(byte[] ref, int alignmentStart, int alignmentSpan, byte[] expectedMD5) {
+	private static boolean validateRefMD5(byte[] ref, int alignmentStart,
+			int alignmentSpan, byte[] expectedMD5) {
 		int span = Math.min(alignmentSpan, ref.length - alignmentStart + 1);
 		String md5 = Utils.calculateMD5String(ref, alignmentStart - 1, span);
-		return md5.equals(String.format("%032x", new BigInteger(1, expectedMD5)));
+		return md5.equals(String
+				.format("%032x", new BigInteger(1, expectedMD5)));
 	}
 
-	private static String getBrief(int start_1based, int span, byte[] bases, int shoulderLength, StringBuffer sb) {
+	private static String getBrief(int start_1based, int span, byte[] bases,
+			int shoulderLength, StringBuffer sb) {
 		if (sb == null)
 			sb = new StringBuffer();
 		int from_inc = start_1based - 1;
@@ -119,9 +132,11 @@ public class Slice {
 		if (to_exc - from_inc <= 2 * shoulderLength) {
 			sb.append(new String(Arrays.copyOfRange(bases, from_inc, to_exc)));
 		} else {
-			sb.append(new String(Arrays.copyOfRange(bases, from_inc, from_inc + shoulderLength)));
+			sb.append(new String(Arrays.copyOfRange(bases, from_inc, from_inc
+					+ shoulderLength)));
 			sb.append("...");
-			sb.append(new String(Arrays.copyOfRange(bases, to_exc - shoulderLength, to_exc)));
+			sb.append(new String(Arrays.copyOfRange(bases, to_exc
+					- shoulderLength, to_exc)));
 		}
 
 		return sb.toString();
@@ -130,8 +145,9 @@ public class Slice {
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		sb.append(String.format("slice: seqid %d, start %d, span %d, records %d.", sequenceId, alignmentStart,
-				alignmentSpan, nofRecords));
+		sb.append(String.format(
+				"slice: seqid %d, start %d, span %d, records %d.", sequenceId,
+				alignmentStart, alignmentSpan, nofRecords));
 		return sb.toString();
 	}
 
@@ -246,13 +262,16 @@ public class Slice {
 
 			StringBuffer sb = new StringBuffer();
 			int shoulder = 10;
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1, alignmentStart + shoulder)));
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1,
+					alignmentStart + shoulder)));
 			sb.append("...");
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1 + span - shoulder, alignmentStart + span)));
+			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
+					+ span - shoulder, alignmentStart + span)));
 
 			log.debug(String.format("Slice md5: %s for %d:%d-%d, %s",
-					String.format("%032x", new BigInteger(1, refMD5)), sequenceId, alignmentStart, alignmentStart
-							+ span - 1, sb.toString()));
+					String.format("%032x", new BigInteger(1, refMD5)),
+					sequenceId, alignmentStart, alignmentStart + span - 1,
+					sb.toString()));
 		}
 	}
 }
