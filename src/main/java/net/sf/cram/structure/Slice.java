@@ -15,6 +15,7 @@
  ******************************************************************************/
 package net.sf.cram.structure;
 
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -22,7 +23,10 @@ import java.util.Map;
 
 import net.sf.cram.common.Utils;
 import net.sf.picard.util.Log;
+import net.sf.samtools.SAMBinaryTagAndUnsignedArrayValue;
 import net.sf.samtools.SAMBinaryTagAndValue;
+import net.sf.samtools.SAMException;
+import net.sf.samtools.SAMTagUtil;
 
 public class Slice {
 	public static final int UNMAPPED_OR_NOREF = -1;
@@ -272,6 +276,87 @@ public class Slice {
 					String.format("%032x", new BigInteger(1, refMD5)),
 					sequenceId, alignmentStart, alignmentStart + span - 1,
 					sb.toString()));
+		}
+	}
+
+	/**
+	 * Hijacking attributes-related methods from SAMRecord:
+	 */
+
+	/**
+	 * @param tag
+	 * @return
+	 */
+	public Object getAttribute(final short tag) {
+		if (this.sliceTags == null)
+			return null;
+		else {
+			final SAMBinaryTagAndValue tmp = this.sliceTags.find(tag);
+			if (tmp != null)
+				return tmp.value;
+			else
+				return null;
+		}
+	}
+
+	public void setAttribute(final String tag, final Object value) {
+		if (value != null && value.getClass().isArray()
+				&& Array.getLength(value) == 0) {
+			throw new IllegalArgumentException("Empty value passed for tag "
+					+ tag);
+		}
+		setAttribute(SAMTagUtil.getSingleton().makeBinaryTag(tag), value);
+	}
+
+	public void setUnsignedArrayAttribute(final String tag, final Object value) {
+		if (!value.getClass().isArray()) {
+			throw new IllegalArgumentException(
+					"Non-array passed to setUnsignedArrayAttribute for tag "
+							+ tag);
+		}
+		if (Array.getLength(value) == 0) {
+			throw new IllegalArgumentException(
+					"Empty array passed to setUnsignedArrayAttribute for tag "
+							+ tag);
+		}
+		setAttribute(SAMTagUtil.getSingleton().makeBinaryTag(tag), value, true);
+	}
+
+	protected void setAttribute(final short tag, final Object value) {
+		setAttribute(tag, value, false);
+	}
+
+	protected void setAttribute(final short tag, final Object value,
+			final boolean isUnsignedArray) {
+		if (value != null
+				&& !(value instanceof Byte || value instanceof Short
+						|| value instanceof Integer || value instanceof String
+						|| value instanceof Character || value instanceof Float
+						|| value instanceof byte[] || value instanceof short[]
+						|| value instanceof int[] || value instanceof float[])) {
+			throw new SAMException("Attribute type " + value.getClass()
+					+ " not supported. Tag: "
+					+ SAMTagUtil.getSingleton().makeStringTag(tag));
+		}
+		if (value == null) {
+			if (this.sliceTags != null)
+				this.sliceTags = this.sliceTags.remove(tag);
+		} else {
+			final SAMBinaryTagAndValue tmp;
+			if (!isUnsignedArray) {
+				tmp = new SAMBinaryTagAndValue(tag, value);
+			} else {
+				if (!value.getClass().isArray() || value instanceof float[]) {
+					throw new SAMException("Attribute type " + value.getClass()
+							+ " cannot be encoded as an unsigned array. Tag: "
+							+ SAMTagUtil.getSingleton().makeStringTag(tag));
+				}
+				tmp = new SAMBinaryTagAndUnsignedArrayValue(tag, value);
+			}
+			if (this.sliceTags == null)
+				this.sliceTags = tmp;
+			else
+				this.sliceTags = this.sliceTags.insert(tmp);
 		}
 	}
 }

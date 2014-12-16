@@ -23,12 +23,15 @@ import java.io.OutputStream;
 import java.util.HashMap;
 
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.picard.util.Log;
 import net.sf.samtools.BinaryTagCodec;
 import net.sf.samtools.SAMBinaryTagAndValue;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMTagUtil;
 import net.sf.samtools.util.BinaryCodec;
 
 public class SliceIO {
+	private static Log log = Log.getInstance(SliceIO.class);
 
 	public void readSliceHeadBlock(int major, Slice s, InputStream is)
 			throws IOException {
@@ -55,6 +58,13 @@ public class SliceIO {
 		byte[] bytes = ByteBufferUtils.readFully(is);
 		s.sliceTags = BinaryTagCodec.readTags(bytes, 0, bytes.length,
 				ValidationStringency.DEFAULT_STRINGENCY);
+
+		SAMBinaryTagAndValue tags = s.sliceTags;
+		while (tags != null) {
+			log.debug(String.format("Found slice tag: %s", SAMTagUtil
+					.getSingleton().makeStringTag(tags.tag)));
+			tags = tags.getNext();
+		}
 	}
 
 	public byte[] createSliceHeaderBlockContent(Slice s) throws IOException {
@@ -79,8 +89,9 @@ public class SliceIO {
 			BinaryTagCodec tc = new BinaryTagCodec(bc);
 			SAMBinaryTagAndValue tv = s.sliceTags;
 			do {
+				log.debug("Writing slice tag: "
+						+ SAMTagUtil.getSingleton().makeStringTag(tv.tag));
 				tc.writeTag(tv.tag, tv.value, tv.isUnsignedArray());
-
 			} while ((tv = tv.getNext()) != null);
 			// BinaryCodec doesn't seem to cache things.
 			// In any case, not calling bc.close() because it's behaviour is

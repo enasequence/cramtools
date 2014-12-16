@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,6 +46,8 @@ import net.sf.cram.build.CramNormalizer;
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.io.ByteBufferUtils;
+import net.sf.cram.io.ByteBufferUtils.CRC32SUM;
+import net.sf.cram.io.ByteBufferUtils.SHA512SUM;
 import net.sf.cram.ref.ReferenceSource;
 import net.sf.cram.structure.Container;
 import net.sf.cram.structure.CramHeader;
@@ -54,10 +57,12 @@ import net.sf.picard.util.Log;
 import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.BAMFileWriter;
 import net.sf.samtools.BAMIndexFactory;
+import net.sf.samtools.SAMBinaryTagAndValue;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTagUtil;
 import net.sf.samtools.seekablestream.SeekableStream;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
@@ -285,6 +290,58 @@ public class Cram2Bam {
 						c.h.substitutionMatrix, c.h.AP_seriesDelta);
 				long time2 = System.nanoTime();
 				normTime += time2 - time1;
+
+				CRC32SUM base_crc32sum = new CRC32SUM();
+				CRC32SUM scores_crc32sum = new CRC32SUM();
+				SHA512SUM base_sha512sum = new SHA512SUM();
+				SHA512SUM scores_sha512sum = new SHA512SUM();
+
+				for (CramRecord r : cramRecords) {
+					base_crc32sum.add(r.readBases);
+					scores_crc32sum.add(r.qualityScores);
+
+					base_sha512sum.add(r.readBases);
+					scores_sha512sum.add(r.qualityScores);
+				}
+				SAMBinaryTagAndValue bd = slice.sliceTags.find(SAMTagUtil
+						.getSingleton().makeBinaryTag("BD"));
+				if (!Arrays.equals(base_crc32sum.getByteValue(),
+						(byte[]) bd.value)) {
+					log.info(String.format("Bases digest mismatch: ",
+							ByteBufferUtils.toHexString(base_crc32sum
+									.getByteValue()), ByteBufferUtils
+									.toHexString((byte[]) bd.value)));
+				}
+
+				SAMBinaryTagAndValue sd = slice.sliceTags.find(SAMTagUtil
+						.getSingleton().makeBinaryTag("SD"));
+				if (!Arrays.equals(scores_crc32sum.getByteValue(),
+						(byte[]) sd.value)) {
+					log.info(String.format("Quality scores digest mismatch: ",
+							ByteBufferUtils.toHexString(scores_crc32sum
+									.getByteValue()), ByteBufferUtils
+									.toHexString((byte[]) sd.value)));
+				}
+
+				SAMBinaryTagAndValue b5 = slice.sliceTags.find(SAMTagUtil
+						.getSingleton().makeBinaryTag("B5"));
+				if (!Arrays.equals(base_sha512sum.getByteValue(),
+						(byte[]) b5.value)) {
+					log.info(String.format("Bases digest mismatch: ",
+							ByteBufferUtils.toHexString(base_sha512sum
+									.getByteValue()), ByteBufferUtils
+									.toHexString((byte[]) b5.value)));
+				}
+
+				SAMBinaryTagAndValue s5 = slice.sliceTags.find(SAMTagUtil
+						.getSingleton().makeBinaryTag("S5"));
+				if (!Arrays.equals(scores_sha512sum.getByteValue(),
+						(byte[]) s5.value)) {
+					log.info(String.format("Quality scores digest mismatch: ",
+							ByteBufferUtils.toHexString(scores_sha512sum
+									.getByteValue()), ByteBufferUtils
+									.toHexString((byte[]) s5.value)));
+				}
 
 				Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
 						cramHeader.samFileHeader);

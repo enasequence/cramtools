@@ -585,6 +585,10 @@ public class ByteBufferUtils {
 		return sb.toString();
 	}
 
+	public static String toHexString(byte[] bytes) {
+		return toHex(bytes).replace(" ", "");
+	}
+
 	/**
 	 * Unsigned little-endiann 4 byte integer
 	 * 
@@ -901,8 +905,12 @@ public class ByteBufferUtils {
 		byte[] digest = new byte[64];
 		MessageDigest md;
 
-		public SHA512SUM() throws NoSuchAlgorithmException {
-			md = MessageDigest.getInstance("SHA-512");
+		public SHA512SUM() {
+			try {
+				md = MessageDigest.getInstance("SHA-512");
+			} catch (NoSuchAlgorithmException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void add(byte[] data) {
