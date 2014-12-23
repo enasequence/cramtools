@@ -21,11 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.sf.cram.digest.ContentDigests;
 import net.sf.cram.encoding.ExternalCompressor;
 import net.sf.cram.encoding.writer.DataWriterFactory;
 import net.sf.cram.encoding.writer.Writer;
-import net.sf.cram.io.ByteBufferUtils.CRC32SUM;
-import net.sf.cram.io.ByteBufferUtils.SHA512SUM;
 import net.sf.cram.io.DefaultBitOutputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.Block;
@@ -142,11 +141,6 @@ public class ContainerFactory {
 		Slice slice = new Slice();
 		slice.nofRecords = records.size();
 
-		CRC32SUM base_crc32sum = new CRC32SUM();
-		CRC32SUM scores_crc32sum = new CRC32SUM();
-		SHA512SUM base_sha512sum = new SHA512SUM();
-		SHA512SUM scores_sha512sum = new SHA512SUM();
-
 		int minAlStart = Integer.MAX_VALUE;
 		int maxAlEnd = SAMRecord.NO_ALIGNMENT_START;
 		{
@@ -159,13 +153,10 @@ public class ContainerFactory {
 			 */
 			// @formatter:on
 			slice.sequenceId = Slice.UNMAPPED_OR_NOREF;
+			ContentDigests hasher = ContentDigests.create(ContentDigests.ALL);
 			for (CramRecord r : records) {
 				slice.bases += r.readLength;
-				base_crc32sum.add(r.readBases);
-				scores_crc32sum.add(r.qualityScores);
-
-				base_sha512sum.add(r.readBases);
-				scores_sha512sum.add(r.qualityScores);
+				hasher.add(r);
 
 				if (slice.sequenceId != Slice.MUTLIREF
 						&& r.alignmentStart != SAMRecord.NO_ALIGNMENT_START
@@ -188,11 +179,7 @@ public class ContainerFactory {
 				}
 			}
 
-			slice.setAttribute("BD", base_crc32sum.getByteValue());
-			slice.setAttribute("SD", scores_crc32sum.getByteValue());
-
-			slice.setAttribute("B5", base_sha512sum.getByteValue());
-			slice.setAttribute("S5", scores_sha512sum.getByteValue());
+			slice.sliceTags = hasher.getAsTags();
 		}
 
 		if (slice.sequenceId == Slice.MUTLIREF
