@@ -15,8 +15,8 @@
  ******************************************************************************/
 package net.sf.cram.structure;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +24,6 @@ import java.io.InputStream;
 import net.sf.cram.build.CramIO;
 import net.sf.cram.structure.CramHeader;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TestCramHeader {
@@ -33,17 +32,13 @@ public class TestCramHeader {
 	public void test() throws IOException {
 
 		String cramPath = "/data/set1/small.cram";
-		InputStream stream = getClass().getResourceAsStream(
-				cramPath);
+		InputStream stream = getClass().getResourceAsStream(cramPath);
+		assertNotNull("CRAM file not found: " + cramPath, stream);
 
-		if (stream == null)
-			fail("CRAM file not found: " + cramPath);
-
-		CramHeader cramHeader = CramIO.readCramHeader(stream);
-
+		CramHeader cramHeader = CramIO.readCramHeader(stream);		
 		assertNotNull(cramHeader);
-		assertEquals(cramHeader.majorVersion, 1) ;
-		assertEquals(cramHeader.minorVersion, 1) ;
+		assertEquals(cramHeader.majorVersion, 2) ;
+		assertEquals(cramHeader.minorVersion, 0) ;
 		assertNotNull(cramHeader.samFileHeader) ;
 	}
 

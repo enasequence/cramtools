@@ -34,6 +34,7 @@ import net.sf.cram.structure.EncodingParams;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecordIterator;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestCanonicalHuffmanByteCodec {
@@ -63,6 +64,7 @@ public class TestCanonicalHuffmanByteCodec {
 		}
 	}
 
+	@Ignore("Test file does not exist in repository.")
 	@Test
 	public void test2() throws IOException {
 		SAMFileReader r = new SAMFileReader(
