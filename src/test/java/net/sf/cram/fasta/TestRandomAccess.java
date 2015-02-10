@@ -20,7 +20,7 @@ public class TestRandomAccess {
 		f1 = new BGZF_ReferenceSequenceFile(file1);
 		f2 = new IndexedFastaSequenceFile(file2);
 	}
-
+	
 	public void test() throws FileNotFoundException {
 
 		// ReferenceSequence s1 = f1.getSequence(seq);

@@ -33,6 +33,7 @@ import net.sf.cram.io.IOUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
+// FIXME: Test class naming does not follow project conventions.
 public class GolombRiceIntegerCodecTest {
 
 	@Test
@@ -42,8 +43,8 @@ public class GolombRiceIntegerCodecTest {
 			assertThat(codec.numberOfBits(value), is(value / 4L + 3));
 	}
 
+	@Ignore("Used to print out values.")
 	@Test
-	@Ignore
 	public void printCodes_1_to_256() throws IOException {
 		int golombRiceLogM = 2;
 		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
