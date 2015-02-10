@@ -32,8 +32,8 @@ public class TestReaderToFasta {
 	@Test
 	public void test() throws IOException, IllegalArgumentException,
 			IllegalAccessException, NoSuchAlgorithmException {
-		String pathToRefFile = "bin/data/set1/small.fa";
-		String pathToBamFile = "bin/data/set1/small.bam";
+		String pathToRefFile = "src/test/resources/data/set1/small.fa";
+		String pathToBamFile = "src/test/resources/data/set1/small.bam";
 
 		SAMFileReader samFileReader = new SAMFileReader(new File(pathToBamFile));
 		Map<String, byte[]> readMap = new HashMap<String, byte[]>();
