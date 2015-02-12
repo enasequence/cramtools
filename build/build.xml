@@ -6,8 +6,9 @@
 
 	<property name="src" value="${basedir}/src" />
 	<property name="build.home" value="${basedir}/build" />
-	<property name="lib.home" value="${basedir}/lib" />
-    <property name="test.home" value="${src}/test" />	
+	<property name="lib.home"   value="${basedir}/lib" />
+	<property name="test.home"  value="${src}/test" />
+	<property name="test"       value="Test*" />   
 	<property name="target.dir" value="${basedir}/target" />
 	<property name="classes" value="${target.dir}/classes" />
 	<property name="crammerClasses" value="target/classes" />
@@ -24,13 +25,13 @@
 			<include name="${lib.home}/*.jar" />
 		</fileset>
 	</path>
-    	
-    <path id="junit.classpath">
-        <fileset dir="${lib.home}/">
-            <include name="*.jar" />
-        </fileset>
-    </path>
-    	
+
+	<path id="junit.classpath">
+		<fileset dir="${lib.home}/">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	
 	<pathconvert property="mf.classpath" pathsep=" ">
 		<path refid="build.classpath" />
 		<mapper>
@@ -42,8 +43,7 @@
 	</pathconvert>
 
 	<target name="runnable" depends="clean,compile">
-
-
+	
 		<buildnumber />
 
 		<tstamp>
@@ -51,11 +51,11 @@
 		</tstamp>
 
 		<jar destfile="${basedir}/${jar.file.name}" filesetmanifest="skip" duplicate="preserve">
-			<fileset dir="${classes}" />		
-		    <zipgroupfileset dir="lib" includes="*.jar" >
-			    <!-- exclude name="**/SamFileValidator.class" />
-                <exclude name="**/BAMFileReader.class" />
-                <exclude name="**/SAMFileReader.class" /-->
+			<fileset dir="${classes}" />
+			<zipgroupfileset dir="lib" includes="*.jar" >
+				<!-- exclude name="**/SamFileValidator.class" />
+				<exclude name="**/BAMFileReader.class" />
+				<exclude name="**/SAMFileReader.class" /-->
 			</zipgroupfileset>
 
 			<manifest>
@@ -68,8 +68,6 @@
 		</jar>
 	</target>
 
-	
-	
 	<target name="setup">
 		<mkdir dir="${classes}" />
 		<mkdir dir="${target.dir}" />
@@ -82,69 +80,69 @@
 		</java>
 	</target>
 
-    <target name="test" depends="clean-dirs,setup,compile">
-        <sequential>
-            <mkdir dir="${test.home}/results/xml" />
-            
-            <echo>Starting tests...</echo>
-        	<echo message="java.version    : ${java.version}" />
-            <echo message="ant.java.version: ${ant.java.version}" />
-            <echo message="ant.version     : ${ant.version}" />
-            <echo>....................................................</echo>
+	<target name="test" depends="clean-dirs,setup,compile">
+		<sequential>
+			<mkdir dir="${test.home}/results/xml" />
 
-            <!-- Copy resources needed on unit test classpath. -->
-            <copy todir="${classes}" filtering="false" overwrite="true">
-                <fileset dir="${test.home}/resources">
-                	<include name="**/*.bam" />
-                    <include name="**/small.cram" />
-                    <include name="**/small.fa" />
-                </fileset>
-            </copy>
-        	
-            <junit printsummary="withOutAndErr" failureproperty="aTestFailed" dir=".">
-                <classpath>
-                    <pathelement location="${classes}" />
-                    <path refid="junit.classpath" />
-                </classpath>                                
-                <formatter type="xml" />
-                <batchtest todir="${test.home}/results/xml" fork="true">
-                    <fileset dir="${test.home}/java">
-                    	<include name="**/Test*.java" />
-                    	<include name="**/GolombRiceIntegerCodecTest.java" />
-                    	
-                    	<exclude name="**/TestByteArrayStopCodec.java" />
-                    	<exclude name="**/TestFZ_B.java" />
-                    	<exclude name="**/TestRandomAccess.java" />
-                    </fileset>
-                </batchtest>
-            </junit>
-                    
-            <mkdir dir="${test.home}/results/html" />
-            <junitreport todir="${test.home}/results/html">
-              <fileset dir="${test.home}/results/xml">
-                <include name="TEST-*.xml" />
-              </fileset>
-              <report format="frames" todir="${test.home}/results/html" />
-            </junitreport>
-            <echo message="JUnit results in ${test.home}/results/html/index.html" />
+			<echo>Starting tests...</echo>
+			<echo message="java.version	: ${java.version}" />
+			<echo message="ant.java.version: ${ant.java.version}" />
+			<echo message="ant.version	 : ${ant.version}" />
+			<echo>....................................................</echo>
 
-            <fail if="aTestFailed" message="one or more tests failed" />
+			<!-- Copy resources needed on unit test classpath. -->
+			<copy todir="${classes}" filtering="false" overwrite="true">
+				<fileset dir="${test.home}/resources">
+					<include name="**/*.bam" />
+					<include name="**/small.cram" />
+					<include name="**/small.fa" />
+				</fileset>
+			</copy>
 
-            <tstamp>
-                  <format property="gendate" pattern="yyyy-MM-dd hh:mm aa"/>
-                </tstamp>
-            <echo>Build time: ${gendate}</echo>
-        </sequential>
-    </target>
+			<junit printsummary="withOutAndErr" failureproperty="aTestFailed" dir=".">
+				<classpath>
+					<pathelement location="${classes}" />
+					<path refid="junit.classpath" />
+				</classpath>
+				<formatter type="xml" />
+				<batchtest todir="${test.home}/results/xml" fork="true">
+					<fileset dir="${test.home}/java">
+						<include name="**/${test}.java" />
+						
+						<exclude name="**/TestByteArrayStopCodec.java" />
+						<exclude name="**/TestFZ_B.java" />
+						<exclude name="**/TestUnmappedNoStar.java" />
+						<exclude name="**/TestRandomAccess.java" />
+					</fileset>
+				</batchtest>
+			</junit>
+			
+			<mkdir dir="${test.home}/results/html" />
+			<junitreport todir="${test.home}/results/html">
+				<fileset dir="${test.home}/results/xml">
+					<include name="TEST-*.xml" />
+				</fileset>
+				<report format="frames" todir="${test.home}/results/html" />
+			</junitreport>
+			<echo message="JUnit results in ${test.home}/results/html/index.html" />
+			
+			<fail if="aTestFailed" message="one or more tests failed" />
 
-    <target name="clean-dirs">
-        <delete dir="${target.dir}" includeEmptyDirs="true" />
-        <delete dir="${test.home}/results" />
-    </target>
-    
-    <target name="clean" depends="clean-dirs">
-        <delete file="${jar.file.name}" />
-    </target>
+			<tstamp>
+				<format property="gendate" pattern="yyyy-MM-dd hh:mm aa"/>
+			</tstamp>
+			<echo>Build time: ${gendate}</echo>
+		</sequential>
+	</target>
+
+	<target name="clean-dirs">
+		<delete dir="${target.dir}" includeEmptyDirs="true" />
+		<delete dir="${test.home}/results" />
+	</target>
+
+	<target name="clean" depends="clean-dirs">
+		<delete file="${jar.file.name}" />
+	</target>
 
 	<target name="compile" depends="setup">
 		<javac debug="true" 
@@ -162,10 +160,10 @@
 		
 		<echo message="cramtools build xml, version ${version.num}" />
 		<echo message="Available targets: " />
-		<echo message="	clean" />
-		<echo message="	compile" />
-		<echo message="	test" />
-		<echo message="	runnable" />
+		<echo message="    clean" />
+		<echo message="    compile" />
+		<echo message="    test [-Dtest=test_classname]" />
+		<echo message="    runnable" />
 	</target>
 
 </project>
