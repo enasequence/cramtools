@@ -66,18 +66,16 @@ public class Cram2BamRecordFactory {
 		if (cramRecord.isSegmentUnmapped())
 			samRecord.setCigarString(SAMRecord.NO_ALIGNMENT_CIGAR);
 		else
-			samRecord.setCigar(getCigar2(cramRecord.readFeatures,
-					cramRecord.readLength));
+			samRecord.setCigar(getCigar2(cramRecord.readFeatures, cramRecord.readLength));
 
 		if (samRecord.getReadPairedFlag()) {
 			samRecord.setMateReferenceIndex(cramRecord.mateSequnceID);
-			samRecord
-					.setMateAlignmentStart(cramRecord.mateAlignmentStart > 0 ? cramRecord.mateAlignmentStart : SAMRecord.NO_ALIGNMENT_START) ;
+			samRecord.setMateAlignmentStart(cramRecord.mateAlignmentStart > 0 ? cramRecord.mateAlignmentStart
+					: SAMRecord.NO_ALIGNMENT_START);
 			samRecord.setMateNegativeStrandFlag(cramRecord.isMateNegativeStrand());
 			samRecord.setMateUnmappedFlag(cramRecord.isMateUmapped());
 		} else {
-			samRecord
-					.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+			samRecord.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
 			samRecord.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 		}
 
@@ -90,8 +88,7 @@ public class Cram2BamRecordFactory {
 				samRecord.setAttribute(tag.getKey(), tag.getValue());
 
 		if (cramRecord.readGroupID > -1) {
-			SAMReadGroupRecord readGroupRecord = header.getReadGroups().get(
-					cramRecord.readGroupID);
+			SAMReadGroupRecord readGroupRecord = header.getReadGroups().get(cramRecord.readGroupID);
 			samRecord.setAttribute("RG", readGroupRecord.getId());
 		}
 
@@ -108,10 +105,10 @@ public class Cram2BamRecordFactory {
 		sr.setNotPrimaryAlignmentFlag(cr.isSecondaryAlignment());
 		sr.setReadFailsVendorQualityCheckFlag(cr.isVendorFiltered());
 		sr.setDuplicateReadFlag(cr.isDuplicate());
+		sr.setSupplementaryAlignmentFlag(cr.isSupplementary());
 	}
 
-	private static final Cigar getCigar2(Collection<ReadFeature> features,
-			int readLength) {
+	private static final Cigar getCigar2(Collection<ReadFeature> features, int readLength) {
 		if (features == null || features.isEmpty()) {
 			CigarElement ce = new CigarElement(readLength, CigarOperator.M);
 			return new Cigar(Arrays.asList(ce));
@@ -151,7 +148,7 @@ public class Cram2BamRecordFactory {
 				rfLen = ((SoftClip) f).getSequence().length;
 				break;
 			case HardClip.operator:
-				co = CigarOperator.HARD_CLIP ;
+				co = CigarOperator.HARD_CLIP;
 				rfLen = ((HardClip) f).getLength();
 				break;
 			case InsertBase.operator:
@@ -167,7 +164,7 @@ public class Cram2BamRecordFactory {
 				rfLen = ((RefSkip) f).getLength();
 				break;
 			case Padding.operator:
-				co = CigarOperator.PADDING ;
+				co = CigarOperator.PADDING;
 				rfLen = ((Padding) f).getLength();
 				break;
 			case Substitution.operator:
@@ -199,13 +196,11 @@ public class Cram2BamRecordFactory {
 			if (lastOperator != CigarOperator.M) {
 				list.add(new CigarElement(lastOpLen, lastOperator));
 				if (readLength >= lastOpPos + lastOpLen) {
-					ce = new CigarElement(readLength - (lastOpLen + lastOpPos)
-							+ 1, CigarOperator.M);
+					ce = new CigarElement(readLength - (lastOpLen + lastOpPos) + 1, CigarOperator.M);
 					list.add(ce);
 				}
 			} else if (readLength > lastOpPos - 1) {
-				ce = new CigarElement(readLength - lastOpPos + 1,
-						CigarOperator.M);
+				ce = new CigarElement(readLength - lastOpPos + 1, CigarOperator.M);
 				list.add(ce);
 			}
 		}
