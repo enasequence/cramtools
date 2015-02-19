@@ -195,6 +195,9 @@ public class Cram2Bam {
 
 		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
 		while (true) {
+			if (params.maxContainers-- <= 0)
+				break;
+
 			time = System.nanoTime();
 			c = CramIO.readContainer(cramHeader, is);
 			if (c.isEOF())
@@ -565,6 +568,9 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--password", "-p" }, description = "Password to decrypt the file.")
 		public String password;
+
+		@Parameter(names = { "--max-containers" }, description = "Read only specified number of containers.", hidden = true)
+		long maxContainers = Long.MAX_VALUE;
 	}
 
 }

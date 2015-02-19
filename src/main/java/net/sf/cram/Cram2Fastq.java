@@ -367,7 +367,7 @@ public class Cram2Fastq {
 			if (r1 != null)
 				print(r1, 0);
 			r.close();
-			// fo.file.delete();
+			fo.file.delete();
 		}
 
 		private void print(SAMRecord r1, SAMRecord r2) throws IOException {

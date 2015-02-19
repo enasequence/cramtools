@@ -19,7 +19,7 @@ import net.sf.samtools.SAMSequenceRecord;
 public class MultiFastqOutputter extends AbstractFastqReader {
 	private static final Log log = Log.getInstance(MultiFastqOutputter.class);
 	private Map<FastqRead, FastqRead> readSet = new TreeMap<FastqRead, FastqRead>();
-	private int maxCacheSize = 100000;
+	private int maxCacheSize = Integer.MAX_VALUE;
 	private long generation = 0;
 	private OutputStream[] streams;
 
@@ -51,10 +51,6 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	public long getCounter() {
 		return counter;
 	}
-
-	// public void setCounter(long counter) {
-	// this.counter = counter;
-	// }
 
 	protected void write(FastqRead read, OutputStream stream) throws IOException {
 		if (prefix == null) {

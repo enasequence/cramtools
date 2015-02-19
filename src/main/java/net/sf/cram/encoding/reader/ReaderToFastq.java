@@ -50,11 +50,12 @@ public class ReaderToFastq extends AbstractFastqReader {
 		buf.put((byte) '\n');
 		buf.put((byte) '+');
 		buf.put((byte) '\n');
-		if (scores != null) {
-			for (int i = 0; i < readLength; i++)
-				scores[i] += 33;
+		if (scores != null)
 			buf.put(scores, 0, readLength);
-		}
+		else
+			for (int i = 0; i < readLength; i++)
+				buf.put((byte) 33);
+
 		buf.put((byte) '\n');
 	}
 

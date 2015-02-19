@@ -46,6 +46,8 @@ public abstract class AbstractFastqReader extends AbstractReader {
 
 	public int defaultQS = '?';
 
+	public int ignoreReadsWithFlags = CramRecord.SECONDARY_ALIGNMENT_FLAG | CramRecord.SUPPLEMENTARY_FLAG;
+
 	/**
 	 * For now this is to identify the right buffer to use.
 	 * 
@@ -147,6 +149,10 @@ public abstract class AbstractFastqReader extends AbstractReader {
 					rfBuf.restoreQualityScores(readLength, prevAlStart, scores);
 				}
 			}
+
+			if ((flags & ignoreReadsWithFlags) != 0)
+				return;
+
 			for (int i = 0; i < readLength; i++)
 				if (scores[i] == -1)
 					scores[i] = (byte) defaultQS;
@@ -169,6 +175,27 @@ public abstract class AbstractFastqReader extends AbstractReader {
 		}
 	}
 
+	/**
+	 * Write the read. The read here is basically a fastq read with an addition
+	 * of SAM bit flags. Specific implementations should take care of further
+	 * cashing/pairing/filtering and actual writing of reads.
+	 * <p>
+	 * The contract is
+	 * <ul>
+	 * <li>no supplementary reads will appear in this method.
+	 * <li>reads on negative strand will be reverse complimented to appear as if
+	 * on positive strand.
+	 * </ul>
+	 * 
+	 * @param name
+	 *            read name
+	 * @param flags
+	 *            SAM bit flags
+	 * @param bases
+	 *            read bases
+	 * @param scores
+	 *            fastq quality scores (phred+33)
+	 */
 	protected abstract void writeRead(byte[] name, int flags, byte[] bases, byte[] scores);
 
 	public abstract void finish();

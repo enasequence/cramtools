@@ -71,6 +71,9 @@ public class CramIO {
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
 			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
 
+	public static boolean quitOnMissingEOF = Boolean.parseBoolean(System.getProperty("debug.quit-on-missing-eof",
+			"true"));
+
 	public static String getFileName(String urlString) {
 		URL url = null;
 		try {
@@ -194,7 +197,8 @@ public class CramIO {
 	private static void eofNotFound(byte major, byte minor) {
 		if (major >= 2 && minor >= 1) {
 			log.error("Incomplete data: EOF marker not found.");
-			System.exit(1);
+			if (quitOnMissingEOF)
+				System.exit(1);
 		} else {
 			log.warn("EOF marker not found, possibly incomplete file/stream.");
 		}
