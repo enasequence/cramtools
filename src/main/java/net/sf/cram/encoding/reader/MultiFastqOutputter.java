@@ -19,8 +19,9 @@ import net.sf.samtools.SAMSequenceRecord;
 public class MultiFastqOutputter extends AbstractFastqReader {
 	private static final Log log = Log.getInstance(MultiFastqOutputter.class);
 	private Map<FastqRead, FastqRead> readSet = new TreeMap<FastqRead, FastqRead>();
-	private int maxCacheSize = Integer.parseInt(System.getProperty("fastq-dumper.cache-size",
-			Integer.toString(Integer.MAX_VALUE)));
+	private int maxCacheSize = Integer
+			.parseInt(System.getProperty("fastq-dumper.cache-size", Integer.toString(100000)));
+
 	private long generation = 0;
 	private OutputStream[] streams;
 
