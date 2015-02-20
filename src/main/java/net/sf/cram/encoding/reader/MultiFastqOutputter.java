@@ -89,11 +89,18 @@ public class MultiFastqOutputter extends AbstractFastqReader {
 	protected void kickedFromCache(FastqRead read) {
 		if (writer == null) {
 			log.info("Creating overflow BAM file.");
-			headerForOverflowWriter = new SAMFileHeader();
+			headerForOverflowWriter = header.clone();
 			headerForOverflowWriter.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
 			writer = new BAMFileWriter(cacheOverFlowStream, null);
-			writer.setHeader(headerForOverflowWriter);
+			{
+				/*
+				 * BAM writer requires sort order to be set first, then the
+				 * header. The sort order in the header is ignored.
+				 */
+				writer.setSortOrder(SAMFileHeader.SortOrder.queryname, false);
+				writer.setHeader(headerForOverflowWriter);
+			}
 		}
 		SAMRecord r = read.toSAMRecord(headerForOverflowWriter);
 		writer.addAlignment(r);

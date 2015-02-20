@@ -302,7 +302,9 @@ public class Cram2Fastq {
 			super(cramIS, referenceSource, nofStreams, fastqBaseName, gzip, maxRecords, reverse, defaultQS, brokenPipe);
 			this.defaultQS = defaultQS;
 			this.brokenPipe = brokenPipe;
-			fo.file = new File(fastqBaseName == null ? "overflow.bam" : fastqBaseName + ".overflow.bam");
+			fo.file = File.createTempFile(fastqBaseName == null ? "overflow.bam" : fastqBaseName + ".overflow.bam",
+					".tmp");
+			fo.file.deleteOnExit();
 			fo.outputStream = new BufferedOutputStream(new FileOutputStream(fo.file));
 		}
 
