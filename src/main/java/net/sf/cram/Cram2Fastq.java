@@ -355,6 +355,7 @@ public class Cram2Fastq {
 				if (r1.getReadName().equals(r2.getReadName())) {
 					print(r1, r2);
 					counter++;
+					r1 = null;
 					if (!iterator.hasNext())
 						break;
 					r1 = iterator.next();
