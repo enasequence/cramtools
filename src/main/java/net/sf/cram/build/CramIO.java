@@ -70,6 +70,8 @@ public class CramIO {
 	private static Log log = Log.getInstance(CramIO.class);
 	public static byte[] ZERO_B_EOF_MARKER = ByteBufferUtils
 			.bytesFromHex("0b 00 00 00 ff ff ff ff ff e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
+	public static byte[] ZERO_B_0F_EOF_MARKER = ByteBufferUtils
+			.bytesFromHex("0b 00 00 00 ff ff ff ff 0f e0 45 4f 46 00 00 00 00 01 00 00 01 00 06 06 01 00 01 00 01 00");
 
 	public static boolean quitOnMissingEOF = Boolean.parseBoolean(System.getProperty("debug.quit-on-missing-eof",
 			"true"));
@@ -91,7 +93,10 @@ public class CramIO {
 			url = new URL(source);
 		} catch (MalformedURLException e) {
 			File file = new File(source);
-			return new SeekableBufferedStream(new SeekableFileStream(file));
+			if (file.exists())
+				return new SeekableBufferedStream(new SeekableFileStream(file));
+			else
+				return null;
 		}
 
 		String protocol = url.getProtocol();
@@ -254,7 +259,7 @@ public class CramIO {
 		s.seek(s.length() - ZERO_B_EOF_MARKER.length);
 		ByteBufferUtils.readFully(tail, s);
 
-		return Arrays.equals(tail, ZERO_B_EOF_MARKER);
+		return Arrays.equals(tail, ZERO_B_EOF_MARKER) || Arrays.equals(tail, ZERO_B_0F_EOF_MARKER);
 	}
 
 	public static boolean hasZeroB_EOF_marker(File file) throws IOException {
@@ -270,7 +275,7 @@ public class CramIO {
 			raf.close();
 		}
 
-		return Arrays.equals(tail, ZERO_B_EOF_MARKER);
+		return Arrays.equals(tail, ZERO_B_EOF_MARKER) || Arrays.equals(tail, ZERO_B_0F_EOF_MARKER);
 	}
 
 	public static long writeCramHeader(CramHeader h, OutputStream os) throws IOException {

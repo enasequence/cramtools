@@ -394,15 +394,18 @@ public class Cram2Bam {
 			throws IOException, ReadNotFoundException, URISyntaxException {
 		long[] filePointers = null;
 
-		InputStream is = CramIO.openInputStreamFromURL(source + ".bai");
-		if (is == null)
-			return null;
+		File indexFile = new File(source + ".bai");
+		if (!indexFile.exists()) {
+			InputStream is = CramIO.openInputStreamFromURL(source + ".bai");
+			if (is == null)
+				return null;
 
-		File indexFile = File.createTempFile("", "");
-		indexFile.deleteOnExit();
-		FileOutputStream fos = new FileOutputStream(indexFile);
-		OutputStream os = new BufferedOutputStream(fos);
-		ByteBufferUtils.copyLarge(is, os);
+			indexFile = File.createTempFile("", "");
+			indexFile.deleteOnExit();
+			FileOutputStream fos = new FileOutputStream(indexFile);
+			OutputStream os = new BufferedOutputStream(fos);
+			ByteBufferUtils.copyLarge(is, os);
+		}
 
 		if (indexFile.exists())
 			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(indexFile,
