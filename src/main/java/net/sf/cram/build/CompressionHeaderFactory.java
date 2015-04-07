@@ -176,8 +176,10 @@ public class CompressionHeaderFactory {
 			for (CramRecord r : records) {
 				if (r.tags == null)
 					continue;
-				for (ReadTag tag : r.tags)
+				for (ReadTag tag : r.tags) {
 					calculator.add(tag.keyType3BytesAsInt);
+					System.out.println(tag.keyType3BytesAsInt);
+				}
 			}
 			calculator.calculate();
 
@@ -299,7 +301,7 @@ public class CompressionHeaderFactory {
 				h.externalIds.add(externalID);
 				h.externalCompressors.put(externalID,
 						ExternalCompressor.createRANS(ORDER.ONE));
-				h.tMap.put(externalID,
+				h.tMap.put(id,
 						ByteArrayStopEncoding.toParam((byte) 1, externalID));
 			}
 		}
