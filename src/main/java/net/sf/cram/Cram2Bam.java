@@ -339,14 +339,15 @@ public class Cram2Bam {
 
 					time = System.nanoTime();
 					if (s.getReadUnmappedFlag() && s.getAlignmentStart() == 0) {
-						s.setAlignmentStart(prevSR.getAlignmentStart());
-						s.setReferenceName(prevSR.getReferenceName());
+						if (prevSR == null) {
+							s.setAlignmentStart(slice.alignmentStart);
+							s.setReferenceIndex(slice.sequenceId);
+						} else {
+							s.setAlignmentStart(prevSR.getAlignmentStart());
+							s.setReferenceName(prevSR.getReferenceName());
+						}
 					}
-					if (prevSR != null
-							&& s.getAlignmentStart() < prevSR
-									.getAlignmentStart()) {
-						System.out.println("gotcha");
-					}
+
 					writer.addAlignment(s);
 					sWriteTime += System.nanoTime() - time;
 					writeTime += System.nanoTime() - time;
