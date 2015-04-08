@@ -304,6 +304,10 @@ public class Cram2Bam {
 				SAMRecord prevSR = null;
 				CramRecord prevCR;
 				for (CramRecord r : cramRecords) {
+					if ("H06JUADXX130110:1:2101:11706:99386".equals(r.readName)) {
+						System.out.println("asdfasdfasdf");
+					}
+
 					// check if the record ends before the query start:
 					if (location != null && r.sequenceId == location.sequenceId
 							&& r.getAlignmentEnd() < location.start)
@@ -340,10 +344,12 @@ public class Cram2Bam {
 					time = System.nanoTime();
 					if (s.getReadUnmappedFlag() && s.getAlignmentStart() == 0) {
 						if (prevSR == null) {
-							s.setAlignmentStart(slice.alignmentStart);
+							s.setAlignmentStart(slice.alignmentStart
+									+ r.alignmentDelta);
 							s.setReferenceIndex(slice.sequenceId);
 						} else {
-							s.setAlignmentStart(prevSR.getAlignmentStart());
+							s.setAlignmentStart(prevSR.getAlignmentStart()
+									+ r.alignmentDelta);
 							s.setReferenceName(prevSR.getReferenceName());
 						}
 					}
