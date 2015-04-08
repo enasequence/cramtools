@@ -178,7 +178,6 @@ public class CompressionHeaderFactory {
 					continue;
 				for (ReadTag tag : r.tags) {
 					calculator.add(tag.keyType3BytesAsInt);
-					System.out.println(tag.keyType3BytesAsInt);
 				}
 			}
 			calculator.calculate();
@@ -301,8 +300,9 @@ public class CompressionHeaderFactory {
 				h.externalIds.add(externalID);
 				h.externalCompressors.put(externalID,
 						ExternalCompressor.createRANS(ORDER.ONE));
-				h.tMap.put(id,
-						ByteArrayStopEncoding.toParam((byte) 1, externalID));
+				h.tMap.put(id, ByteArrayLenEncoding.toParam(
+						ExternalIntegerEncoding.toParam(externalID),
+						ExternalByteEncoding.toParam(externalID)));
 			}
 		}
 
