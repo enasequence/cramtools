@@ -422,7 +422,7 @@ public class Bam2Cram {
 
 			if (params.maxRecords-- < 1)
 				break;
-		} while (iterator.hasNext());
+		} while (samRecord != null && !samRecords.isEmpty());
 
 		iterator.close();
 		samFileReader.close();
