@@ -263,22 +263,24 @@ public class Cram2Bam {
 						break;
 					}
 
-				try {
-					if (slice.sequenceId < 0)
-						continue;
-					if (slice.embeddedRefBlock == null
-							&& !slice.validateRefMD5(ref)) {
-						log.error(String
-								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
-										slice.sequenceId, slice.alignmentStart,
-										slice.alignmentSpan, String.format(
-												"%032x", new BigInteger(1,
-														slice.refMD5))));
-						if (!params.resilient)
-							System.exit(1);
+				if (slice.sequenceId > -1) {
+					try {
+
+						if (slice.embeddedRefBlock == null
+								&& !slice.validateRefMD5(ref)) {
+							log.error(String
+									.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
+											slice.sequenceId,
+											slice.alignmentStart,
+											slice.alignmentSpan, String.format(
+													"%032x", new BigInteger(1,
+															slice.refMD5))));
+							if (!params.resilient)
+								System.exit(1);
+						}
+					} catch (NoSuchAlgorithmException e1) {
+						throw new RuntimeException(e1);
 					}
-				} catch (NoSuchAlgorithmException e1) {
-					throw new RuntimeException(e1);
 				}
 
 				long time1 = System.nanoTime();
@@ -302,12 +304,7 @@ public class Cram2Bam {
 
 				boolean enough = false;
 				SAMRecord prevSR = null;
-				CramRecord prevCR;
 				for (CramRecord r : cramRecords) {
-					if ("H06JUADXX130110:1:2101:11706:99386".equals(r.readName)) {
-						System.out.println("asdfasdfasdf");
-					}
-
 					// check if the record ends before the query start:
 					if (location != null && r.sequenceId == location.sequenceId
 							&& r.getAlignmentEnd() < location.start)
@@ -361,7 +358,6 @@ public class Cram2Bam {
 						break;
 
 					prevSR = s;
-					prevCR = r;
 				}
 
 				log.info(String
