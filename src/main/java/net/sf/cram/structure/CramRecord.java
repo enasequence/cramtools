@@ -36,6 +36,7 @@ public class CramRecord {
 	public static final int SECONDARY_ALIGNMENT_FLAG = 0x100;
 	public static final int VENDOR_FILTERED_FLAG = 0x200;
 	public static final int DUPLICATE_FLAG = 0x400;
+	public static final int SUPPLEMENTARY_FLAG = 0x800;
 
 	public static final int MATE_NEG_STRAND_FLAG = 0x1;
 	public static final int MATE_UNMAPPED_FLAG = 0x2;
@@ -43,6 +44,7 @@ public class CramRecord {
 	public static final int FORCE_PRESERVE_QS_FLAG = 0x1;
 	public static final int DETACHED_FLAG = 0x2;
 	public static final int HAS_MATE_DOWNSTREAM_FLAG = 0x4;
+	public static final int UNKNOWN_BASES = 0x8;
 
 	// sequential index of the record in a stream:
 	public int index = 0;
@@ -341,6 +343,24 @@ public class CramRecord {
 		compressionFlags = forcePreserveQualityScores ? compressionFlags
 				| FORCE_PRESERVE_QS_FLAG : compressionFlags
 				& ~FORCE_PRESERVE_QS_FLAG;
+	}
+
+	public boolean isUnknownBases() {
+		return (compressionFlags & UNKNOWN_BASES) != 0;
+	}
+
+	public void setUnknownBases(boolean unknownBases) {
+		compressionFlags = unknownBases ? compressionFlags | UNKNOWN_BASES
+				: compressionFlags & ~UNKNOWN_BASES;
+	}
+
+	public boolean isSupplementary() {
+		return (flags & SUPPLEMENTARY_FLAG) != 0;
+	}
+
+	public void setSupplementary(boolean supplementary) {
+		flags = supplementary ? flags | SUPPLEMENTARY_FLAG : flags
+				& ~SUPPLEMENTARY_FLAG;
 	}
 
 	public static class BAM_FLAGS {

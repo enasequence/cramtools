@@ -127,9 +127,11 @@ public class CramNormalizer {
 				refBases = referenceSource.getReferenceBases(
 						header.getSequence(r.sequenceId), true);
 
-			byte[] bases = restoreReadBases(r, refBases, refOffset_zeroBased,
-					substitutionMatrix);
-			r.readBases = bases;
+			if (r.isUnknownBases())
+				r.readBases = SAMRecord.NULL_SEQUENCE;
+			else
+				r.readBases = restoreReadBases(r, refBases,
+						refOffset_zeroBased, substitutionMatrix);
 		}
 
 		// restore quality scores:
@@ -145,6 +147,7 @@ public class CramNormalizer {
 	public static byte[] restoreQualityScores(byte defaultQualityScore,
 			CramRecord record) {
 		if (!record.isForcePreserveQualityScores()) {
+			boolean star = true;
 			byte[] scores = new byte[record.readLength];
 			Arrays.fill(scores, defaultQualityScore);
 			if (record.readFeatures != null)
@@ -156,6 +159,7 @@ public class CramNormalizer {
 
 						try {
 							scores[pos - 1] = q;
+							star = false;
 						} catch (ArrayIndexOutOfBoundsException e) {
 							System.err.println("PROBLEM CAUSED BY:");
 							System.err.println(record.toString());
@@ -168,6 +172,7 @@ public class CramNormalizer {
 
 						try {
 							scores[pos - 1] = q;
+							star = false;
 						} catch (ArrayIndexOutOfBoundsException e) {
 							System.err.println("PROBLEM CAUSED BY:");
 							System.err.println(record.toString());
@@ -178,15 +183,22 @@ public class CramNormalizer {
 					default:
 						break;
 					}
-
 				}
 
-			record.qualityScores = scores;
+			if (star)
+				record.qualityScores = SAMRecord.NULL_QUALS;
+			else
+				record.qualityScores = scores;
 		} else {
 			byte[] scores = record.qualityScores;
+			int missingScores = 0;
 			for (int i = 0; i < scores.length; i++)
-				if (scores[i] == -1)
+				if (scores[i] == -1) {
 					scores[i] = defaultQualityScore;
+					missingScores++;
+				}
+			if (missingScores == scores.length)
+				record.qualityScores = SAMRecord.NULL_QUALS;
 		}
 
 		return record.qualityScores;

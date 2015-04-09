@@ -81,7 +81,8 @@ public class Bam2Cram {
 	public static void updateTracks(List<SAMRecord> samRecords,
 			ReferenceTracks tracks) {
 		for (SAMRecord samRecord : samRecords) {
-			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
+			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START
+					&& samRecord.getReadBases().length > 0) {
 				int refPos = samRecord.getAlignmentStart();
 				int readPos = 0;
 				for (CigarElement ce : samRecord.getCigar().getCigarElements()) {
