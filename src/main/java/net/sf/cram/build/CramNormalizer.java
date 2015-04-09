@@ -274,9 +274,11 @@ public class CramNormalizer {
 				break;
 			}
 		}
-		for (; posInRead <= readLength; posInRead++)
-			bases[posInRead - 1] = ref[alignmentStart + posInSeq++
+		for (; posInRead <= readLength
+				&& alignmentStart + posInSeq - refOffset_zeroBased < ref.length; posInRead++, posInSeq++) {
+			bases[posInRead - 1] = ref[alignmentStart + posInSeq
 					- refOffset_zeroBased];
+		}
 
 		// ReadBase overwrites bases:
 		for (ReadFeature v : variations) {
