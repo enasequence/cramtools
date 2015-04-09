@@ -269,9 +269,10 @@ public class Bam2Cram {
 				params.maxSliceSize);
 		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		SAMRecordIterator iterator = samFileReader.iterator();
+		SAMRecord samRecord;
 		{
 			String seqName = null;
-			SAMRecord samRecord = iterator.next();
+			samRecord = iterator.next();
 			if (samRecord == null)
 				throw new RuntimeException("No records found.");
 			seqName = samRecord.getReferenceName();
@@ -351,14 +352,11 @@ public class Bam2Cram {
 			if (params.outputCramFile == null && System.out.checkError())
 				return;
 
-			SAMRecord samRecord = iterator.next();
-			if (samRecord == null)
-				// no more records
-				break;
-			if (samRecord.getReferenceIndex() != prevSeqId
+			samRecord = iterator.hasNext() ? iterator.next() : null;
+			if (samRecord == null || samRecord.getReferenceIndex() != prevSeqId
 					|| samRecords.size() >= params.maxContainerSize) {
-				long convertNanos = 0;
 				if (!samRecords.isEmpty()) {
+					long convertNanos = 0;
 					convertNanos = System.nanoTime();
 
 					List<CramRecord> records = convert(samRecords,
@@ -397,6 +395,8 @@ public class Bam2Cram {
 					}
 				}
 			}
+			if (samRecord == null)
+				break;
 
 			if (prevSeqId != samRecord.getReferenceIndex()) {
 				if (samRecord.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -423,37 +423,6 @@ public class Bam2Cram {
 			if (params.maxRecords-- < 1)
 				break;
 		} while (iterator.hasNext());
-
-		{ // copied for now, should be a subroutine:
-			if (!samRecords.isEmpty()) {
-				List<CramRecord> records = convert(samRecords, samFileHeader,
-						ref, tracks, preservation, params.captureAllTags,
-						params.captureTags, params.ignoreTags);
-				samRecords.clear();
-				Container container = cf.buildContainer(records);
-				for (Slice s : container.slices)
-					s.setRefMD5(ref);
-
-				records.clear();
-				CramIO.writeContainer(container, os);
-				log.info(String
-						.format("CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
-								container.buildHeaderTime / 1000000,
-								container.buildSlicesTime / 1000000,
-								container.writeTime / 1000000));
-
-				for (Slice s : container.slices) {
-					coreBytes += s.coreBlock.getCompressedContent().length;
-					for (Integer i : s.external.keySet()) {
-						if (!externalBytes.containsKey(i))
-							externalBytes.put(i, 0L);
-						long value = externalBytes.get(i)
-								+ s.external.get(i).getCompressedContent().length;
-						externalBytes.put(i, value);
-					}
-				}
-			}
-		}
 
 		iterator.close();
 		samFileReader.close();
