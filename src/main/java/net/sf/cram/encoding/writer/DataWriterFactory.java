@@ -29,7 +29,6 @@ import net.sf.cram.encoding.EncodingFactory;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.CompressionHeader;
-import net.sf.cram.structure.EncodingID;
 import net.sf.cram.structure.EncodingKey;
 import net.sf.cram.structure.EncodingParams;
 
@@ -41,16 +40,16 @@ public class DataWriterFactory {
 			IllegalAccessException {
 		Writer writer = new Writer();
 		writer.captureReadNames = h.readNamesIncluded;
-		writer.refId = refId ;
-		writer.substitutionMatrix = h.substitutionMatrix ;
-		writer.AP_delta = h.AP_seriesDelta ;
+		writer.refId = refId;
+		writer.substitutionMatrix = h.substitutionMatrix;
+		writer.AP_delta = h.AP_seriesDelta;
 
 		for (Field f : writer.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
-				
+
 				f.set(writer,
 						createWriter(type, h.eMap.get(key), bos, outputMap));
 			}
@@ -71,7 +70,7 @@ public class DataWriterFactory {
 				}
 			}
 		}
-		
+
 		return writer;
 	}
 

@@ -19,18 +19,11 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -38,7 +31,6 @@ import java.util.TreeSet;
 
 import net.sf.cram.build.CompressionHeaderFactory;
 import net.sf.cram.build.CompressionHeaderFactory.HuffmanParamsCalculator;
-import net.sf.cram.encoding.CanonicalHuffmanIntegerCodec;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.DefaultBitInputStream;
@@ -70,8 +62,7 @@ class Helper {
 				codes.size());
 		list.addAll(codes.values());
 		Collections.sort(list, bitCodeComparator);
-		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list
-				.size()]);
+		sortedCodes = list.toArray(new HuffmanBitCode[list.size()]);
 
 		sortedValues = Arrays.copyOf(values, values.length);
 		Arrays.sort(sortedValues);
@@ -143,7 +134,8 @@ class Helper {
 		}
 	}
 
-	final long write(final BitOutputStream bos, final int value) throws IOException {
+	final long write(final BitOutputStream bos, final int value)
+			throws IOException {
 		int index = Arrays.binarySearch(sortedValues, value);
 		HuffmanBitCode code = sortedByValue[index];
 		if (code.value != value)
