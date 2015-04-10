@@ -34,10 +34,10 @@ public class ContentDigests {
 		}
 	}
 
-	public static ContentDigests create(SAMBinaryTagAndValue binrayTags) {
+	public static ContentDigests create(SAMBinaryTagAndValue binaryTags) {
 		try {
 			List<Digester> digesters = new LinkedList<ContentDigests.Digester>();
-			SAMBinaryTagAndValue binaryTag = binrayTags;
+			SAMBinaryTagAndValue binaryTag = binaryTags;
 			while (binaryTag != null) {
 				String tagID = SAMTagUtil.getSingleton().makeStringTag(
 						binaryTag.tag);
