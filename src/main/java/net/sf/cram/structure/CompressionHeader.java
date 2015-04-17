@@ -169,8 +169,10 @@ public class CompressionHeader {
 			for (int i = 0; i < mapSize; i++) {
 				String key = new String(new byte[] { buf.get(), buf.get() });
 				EncodingKey eKey = EncodingKey.byFirstTwoChars(key);
-				if (eKey == null)
-					throw new RuntimeException("Unknown encoding key: " + key);
+				if (eKey == null) {
+					log.debug("Unknown encoding key: " + key);
+					continue;
+				}
 
 				EncodingID id = EncodingID.values()[buf.get()];
 				int paramLen = ByteBufferUtils.readUnsignedITF8(buf);
