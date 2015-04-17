@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,16 +35,11 @@ class BaiIndexer {
 	public SAMFileHeader samFileHeader;
 	public CRAMIndexer indexer;
 
-	public BaiIndexer(InputStream is, SAMFileHeader samFileHeader, File output) {
-		this.is = new CountingInputStream(is);
-		this.samFileHeader = samFileHeader;
-
-		indexer = new CRAMIndexer(output, samFileHeader);
-	}
+	private CramHeader cramHeader;
 
 	public BaiIndexer(InputStream is, File output) throws IOException {
 		this.is = new CountingInputStream(is);
-		CramHeader cramHeader = CramIO.readCramHeader(this.is);
+		cramHeader = CramIO.readCramHeader(this.is);
 		samFileHeader = cramHeader.samFileHeader;
 
 		indexer = new CRAMIndexer(output, samFileHeader);
@@ -53,8 +47,8 @@ class BaiIndexer {
 
 	private boolean nextContainer() throws IOException {
 		long offset = is.getCount();
-		Container c = CramIO.readContainer(is);
-		if (c == null)
+		Container c = CramIO.readContainer(cramHeader, is);
+		if (c == null || c.isEOF())
 			return false;
 		c.offset = offset;
 

@@ -19,6 +19,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -463,7 +464,7 @@ public class Cram2Bam {
 		if (is == null)
 			return null;
 
-		File indexFile = File.createTempFile("", "");
+		File indexFile = File.createTempFile("cram", ".bai");
 		indexFile.deleteOnExit();
 		FileOutputStream fos = new FileOutputStream(indexFile);
 		OutputStream os = new BufferedOutputStream(fos);
@@ -480,7 +481,12 @@ public class Cram2Bam {
 	private static List<CramIndex.Entry> getCraiEntries(String source,
 			CramHeader header, AlignmentSliceQuery location)
 			throws IOException, URISyntaxException {
-		InputStream is = CramIO.openInputStreamFromURL(source + ".crai");
+		InputStream is;
+		try {
+			is = CramIO.openInputStreamFromURL(source + ".crai");
+		} catch (FileNotFoundException e) {
+			return null;
+		}
 
 		if (is != null) {
 			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
