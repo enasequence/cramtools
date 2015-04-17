@@ -764,6 +764,7 @@ public class CompressionHeaderFactory {
 		private String name;
 		private HashMap<Integer, MutableInt> dictionary = new HashMap<Integer, MutableInt>();
 		private int dictionaryThreshold = 100;
+		private int minValue;
 
 		public IntegerEncodingCalculator(String name, int dictionaryThreshold,
 				int minValue) {
@@ -775,6 +776,7 @@ public class CompressionHeaderFactory {
 			// for (int i = 2; i < 20; i++)
 			// calcs.add(new EncodingLengthCalculator(
 			// new GolombRiceIntegerEncoding(i)));
+			this.minValue = minValue;
 
 			calcs.add(new EncodingLengthCalculator(new GammaIntegerEncoding(
 					1 - minValue)));
@@ -845,10 +847,11 @@ public class CompressionHeaderFactory {
 
 			{ // check if beta is better:
 
-				int betaLength = (int) Math.round(Math.log(max) / Math.log(2)
-						+ 0.5);
+				int betaLength = (int) Math.round(Math.log(max - minValue)
+						/ Math.log(2) + 0.5);
 				if (bits > betaLength * count) {
-					bestEncoding = new BetaIntegerEncoding(betaLength);
+					bestEncoding = new BetaIntegerEncoding(-minValue,
+							betaLength);
 					bits = betaLength * count;
 				}
 			}
