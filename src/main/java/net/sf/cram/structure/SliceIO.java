@@ -36,10 +36,10 @@ public class SliceIO {
 	public void readSliceHeadBlock(int major, Slice s, InputStream is)
 			throws IOException {
 		s.headerBlock = new Block(major, is, true, true);
-		parseSliceHeaderBlock(s);
+		parseSliceHeaderBlock(major, s);
 	}
 
-	public void parseSliceHeaderBlock(Slice s) throws IOException {
+	public void parseSliceHeaderBlock(int major, Slice s) throws IOException {
 		InputStream is = new ByteArrayInputStream(s.headerBlock.getRawContent());
 		// is = new DebuggingInputStream (is) ;
 
@@ -55,6 +55,8 @@ public class SliceIO {
 		s.refMD5 = new byte[16];
 		ByteBufferUtils.readFully(s.refMD5, is);
 
+		if (major < 3)
+			return;
 		byte[] bytes = ByteBufferUtils.readFully(is);
 		s.sliceTags = BinaryTagCodec.readTags(bytes, 0, bytes.length,
 				ValidationStringency.DEFAULT_STRINGENCY);
