@@ -23,6 +23,7 @@ import java.util.Map;
 
 import net.sf.cram.common.Utils;
 import net.sf.picard.util.Log;
+import net.sf.picard.util.Log.LogLevel;
 import net.sf.samtools.SAMBinaryTagAndUnsignedArrayValue;
 import net.sf.samtools.SAMBinaryTagAndValue;
 import net.sf.samtools.SAMException;
@@ -264,18 +265,24 @@ public class Slice {
 
 			refMD5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
 
-			StringBuffer sb = new StringBuffer();
-			int shoulder = 10;
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1,
-					alignmentStart + shoulder)));
-			sb.append("...");
-			sb.append(new String(Arrays.copyOfRange(ref, alignmentStart - 1
-					+ span - shoulder, alignmentStart + span)));
+			if (log.isEnabled(LogLevel.DEBUG)) {
+				StringBuffer sb = new StringBuffer();
+				int shoulder = 10;
+				if (ref.length <= shoulder * 2)
+					sb.append(new String(ref));
+				else {
+					sb.append(new String(Arrays.copyOfRange(ref,
+							alignmentStart - 1, alignmentStart + shoulder)));
+					sb.append("...");
+					sb.append(new String(Arrays.copyOfRange(ref, alignmentStart
+							- 1 + span - shoulder, alignmentStart + span)));
+				}
 
-			log.debug(String.format("Slice md5: %s for %d:%d-%d, %s",
-					String.format("%032x", new BigInteger(1, refMD5)),
-					sequenceId, alignmentStart, alignmentStart + span - 1,
-					sb.toString()));
+				log.debug(String.format("Slice md5: %s for %d:%d-%d, %s",
+						String.format("%032x", new BigInteger(1, refMD5)),
+						sequenceId, alignmentStart, alignmentStart + span - 1,
+						sb.toString()));
+			}
 		}
 	}
 
