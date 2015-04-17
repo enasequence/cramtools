@@ -127,8 +127,12 @@ public class Slice {
 
 	private static String getBrief(int start_1based, int span, byte[] bases,
 			int shoulderLength, StringBuffer sb) {
+		if (span >= bases.length)
+			return new String(bases);
+
 		if (sb == null)
 			sb = new StringBuffer();
+
 		int from_inc = start_1based - 1;
 
 		int to_exc = start_1based + span - 1;
@@ -266,6 +270,7 @@ public class Slice {
 			refMD5 = Utils.calculateMD5(ref, alignmentStart - 1, span);
 
 			if (log.isEnabled(LogLevel.DEBUG)) {
+				// should use getBrief() method instead, really:
 				StringBuffer sb = new StringBuffer();
 				int shoulder = 10;
 				if (ref.length <= shoulder * 2)
