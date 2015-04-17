@@ -66,7 +66,7 @@ public class CompressionHeaderFactory {
 	private static final int bqz = ReadTag.nameType3BytesToInt("OQ", 'Z');
 
 	public CompressionHeader build(List<CramRecord> records,
-			SubstitutionMatrix substitutionMatrix) {
+			SubstitutionMatrix substitutionMatrix, boolean sorted) {
 		CompressionHeader h = new CompressionHeader();
 		h.externalIds = new ArrayList<Integer>();
 		int exCounter = 0;
@@ -125,9 +125,19 @@ public class CompressionHeaderFactory {
 			getOptmialIntegerEncoding(h, EncodingKey.RL_ReadLength, 0, records);
 		}
 
-		{ // alignment offset:
+		if (sorted) { // alignment offset:
+			h.AP_seriesDelta = true;
 			getOptmialIntegerEncoding(h,
 					EncodingKey.AP_AlignmentPositionOffset, 0, records);
+		} else {
+			int aStartID = exCounter++;
+			h.AP_seriesDelta = false;
+			h.eMap.put(EncodingKey.AP_AlignmentPositionOffset,
+					ExternalIntegerEncoding.toParam(aStartID));
+			h.externalIds.add(aStartID);
+			h.externalCompressors.put(aStartID,
+					ExternalCompressor.createRANS(ORDER.ONE));
+			log.debug("Assigned external id to alignment starts: " + aStartID);
 		}
 
 		{ // read group

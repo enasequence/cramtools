@@ -36,6 +36,7 @@ import net.sf.cram.structure.CramRecord;
 import net.sf.cram.structure.Slice;
 import net.sf.cram.structure.SubstitutionMatrix;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileHeader.SortOrder;
 import net.sf.samtools.SAMRecord;
 
 public class ContainerFactory {
@@ -65,7 +66,8 @@ public class ContainerFactory {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
 		CompressionHeader h = new CompressionHeaderFactory().build(records,
-				substitutionMatrix);
+				substitutionMatrix,
+				samFileHeader.getSortOrder() == SortOrder.coordinate);
 		h.AP_seriesDelta = AP_delta;
 		long time2 = System.nanoTime();
 
