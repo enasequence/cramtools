@@ -20,7 +20,7 @@ public enum EncodingKey {
 	FC_FeatureCode, QS_QualityScore, DL_DeletionLength, BA_Base, TN_TagNameAndType, 
 	NF_RecordsToNextFragment, RL_ReadLength, RG_ReadGroup, MQ_MappingQualityScore, 
 	RN_ReadName, NP_NextFragmentAlignmentStart, TS_InsetSize, FN_NumberOfReadFeatures, 
-	BS_BaseSubstitutionCode, IN_Insertion, TC_TagCount, MF_MateBitFlags, 
+	BS_BaseSubstitutionCode, IN_Insertion, MF_MateBitFlags, 
 	NS_NextFragmentReferenceSequenceID, CF_CompressionBitFlags, TV_TestMark, TM_TestMark, 
 	TL_TagIdList, RI_RefId, RS_RefSkip, SC_SoftClip, HC_HardClip, PD_padding, BB_bases, QQ_scores;
 

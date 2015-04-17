@@ -161,16 +161,6 @@ public class CompressionHeaderFactory {
 							.toByteArray()));
 		}
 
-		{ // tag count
-			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
-			for (CramRecord r : records)
-				calculator.add(r.tags == null ? 0 : r.tags.length);
-			calculator.calculate();
-
-			h.eMap.put(EncodingKey.TC_TagCount, HuffmanIntegerEncoding.toParam(
-					calculator.values(), calculator.bitLens()));
-		}
-
 		{ // tag name and type
 			HuffmanParamsCalculator calculator = new HuffmanParamsCalculator();
 			for (CramRecord r : records) {
@@ -601,8 +591,6 @@ public class CompressionHeaderFactory {
 			return r.sequenceId;
 		case RL_ReadLength:
 			return r.readLength;
-		case TC_TagCount:
-			return r.tags == null ? 0 : r.tags.length;
 
 		default:
 			throw new RuntimeException("Unexpected encoding key: " + key.name());

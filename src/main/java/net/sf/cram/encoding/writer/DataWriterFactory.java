@@ -84,7 +84,6 @@ public class DataWriterFactory {
 					+ valueType.name() + ", encoding id=" + params.id.name());
 
 		encoding.fromByteArray(params.params);
-
 		return new DefaultDataWriter<T>(encoding.buildCodec(null, outputMap),
 				bos);
 	}

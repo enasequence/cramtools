@@ -50,9 +50,6 @@ public abstract class AbstractReader {
 	@DataSeries(key = EncodingKey.NF_RecordsToNextFragment, type = DataSeriesType.INT)
 	public DataReader<Integer> distanceC;
 
-	@DataSeries(key = EncodingKey.TC_TagCount, type = DataSeriesType.BYTE)
-	public DataReader<Byte> tagCountC;
-
 	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.INT)
 	public DataReader<Integer> tagNameAndTypeC;
 

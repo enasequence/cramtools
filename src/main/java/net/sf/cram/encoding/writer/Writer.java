@@ -64,9 +64,6 @@ public class Writer {
 	@DataSeries(key = EncodingKey.NF_RecordsToNextFragment, type = DataSeriesType.INT)
 	public DataWriter<Integer> distanceC;
 
-	@DataSeries(key = EncodingKey.TC_TagCount, type = DataSeriesType.BYTE)
-	public DataWriter<Byte> tagCountC;
-
 	@DataSeries(key = EncodingKey.TN_TagNameAndType, type = DataSeriesType.INT)
 	public DataWriter<Integer> tagNameAndTypeC;
 
