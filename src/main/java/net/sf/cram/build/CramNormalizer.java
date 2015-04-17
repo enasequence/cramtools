@@ -123,9 +123,14 @@ public class CramNormalizer {
 				continue;
 
 			byte[] refBases = ref;
-			if (ref == null && referenceSource != null)
-				refBases = referenceSource.getReferenceBases(
-						header.getSequence(r.sequenceId), true);
+			{
+				// ref could be supplied (aka forced) already or needs looking
+				// up:
+				// ref.length=0 is a special case of seqId=-2 (multiref)
+				if ((ref == null || ref.length == 0) && referenceSource != null)
+					refBases = referenceSource.getReferenceBases(
+							header.getSequence(r.sequenceId), true);
+			}
 
 			if (r.isUnknownBases())
 				r.readBases = SAMRecord.NULL_SEQUENCE;
@@ -251,9 +256,10 @@ public class CramNormalizer {
 		}
 		List<ReadFeature> variations = record.readFeatures;
 		for (ReadFeature v : variations) {
-			for (; posInRead < v.getPosition(); posInRead++)
-				bases[posInRead - 1] = ref[alignmentStart + posInSeq++
-						- refOffset_zeroBased];
+			for (; posInRead < v.getPosition(); posInRead++) {
+				int rp = alignmentStart + posInSeq++ - refOffset_zeroBased;
+				bases[posInRead - 1] = ref[rp];
+			}
 
 			switch (v.getOperator()) {
 			case Substitution.operator:
