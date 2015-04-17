@@ -174,8 +174,6 @@ public class Sam2CramRecordFactory {
 		landedTotalScores += cramRecord.readLength;
 
 		cramRecord.setUnknownBases(record.getReadBases().length == 0);
-		if (record.getBaseQualities().length == 0)
-			cramRecord.setForcePreserveQualityScores(true);
 
 		readTagList.clear();
 		if (captureAllTags) {
@@ -239,7 +237,16 @@ public class Sam2CramRecordFactory {
 		List<CigarElement> cigarElements = samRecord.getCigar()
 				.getCigarElements();
 
+		int cigarLen = 0;
+		for (CigarElement e : cigarElements)
+			if (e.getOperator().consumesReadBases())
+				cigarLen += e.getLength();
+
 		byte[] bases = samRecord.getReadBases();
+		if (bases.length == 0) {
+			bases = new byte[cigarLen];
+			Arrays.fill(bases, (byte) 'N');
+		}
 		byte[] qualityScore = samRecord.getBaseQualities();
 
 		for (CigarElement cigarElement : cigarElements) {
@@ -274,10 +281,10 @@ public class Sam2CramRecordFactory {
 			case M:
 			case X:
 			case EQ:
-				if (bases.length > 0)
-					addSubstitutionsAndMaskedBases(cramRecord, features,
-							zeroBasedPositionInRead, alignmentStartOffset,
-							cigarElementLength, bases, qualityScore);
+				// if (bases.length > 0)
+				addSubstitutionsAndMaskedBases(cramRecord, features,
+						zeroBasedPositionInRead, alignmentStartOffset,
+						cigarElementLength, bases, qualityScore);
 				break;
 			default:
 				throw new IllegalArgumentException(

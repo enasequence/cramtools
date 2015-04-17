@@ -151,7 +151,7 @@ public class Cram2BamRecordFactory {
 				rfLen = ((SoftClip) f).getSequence().length;
 				break;
 			case HardClip.operator:
-				co = CigarOperator.HARD_CLIP ;
+				co = CigarOperator.HARD_CLIP;
 				rfLen = ((HardClip) f).getLength();
 				break;
 			case InsertBase.operator:
@@ -167,7 +167,7 @@ public class Cram2BamRecordFactory {
 				rfLen = ((RefSkip) f).getLength();
 				break;
 			case Padding.operator:
-				co = CigarOperator.PADDING ;
+				co = CigarOperator.PADDING;
 				rfLen = ((Padding) f).getLength();
 				break;
 			case Substitution.operator:
@@ -203,9 +203,12 @@ public class Cram2BamRecordFactory {
 							+ 1, CigarOperator.M);
 					list.add(ce);
 				}
-			} else if (readLength > lastOpPos - 1) {
-				ce = new CigarElement(readLength - lastOpPos + 1,
-						CigarOperator.M);
+			} else if (readLength == 0 || readLength > lastOpPos - 1) {
+				if (readLength == 0)
+					ce = new CigarElement(lastOpLen, CigarOperator.M);
+				else
+					ce = new CigarElement(readLength - lastOpPos + 1,
+							CigarOperator.M);
 				list.add(ce);
 			}
 		}
