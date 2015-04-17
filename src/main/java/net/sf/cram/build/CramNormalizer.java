@@ -264,8 +264,10 @@ public class CramNormalizer {
 			switch (v.getOperator()) {
 			case Substitution.operator:
 				Substitution sv = (Substitution) v;
-				byte refBase = Utils.normalizeBase(ref[alignmentStart
-						+ posInSeq - refOffset_zeroBased]);
+				byte refBase = getByteOrDefault(ref, alignmentStart + posInSeq
+						- refOffset_zeroBased, (byte) 'N');
+				refBase = Utils.normalizeBase(refBase);
+
 				byte base = substitutionMatrix.base(refBase, sv.getCode());
 				sv.setBase(base);
 				sv.setRefernceBase(refBase);
@@ -315,5 +317,13 @@ public class CramNormalizer {
 		}
 
 		return bases;
+	}
+
+	private static final byte getByteOrDefault(byte[] array, int pos,
+			byte outOfBoundsValue) {
+		if (pos >= array.length)
+			return outOfBoundsValue;
+		else
+			return array[pos];
 	}
 }
