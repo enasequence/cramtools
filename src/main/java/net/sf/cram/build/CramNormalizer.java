@@ -258,7 +258,7 @@ public class CramNormalizer {
 		for (ReadFeature v : variations) {
 			for (; posInRead < v.getPosition(); posInRead++) {
 				int rp = alignmentStart + posInSeq++ - refOffset_zeroBased;
-				bases[posInRead - 1] = ref[rp];
+				bases[posInRead - 1] = getByteOrDefault(ref, rp, (byte) 'N');
 			}
 
 			switch (v.getOperator()) {
