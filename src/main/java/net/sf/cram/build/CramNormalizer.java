@@ -26,6 +26,7 @@ import net.sf.cram.encoding.read_features.InsertBase;
 import net.sf.cram.encoding.read_features.Insertion;
 import net.sf.cram.encoding.read_features.ReadBase;
 import net.sf.cram.encoding.read_features.ReadFeature;
+import net.sf.cram.encoding.read_features.RefSkip;
 import net.sf.cram.encoding.read_features.SoftClip;
 import net.sf.cram.encoding.read_features.Substitution;
 import net.sf.cram.ref.ReferenceSource;
@@ -291,6 +292,9 @@ public class CramNormalizer {
 			case InsertBase.operator:
 				InsertBase ib = (InsertBase) v;
 				bases[posInRead++ - 1] = ib.getBase();
+				break;
+			case RefSkip.operator:
+				posInSeq += ((RefSkip) v).getLength();
 				break;
 			}
 		}
