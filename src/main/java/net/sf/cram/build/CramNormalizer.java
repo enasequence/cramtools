@@ -86,23 +86,14 @@ public class CramNormalizer {
 							+ r.recordsToNextFragment - startCounter);
 					r.next = downMate;
 					downMate.previous = r;
-
-					r.mateAlignmentStart = downMate.alignmentStart;
-					r.setMateUmapped(downMate.isSegmentUnmapped());
-					r.setMateNegativeStrand(downMate.isNegativeStrand());
-					r.mateSequnceID = downMate.sequenceId;
-					if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-						r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
-
-					downMate.mateAlignmentStart = r.alignmentStart;
-					downMate.setMateUmapped(r.isSegmentUnmapped());
-					downMate.setMateNegativeStrand(r.isNegativeStrand());
-					downMate.mateSequnceID = r.sequenceId;
-					if (downMate.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-						downMate.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
-
-					Utils.computeInsertSize(r, downMate);
 				}
+			}
+			for (CramRecord r : records) {
+				if (r.previous != null)
+					continue;
+				if (r.next == null)
+					continue;
+				restoreMateInfo(r);
 			}
 		}
 
@@ -142,6 +133,38 @@ public class CramNormalizer {
 
 		// restore quality scores:
 		restoreQualityScores(defaultQualityScore, records);
+	}
+
+	private static void restoreMateInfo(CramRecord r) {
+		if (r.next == null) {
+
+			return;
+		}
+		CramRecord cur;
+		cur = r;
+		while (cur.next != null) {
+			setNextMate(cur, cur.next);
+			cur = cur.next;
+		}
+
+		// cur points to the last segment now:
+		CramRecord last = cur;
+		setNextMate(last, r);
+		// r.setFirstSegment(true);
+		// last.setLastSegment(true);
+
+		final int templateLength = Utils.computeInsertSize(r, last);
+		r.templateSize = templateLength;
+		last.templateSize = -templateLength;
+	}
+
+	private static void setNextMate(CramRecord r, CramRecord next) {
+		r.mateAlignmentStart = next.alignmentStart;
+		r.setMateUmapped(next.isSegmentUnmapped());
+		r.setMateNegativeStrand(next.isNegativeStrand());
+		r.mateSequnceID = next.sequenceId;
+		if (r.mateSequnceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+			r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 	}
 
 	public static void restoreQualityScores(byte defaultQualityScore,

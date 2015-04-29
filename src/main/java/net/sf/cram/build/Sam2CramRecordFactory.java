@@ -160,8 +160,6 @@ public class Sam2CramRecordFactory {
 				cramRecord.setLastSegment(false);
 			else if (record.getSecondOfPairFlag())
 				cramRecord.setLastSegment(true);
-			else
-				cramRecord.setLastSegment(true);
 		}
 
 		if (!cramRecord.isSegmentUnmapped()) {

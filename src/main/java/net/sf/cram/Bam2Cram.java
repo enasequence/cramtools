@@ -161,51 +161,122 @@ public class Bam2Cram {
 
 		createNanos = System.nanoTime() - createNanos;
 
-		// mating:
-		long mateNanos = System.nanoTime();
-		Map<String, CramRecord> mateMap = new TreeMap<String, CramRecord>();
-		for (CramRecord r : cramRecords) {
-			if (!r.isMultiFragment()) {
-				r.setDetached(true);
+		{
+			long mateNanos = System.nanoTime();
+			if (samFileHeader.getSortOrder() == SAMFileHeader.SortOrder.coordinate) {
+				// mating:
+				Map<String, CramRecord> primaryMateMap = new TreeMap<String, CramRecord>();
+				Map<String, CramRecord> secondaryMateMap = new TreeMap<String, CramRecord>();
+				for (CramRecord r : cramRecords) {
+					if (!r.isMultiFragment()) {
+						r.setDetached(true);
 
-				r.setHasMateDownStream(false);
-				r.recordsToNextFragment = -1;
-				r.next = null;
-				r.previous = null;
-			} else {
-				String name = r.readName;
-				CramRecord mate = mateMap.get(name);
-				if (mate == null) {
-					mateMap.put(name, r);
-				} else {
-					mate.recordsToNextFragment = r.index - mate.index - 1;
-					mate.next = r;
-					r.previous = mate;
-					r.previous.setHasMateDownStream(true);
+						r.setHasMateDownStream(false);
+						r.recordsToNextFragment = -1;
+						r.next = null;
+						r.previous = null;
+					} else {
+						String name = r.readName;
+						Map<String, CramRecord> mateMap = r
+								.isSecondaryAlignment() ? secondaryMateMap
+								: primaryMateMap;
+						CramRecord mate = mateMap.get(name);
+						if (mate == null) {
+							mateMap.put(name, r);
+						} else {
+							CramRecord prev = mate;
+							while (prev.next != null)
+								prev = prev.next;
+							prev.recordsToNextFragment = r.index - prev.index
+									- 1;
+							prev.next = r;
+							r.previous = prev;
+							r.previous.setHasMateDownStream(true);
+							r.setHasMateDownStream(false);
+							r.setDetached(false);
+							r.previous.setDetached(false);
+							prev.setLastSegment(false);
+						}
+					}
+				}
+
+				// mark unpredictable reads as detached:
+				for (CramRecord r : cramRecords) {
+					if (r.next == null || r.previous != null)
+						continue;
+					CramRecord last = r;
+					while (last.next != null)
+						last = last.next;
+
+					if (r.isFirstSegment() && last.isLastSegment()) {
+
+						final int templateLength = Utils.computeInsertSize(r,
+								last);
+
+						if (r.templateSize == templateLength) {
+							last = r.next;
+							while (last.next != null) {
+								if (last.templateSize != -templateLength)
+									break;
+
+								last = last.next;
+							}
+							if (last.templateSize != -templateLength)
+								detach(r);
+						}
+					} else
+						detach(r);
+				}
+
+				for (CramRecord r : primaryMateMap.values()) {
+					if (r.next != null)
+						continue;
+					r.setDetached(true);
+
 					r.setHasMateDownStream(false);
-					r.setDetached(false);
-					r.previous.setDetached(false);
+					r.recordsToNextFragment = -1;
+					r.next = null;
+					r.previous = null;
+				}
 
-					mateMap.remove(name);
+				for (CramRecord r : secondaryMateMap.values()) {
+					if (r.next != null)
+						continue;
+					r.setDetached(true);
+
+					r.setHasMateDownStream(false);
+					r.recordsToNextFragment = -1;
+					r.next = null;
+					r.previous = null;
+				}
+			} else {
+				for (CramRecord r : cramRecords) {
+					r.setDetached(true);
 				}
 			}
+			mateNanos = System.nanoTime() - mateNanos;
+			log.info(String.format(
+					"create: tracks %dms, records %dms, mating %dms.",
+					tracksNanos / 1000000, createNanos / 1000000,
+					mateNanos / 1000000));
 		}
 
-		for (CramRecord r : mateMap.values()) {
+		return cramRecords;
+	}
+
+	/**
+	 * Traverse the graph and mark all segments as detached.
+	 * 
+	 * @param r
+	 *            the starting point of the graph
+	 */
+	private static void detach(CramRecord r) {
+		do {
 			r.setDetached(true);
 
 			r.setHasMateDownStream(false);
 			r.recordsToNextFragment = -1;
-			r.next = null;
-			r.previous = null;
-		}
-		mateNanos = System.nanoTime() - mateNanos;
-		log.info(String.format(
-				"create: tracks %dms, records %dms, mating %dms.",
-				tracksNanos / 1000000, createNanos / 1000000,
-				mateNanos / 1000000));
-
-		return cramRecords;
+		} while ((r = r.next) != null);
 	}
 
 	private static void printUsage(JCommander jc) {
