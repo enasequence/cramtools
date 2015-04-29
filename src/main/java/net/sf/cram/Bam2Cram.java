@@ -270,12 +270,10 @@ public class Bam2Cram {
 				params.maxSliceSize);
 		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		SAMRecordIterator iterator = samFileReader.iterator();
-		SAMRecord samRecord;
-		{
+		SAMRecord samRecord = null;
+		if (iterator.hasNext()) {
 			String seqName = null;
 			samRecord = iterator.next();
-			if (samRecord == null)
-				throw new RuntimeException("No records found.");
 			seqName = samRecord.getReferenceName();
 			prevSeqId = samRecord.getReferenceIndex();
 			samRecords.add(samRecord);
@@ -341,6 +339,10 @@ public class Bam2Cram {
 				Utils.getMinorVersion(), params.bamFile == null ? "STDIN"
 						: params.bamFile.getName(), samFileHeader);
 		long offset = CramIO.writeCramHeader(h, os);
+		if (samRecord == null) {
+			os.close();
+			return;
+		}
 
 		long bases = 0;
 		long coreBytes = 0;
