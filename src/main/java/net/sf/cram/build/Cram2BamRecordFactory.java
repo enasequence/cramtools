@@ -72,8 +72,10 @@ public class Cram2BamRecordFactory {
 		if (samRecord.getReadPairedFlag()) {
 			samRecord.setMateReferenceIndex(cramRecord.mateSequnceID);
 			samRecord
-					.setMateAlignmentStart(cramRecord.mateAlignmentStart > 0 ? cramRecord.mateAlignmentStart : SAMRecord.NO_ALIGNMENT_START) ;
-			samRecord.setMateNegativeStrandFlag(cramRecord.isMateNegativeStrand());
+					.setMateAlignmentStart(cramRecord.mateAlignmentStart > 0 ? cramRecord.mateAlignmentStart
+							: SAMRecord.NO_ALIGNMENT_START);
+			samRecord.setMateNegativeStrandFlag(cramRecord
+					.isMateNegativeStrand());
 			samRecord.setMateUnmappedFlag(cramRecord.isMateUmapped());
 		} else {
 			samRecord
@@ -108,6 +110,7 @@ public class Cram2BamRecordFactory {
 		sr.setNotPrimaryAlignmentFlag(cr.isSecondaryAlignment());
 		sr.setReadFailsVendorQualityCheckFlag(cr.isVendorFiltered());
 		sr.setDuplicateReadFlag(cr.isDuplicate());
+		sr.setSupplementaryAlignmentFlag(cr.isSupplementary());
 	}
 
 	private static final Cigar getCigar2(Collection<ReadFeature> features,

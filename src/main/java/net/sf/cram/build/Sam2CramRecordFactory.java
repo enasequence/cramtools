@@ -143,6 +143,7 @@ public class Sam2CramRecordFactory {
 		cramRecord.readLength = record.getReadLength();
 		cramRecord.mappingQuality = record.getMappingQuality();
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
+		cramRecord.setSupplementary(record.getSupplementaryAlignmentFlag());
 
 		cramRecord.templateSize = record.getInferredInsertSize();
 
