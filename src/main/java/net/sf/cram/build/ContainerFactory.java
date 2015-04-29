@@ -177,7 +177,11 @@ public class ContainerFactory {
 					}
 
 					minAlStart = Math.min(r.alignmentStart, minAlStart);
-					maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
+					if (r.isUnknownBases())
+						maxAlEnd = Math.max(r.alignmentStart
+								+ r.cigarReadLength - 1, maxAlEnd);
+					else
+						maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
 				}
 			}
 

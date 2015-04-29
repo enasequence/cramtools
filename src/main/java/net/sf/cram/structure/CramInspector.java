@@ -126,7 +126,8 @@ public class CramInspector extends JFrame {
 					final CramInspector inspector = new CramInspector(
 							"test",
 							new FileInputStream(
-									"H:\\dev\\Data\\CRAM_TEST_DATA\\NA06984.chrom20.ILLUMINA.bwa.CEU.low_coverage.20120522.bam.cram3"));
+									"c:/Users/vadim/IdeaProjects/htsjdk/testdata/htsjdk/samtools/BAMFileIndexTest/index_test.cram"));
+					// "H:\\dev\\Data\\CRAM_TEST_DATA\\NA06984.chrom20.ILLUMINA.bwa.CEU.low_coverage.20120522.bam.cram3"));
 					inspector.setVisible(true);
 				} catch (FileNotFoundException e) {
 					throw new RuntimeException(e);

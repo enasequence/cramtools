@@ -141,6 +141,7 @@ public class Sam2CramRecordFactory {
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 
 		cramRecord.readLength = record.getReadLength();
+		cramRecord.cigarReadLength = record.getCigar().getReadLength();
 		cramRecord.mappingQuality = record.getMappingQuality();
 		cramRecord.setDuplicate(record.getDuplicateReadFlag());
 		cramRecord.setSupplementary(record.getSupplementaryAlignmentFlag());

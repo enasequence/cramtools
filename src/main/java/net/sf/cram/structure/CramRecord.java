@@ -87,6 +87,7 @@ public class CramRecord {
 	public ReadTag[] tags;
 	public byte[] tagIds;
 	public MutableInt tagIdsIndex;
+	public int cigarReadLength;
 
 	public byte getMateFlags() {
 		return (byte) (0xFF & mateFlags);

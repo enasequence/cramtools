@@ -213,7 +213,6 @@ public class Cram2Bam {
 			c = CramIO.readContainer(cramHeader, is);
 			if (c == null || c.isEOF())
 				break;
-
 			readTime += System.nanoTime() - time;
 
 			// for random access check if the sequence is the one we are looking
@@ -333,7 +332,8 @@ public class Cram2Bam {
 						continue;
 					}
 
-					if (ref != null)
+					if (ref != null
+							&& s.getReadBases() != SAMRecord.NULL_SEQUENCE)
 						Utils.calculateMdAndNmTags(s, ref,
 								params.calculateMdTag, params.calculateNmTag);
 					c2sTime += System.nanoTime() - time;
