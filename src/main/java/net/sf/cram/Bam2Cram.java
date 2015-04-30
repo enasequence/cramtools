@@ -195,7 +195,6 @@ public class Bam2Cram {
 							r.setHasMateDownStream(false);
 							r.setDetached(false);
 							r.previous.setDetached(false);
-							prev.setLastSegment(false);
 						}
 					}
 				}
