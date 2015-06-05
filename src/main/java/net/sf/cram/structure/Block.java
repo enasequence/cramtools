@@ -81,6 +81,10 @@ public class Block {
 		}
 	}
 
+	public int getCompressedContentSize() {
+		return compressedContentSize;
+	}
+
 	@Override
 	public String toString() {
 		String raw = rawContent == null ? "NULL" : Arrays.toString(Arrays
