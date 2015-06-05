@@ -253,7 +253,7 @@ public class CramNormalizer {
 		return len;
 	}
 
-	private static final byte[] restoreReadBases(CramRecord record, byte[] ref,
+	public static final byte[] restoreReadBases(CramRecord record, byte[] ref,
 			int refOffset_zeroBased, SubstitutionMatrix substitutionMatrix) {
 		int readLength = record.readLength;
 		byte[] bases = new byte[readLength];
