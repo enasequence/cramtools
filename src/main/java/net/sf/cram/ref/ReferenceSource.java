@@ -251,7 +251,6 @@ public class ReferenceSource {
 					return null;
 
 				byte[] data = ByteBufferUtils.readFully(is);
-				is.close();
 
 				if (confirmMD5(md5, data)) {
 					// sanitize, Internet is a wild place:
@@ -268,6 +267,7 @@ public class ReferenceSource {
 			File file = new File(path);
 			if (file.exists()) {
 				byte[] data = ByteBufferUtils.readFully(new FileInputStream(file));
+
 				if (confirmMD5(md5, data))
 					return data;
 				else
