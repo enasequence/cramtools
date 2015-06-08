@@ -684,12 +684,26 @@ public class ByteBufferUtils {
 		return count;
 	}
 
+	/**
+	 * Read the {@link InputStream} through and return the bytes read. The
+	 * stream will be closed upon successful reading.
+	 * 
+	 * @param input
+	 *            stream to read
+	 * @return content of the stream
+	 * @throws IOException
+	 *             if the stream cannot be read
+	 */
 	public static byte[] readFully(InputStream input) throws IOException {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		long count = copyLarge(input, output);
 		if (count > Integer.MAX_VALUE)
 			throw new RuntimeException(
 					"Failed to copy data because the size is over 2g limit. ");
+		try {
+			input.close();
+		} catch (IOException e) {
+		}
 		return output.toByteArray();
 	}
 

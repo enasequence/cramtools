@@ -172,7 +172,6 @@ public class ReferenceSource {
 			log.info("Downloading reference sequence: " + url);
 			byte[] data = ByteBufferUtils.readFully(is);
 			log.info("Downloaded " + data.length + " bytes for md5 " + md5);
-			is.close();
 
 			try {
 				String downloadedMD5 = Utils.calculateMD5String(data);
