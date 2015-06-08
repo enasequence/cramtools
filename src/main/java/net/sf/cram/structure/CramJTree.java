@@ -44,115 +44,127 @@ public class CramJTree extends JTree {
 
 		root.add(new DefaultMutableTreeNode(cramHeader));
 
-		for (int i = 0; i < 10; i++) {
+		while (true) {
 			final Container container = CramIO.readContainer(cramHeader, is);
-			final DefaultMutableTreeNode containerNode = new DefaultMutableTreeNode(
-					container);
-			root.add(containerNode);
-			if (container.isEOF())
+
+			if (container.isEOF()) {
+				root.add(createContainerNode(container));
 				break;
+			}
 
-			containerNode.add(new DefaultMutableTreeNode(container.h));
-
-			if (container.slices != null) {
-				for (Slice slice : container.slices) {
-					DefaultMutableTreeNode sliceNode = new DefaultMutableTreeNode(
-							slice);
-					sliceNode.add(new DefaultMutableTreeNode(slice.coreBlock));
-					sliceNode
-							.add(new DefaultMutableTreeNode(slice.headerBlock));
-					if (slice.embeddedRefBlock != null)
-						sliceNode.add(new DefaultMutableTreeNode(
-								slice.embeddedRefBlock));
-
-					for (Block block : slice.external.values())
-						sliceNode.add(new DefaultMutableTreeNode(block));
-
-					DefaultMutableTreeNode byEncodingNode = new DefaultMutableTreeNode(
-							"Data series");
-
-					{
-						final Map<EncodingKey, Encoding> nonTagEncodings = createNonTagEncodings(
-								container, slice);
-
-						for (Map.Entry<EncodingKey, Encoding> entry : nonTagEncodings
-								.entrySet()) {
-							DefaultMutableTreeNode encodingKeyNode = new DefaultMutableTreeNode(
-									entry.getKey());
-							DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
-									entry.getValue());
-							encodingKeyNode.add(encodingNode);
-
-							Encoding e = entry.getValue();
-							if (e.id() == EncodingID.EXTERNAL) {
-								int contentID = -1;
-								if (e instanceof ExternalByteEncoding)
-									contentID = ((ExternalByteEncoding) e).contentId;
-								if (e instanceof ExternalByteArrayEncoding)
-									contentID = ((ExternalByteArrayEncoding) e).contentId;
-								if (e instanceof ExternalIntegerEncoding)
-									contentID = ((ExternalIntegerEncoding) e).contentId;
-								if (e instanceof ExternalLongEncoding)
-									contentID = ((ExternalLongEncoding) e).contentId;
-								if (contentID >= 0) {
-									DefaultMutableTreeNode blockNode = new DefaultMutableTreeNode(
-											slice.external.get(contentID));
-									encodingKeyNode.removeAllChildren();
-									encodingKeyNode.add(blockNode);
-								}
-							}
-
-							byEncodingNode.add(encodingKeyNode);
-						}
-					}
-
-					DefaultMutableTreeNode byTagNode = new DefaultMutableTreeNode(
-							"Tags");
-					{
-
-						final Map<Integer, Encoding> tagEncodings = createTagEncodings(
-								container, slice);
-						for (Map.Entry<Integer, Encoding> entry : tagEncodings
-								.entrySet()) {
-							String tagName = ReadTag.intToNameType4Bytes(entry
-									.getKey());
-							DefaultMutableTreeNode tagNode = new DefaultMutableTreeNode(
-									tagName);
-							DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
-									entry.getValue());
-							tagNode.add(encodingNode);
-							Encoding e = entry.getValue();
-							if (e.id() == EncodingID.EXTERNAL) {
-								int contentID = -1;
-								if (e instanceof ExternalByteEncoding)
-									contentID = ((ExternalByteEncoding) e).contentId;
-								if (e instanceof ExternalByteArrayEncoding)
-									contentID = ((ExternalByteArrayEncoding) e).contentId;
-								if (e instanceof ExternalIntegerEncoding)
-									contentID = ((ExternalIntegerEncoding) e).contentId;
-								if (e instanceof ExternalLongEncoding)
-									contentID = ((ExternalLongEncoding) e).contentId;
-								if (contentID >= 0) {
-									DefaultMutableTreeNode blockNode = new DefaultMutableTreeNode(
-											slice.external.get(contentID));
-									encodingNode.add(blockNode);
-								}
-							}
-
-							byTagNode.add(tagNode);
-						}
-					}
-
-					containerNode.add(byEncodingNode);
-					containerNode.add(byTagNode);
-					containerNode.add(sliceNode);
-				}
+			boolean unmapped = container.sequenceId >= 0;
+			if (root.getChildCount() < 5)
+				root.add(createContainerNode(container));
+			else {
+				if (unmapped && root.getChildCount() < 10)
+					root.add(createContainerNode(container));
 			}
 
 		}
 
 		DefaultTreeModel model = new DefaultTreeModel(root);
 		setModel(model);
+	}
+
+	private DefaultMutableTreeNode createContainerNode(final Container container) {
+		final DefaultMutableTreeNode containerNode = new DefaultMutableTreeNode(
+				container);
+		containerNode.add(new DefaultMutableTreeNode(container.h));
+
+		if (container.slices != null) {
+			for (Slice slice : container.slices) {
+				DefaultMutableTreeNode sliceNode = new DefaultMutableTreeNode(
+						slice);
+				sliceNode.add(new DefaultMutableTreeNode(slice.coreBlock));
+				sliceNode.add(new DefaultMutableTreeNode(slice.headerBlock));
+				if (slice.embeddedRefBlock != null)
+					sliceNode.add(new DefaultMutableTreeNode(
+							slice.embeddedRefBlock));
+
+				for (Block block : slice.external.values())
+					sliceNode.add(new DefaultMutableTreeNode(block));
+
+				DefaultMutableTreeNode byEncodingNode = new DefaultMutableTreeNode(
+						"Data series");
+
+				{
+					final Map<EncodingKey, Encoding> nonTagEncodings = createNonTagEncodings(
+							container, slice);
+
+					for (Map.Entry<EncodingKey, Encoding> entry : nonTagEncodings
+							.entrySet()) {
+						DefaultMutableTreeNode encodingKeyNode = new DefaultMutableTreeNode(
+								entry.getKey());
+						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
+								entry.getValue());
+						encodingKeyNode.add(encodingNode);
+
+						Encoding e = entry.getValue();
+						if (e.id() == EncodingID.EXTERNAL) {
+							int contentID = -1;
+							if (e instanceof ExternalByteEncoding)
+								contentID = ((ExternalByteEncoding) e).contentId;
+							if (e instanceof ExternalByteArrayEncoding)
+								contentID = ((ExternalByteArrayEncoding) e).contentId;
+							if (e instanceof ExternalIntegerEncoding)
+								contentID = ((ExternalIntegerEncoding) e).contentId;
+							if (e instanceof ExternalLongEncoding)
+								contentID = ((ExternalLongEncoding) e).contentId;
+							if (contentID >= 0) {
+								DefaultMutableTreeNode blockNode = new DefaultMutableTreeNode(
+										slice.external.get(contentID));
+								encodingKeyNode.removeAllChildren();
+								encodingKeyNode.add(blockNode);
+							}
+						}
+
+						byEncodingNode.add(encodingKeyNode);
+					}
+				}
+
+				DefaultMutableTreeNode byTagNode = new DefaultMutableTreeNode(
+						"Tags");
+				{
+
+					final Map<Integer, Encoding> tagEncodings = createTagEncodings(
+							container, slice);
+					for (Map.Entry<Integer, Encoding> entry : tagEncodings
+							.entrySet()) {
+						String tagName = ReadTag.intToNameType4Bytes(entry
+								.getKey());
+						DefaultMutableTreeNode tagNode = new DefaultMutableTreeNode(
+								tagName);
+						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
+								entry.getValue());
+						tagNode.add(encodingNode);
+						Encoding e = entry.getValue();
+						if (e.id() == EncodingID.EXTERNAL) {
+							int contentID = -1;
+							if (e instanceof ExternalByteEncoding)
+								contentID = ((ExternalByteEncoding) e).contentId;
+							if (e instanceof ExternalByteArrayEncoding)
+								contentID = ((ExternalByteArrayEncoding) e).contentId;
+							if (e instanceof ExternalIntegerEncoding)
+								contentID = ((ExternalIntegerEncoding) e).contentId;
+							if (e instanceof ExternalLongEncoding)
+								contentID = ((ExternalLongEncoding) e).contentId;
+							if (contentID >= 0) {
+								DefaultMutableTreeNode blockNode = new DefaultMutableTreeNode(
+										slice.external.get(contentID));
+								encodingNode.add(blockNode);
+							}
+						}
+
+						byTagNode.add(tagNode);
+					}
+				}
+
+				containerNode.add(byEncodingNode);
+				containerNode.add(byTagNode);
+				containerNode.add(sliceNode);
+			}
+		}
+		return containerNode;
 	}
 
 	@Override

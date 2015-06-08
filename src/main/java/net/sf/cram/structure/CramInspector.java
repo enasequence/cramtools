@@ -123,10 +123,12 @@ public class CramInspector extends JFrame {
 			@Override
 			public void run() {
 				try {
-					final CramInspector inspector = new CramInspector(
-							"test",
-							new FileInputStream(
-									"c:/Users/vadim/IdeaProjects/htsjdk/testdata/htsjdk/samtools/BAMFileIndexTest/index_test.cram"));
+					final CramInspector inspector = new CramInspector("test",
+							new FileInputStream("c:/temp/15544_1#1.cram"));
+					// new FileInputStream("c:/temp/15544_2#6.cram"));
+					// new FileInputStream("c:/temp/11791_6#58.cram"));
+					// new FileInputStream("c:/temp/15434_1#36.cram"));
+					// "c:/Users/vadim/IdeaProjects/htsjdk/testdata/htsjdk/samtools/BAMFileIndexTest/index_test.cram"));
 					// "H:\\dev\\Data\\CRAM_TEST_DATA\\NA06984.chrom20.ILLUMINA.bwa.CEU.low_coverage.20120522.bam.cram3"));
 					inspector.setVisible(true);
 				} catch (FileNotFoundException e) {
@@ -202,6 +204,8 @@ public class CramInspector extends JFrame {
 			sb.append(String.format("Content type: %s\n",
 					block.contentType.name()));
 			sb.append(String.format("Raw size: %d\n", block.getRawContentSize()));
+			sb.append(String.format("Compressed size: %d\n",
+					block.getCompressedContentSize()));
 			sb.append(String.format("Compressed: %s\n", block.isCompressed()));
 			sb.append(String.format("Uncompressed: %s\n",
 					block.isUncompressed()));
