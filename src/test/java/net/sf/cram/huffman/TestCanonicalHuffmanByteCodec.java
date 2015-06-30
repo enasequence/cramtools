@@ -43,8 +43,7 @@ public class TestCanonicalHuffmanByteCodec {
 	public void test() throws IOException {
 		int[] values = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
 		int[] lens = new int[] { 1, 2, 4, 4, 5, 5, 6, 6, 7, 7, 7, 8, 8 };
-		CanonicalHuffmanIntegerCodec c = new CanonicalHuffmanIntegerCodec(values,
-				lens);
+		CanonicalHuffmanIntegerCodec c = new CanonicalHuffmanIntegerCodec(values, lens);
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(baos);
@@ -67,16 +66,15 @@ public class TestCanonicalHuffmanByteCodec {
 	@Ignore("Test file does not exist in repository.")
 	@Test
 	public void test2() throws IOException {
-		SAMFileReader r = new SAMFileReader(
-				new File(
-						"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam"));
+		SAMFileReader r = new SAMFileReader(new File(
+				"c:/temp/HG00096.mapped.illumina.mosaik.GBR.exome.20110411.chr20.bam"));
 		SAMRecordIterator iterator = r.iterator();
 
 		CompressionHeaderFactory.HuffmanParamsCalculator c = new HuffmanParamsCalculator();
 
-		String[] names = new String [100000] ;
+		String[] names = new String[100000];
 		for (int i = 0; i < names.length && iterator.hasNext(); i++) {
-			names[i] = iterator.next().getReadName() ;
+			names[i] = iterator.next().getReadName();
 			c.add(names[i].length());
 		}
 		iterator.close();

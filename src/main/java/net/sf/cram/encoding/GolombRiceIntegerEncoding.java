@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -32,7 +31,7 @@ public class GolombRiceIntegerEncoding implements Encoding<Integer> {
 
 	public GolombRiceIntegerEncoding() {
 	}
-	
+
 	public GolombRiceIntegerEncoding(int m) {
 		this.m = m;
 	}
@@ -44,7 +43,7 @@ public class GolombRiceIntegerEncoding implements Encoding<Integer> {
 
 	public static EncodingParams toParam(int offset, int m) {
 		GolombRiceIntegerEncoding e = new GolombRiceIntegerEncoding();
-		e.offset= offset;
+		e.offset = offset;
 		e.m = m;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
@@ -62,7 +61,7 @@ public class GolombRiceIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public void fromByteArray(byte[] data) {
-		ByteBuffer buf = ByteBuffer.wrap(data) ;
+		ByteBuffer buf = ByteBuffer.wrap(data);
 		offset = ByteBufferUtils.readUnsignedITF8(buf);
 		m = ByteBufferUtils.readUnsignedITF8(buf);
 	}

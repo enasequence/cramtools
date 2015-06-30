@@ -42,15 +42,14 @@ import com.beust.jcommander.converters.FileConverter;
 
 public class CramIndexer {
 	private static Log log = Log.getInstance(CramIndexer.class);
-	public static final String COMMAND = "index" ;
+	public static final String COMMAND = "index";
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Bam2Cram.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -60,8 +59,7 @@ public class CramIndexer {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -78,53 +76,42 @@ public class CramIndexer {
 		if (CRAMFileReader.isCRAMFile(params.inputFile)) {
 			if (params.bai) {
 
-				File cramIndexFile = new File(
-						params.inputFile.getAbsolutePath() + ".bai");
+				File cramIndexFile = new File(params.inputFile.getAbsolutePath() + ".bai");
 
 				create_BAI_forCramFile(params.inputFile, cramIndexFile);
 
 				if (params.test) {
 					if (params.referenceFastaFile == null) {
-						System.out
-								.println("A reference fasta file is required.");
+						System.out.println("A reference fasta file is required.");
 						System.exit(1);
 					}
 
-					randomTestCramFileWithBaiIndex(params.inputFile,
-							cramIndexFile, params.referenceFastaFile,
-							params.testMinPos, params.testMaxPos,
-							params.testCount, params.testSequenceName);
+					randomTestCramFileWithBaiIndex(params.inputFile, cramIndexFile, params.referenceFastaFile,
+							params.testMinPos, params.testMaxPos, params.testCount, params.testSequenceName);
 				}
 			} else {
-				File cramIndexFile = new File(
-						params.inputFile.getAbsolutePath() + ".crai");
+				File cramIndexFile = new File(params.inputFile.getAbsolutePath() + ".crai");
 
 				create_CRAI_forCramFile(params.inputFile, cramIndexFile);
 
 			}
 		} else {
 			if (!params.bai)
-				throw new RuntimeException(
-						"CRAM index is not compatible with BAM files.");
+				throw new RuntimeException("CRAM index is not compatible with BAM files.");
 
 			SAMFileReader reader = new SAMFileReader(params.inputFile);
 			if (!reader.isBinary()) {
 				reader.close();
-				throw new SAMException(
-						"Input file must be bam file, not sam file.");
+				throw new SAMException("Input file must be bam file, not sam file.");
 			}
 
-			if (!reader.getFileHeader().getSortOrder()
-					.equals(SAMFileHeader.SortOrder.coordinate)) {
+			if (!reader.getFileHeader().getSortOrder().equals(SAMFileHeader.SortOrder.coordinate)) {
 				reader.close();
-				throw new SAMException(
-						"Input bam file must be sorted by coordinates");
+				throw new SAMException("Input bam file must be sorted by coordinates");
 			}
 
-			File indexFile = new File(params.inputFile.getAbsolutePath()
-					+ ".bai");
-			BAMIndexer indexer = new BAMIndexer(indexFile,
-					reader.getFileHeader());
+			File indexFile = new File(params.inputFile.getAbsolutePath() + ".bai");
+			BAMIndexer indexer = new BAMIndexer(indexFile, reader.getFileHeader());
 			for (SAMRecord record : reader) {
 				indexer.processAlignment(record);
 			}
@@ -167,16 +154,14 @@ public class CramIndexer {
 		String testSequenceName = null;
 	}
 
-	public static void create_BAI_forCramFile(File cramFile, File cramIndexFile)
-			throws IOException {
+	public static void create_BAI_forCramFile(File cramFile, File cramIndexFile) throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
 		BaiIndexer ic = new BaiIndexer(is, cramIndexFile);
 
 		ic.run();
 	}
 
-	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile)
-			throws IOException {
+	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile) throws IOException {
 		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
 		CraiIndexer ic = new CraiIndexer(is, cramIndexFile);
 
@@ -193,11 +178,9 @@ public class CramIndexer {
 	 * @return the overhead, the number of records skipped before reached the
 	 *         query or -1 if nothing was found.
 	 */
-	private static int randomTestCramFileWithBaiIndex(File cramFile,
-			File cramIndexFile, File refFile, int posMin, int posMax,
-			int repeat, String sequenceName) {
-		CRAMFileReader reader = new CRAMFileReader(cramFile, cramIndexFile,
-				new ReferenceSource(refFile));
+	private static int randomTestCramFileWithBaiIndex(File cramFile, File cramIndexFile, File refFile, int posMin,
+			int posMax, int repeat, String sequenceName) {
+		CRAMFileReader reader = new CRAMFileReader(cramFile, cramIndexFile, new ReferenceSource(refFile));
 
 		int overhead = 0;
 
@@ -217,12 +200,10 @@ public class CramIndexer {
 		return overhead;
 	}
 
-	private static int query(CRAMFileReader reader, int position,
-			String sequenceName) {
+	private static int query(CRAMFileReader reader, int position, String sequenceName) {
 		long timeStart = System.nanoTime();
 
-		CloseableIterator<SAMRecord> iterator = reader.queryAlignmentStart(
-				sequenceName, position);
+		CloseableIterator<SAMRecord> iterator = reader.queryAlignmentStart(sequenceName, position);
 
 		SAMRecord record = null;
 		int overhead = 0;
@@ -238,12 +219,11 @@ public class CramIndexer {
 
 		long timeStop = System.nanoTime();
 		if (record == null)
-			log.info(String.format("Query not found: position=%d, time=%dms.",
-					position, (timeStop - timeStart) / 1000000));
+			log.info(String.format("Query not found: position=%d, time=%dms.", position,
+					(timeStop - timeStart) / 1000000));
 		else
-			log.info(String.format(
-					"Query found: position=%d, overhead=%d, time=%dms.",
-					position, overhead, (timeStop - timeStart) / 1000000));
+			log.info(String.format("Query found: position=%d, overhead=%d, time=%dms.", position, overhead,
+					(timeStop - timeStart) / 1000000));
 
 		return overhead;
 	}

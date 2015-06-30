@@ -52,8 +52,7 @@ public class TestQualityScorePreservation {
 		assertEquals(policies.size(), 1);
 
 		PreservationPolicy policy0 = policies.get(0);
-		assertThat(policy0.readCategory.type,
-				is(ReadCategoryType.LOWER_MAPPING_SCORE));
+		assertThat(policy0.readCategory.type, is(ReadCategoryType.LOWER_MAPPING_SCORE));
 
 		assertThat(policy0.readCategory.param, is(999));
 
@@ -136,7 +135,6 @@ public class TestQualityScorePreservation {
 		}
 	}
 
-	
 	@Ignore("Broken test.")
 	@Test
 	public void test3() {
@@ -148,20 +146,17 @@ public class TestQualityScorePreservation {
 		byte[] ref = "CTGGTCTTAGTTCCGCAAGTGGGTATATATAAAGGCTCAAAATCAATCTTTATATTGACATCTCTCTACTTATTTGTGTTGTCTGATGCTCATATTGTAGGAGATTCCTCAAGAAAGG"
 				.getBytes();
 		ReferenceTracks tracks = new ReferenceTracks(0, seqName, ref);
-		QualityScorePreservation p = new QualityScorePreservation(
-				"R8-N40-M40-D40");
+		QualityScorePreservation p = new QualityScorePreservation("R8-N40-M40-D40");
 
 		for (String line : lines) {
 			SAMRecord record = buildSAMRecord(seqName, line);
 
-			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref,
-					record.getHeader());
+			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref, record.getHeader());
 			CramRecord cramRecord = f.createCramRecord(record);
 
 			p.addQualityScores(record, cramRecord, tracks);
 			if (!cramRecord.isForcePreserveQualityScores()) {
-				CramNormalizer.restoreQualityScores((byte) 30,
-						Collections.singletonList(cramRecord));
+				CramNormalizer.restoreQualityScores((byte) 30, Collections.singletonList(cramRecord));
 			}
 
 			StringBuffer sb = new StringBuffer();
@@ -169,8 +164,7 @@ public class TestQualityScorePreservation {
 			sb.append("\n");
 			sb.append(SAMUtils.phredToFastq(cramRecord.qualityScores));
 
-			assertArrayEquals(sb.toString(), record.getBaseQualities(),
-					cramRecord.qualityScores);
+			assertArrayEquals(sb.toString(), record.getBaseQualities(), cramRecord.qualityScores);
 		}
 	}
 
@@ -184,22 +178,19 @@ public class TestQualityScorePreservation {
 		byte[] ref = "CTGGTCTTAGTTCCGCAAGTGGGTATATATAAAGGCTCAAAATCAATCTTTATATTGACATCTCTCTACTTATTTGTGTTGTCTGATGCTCATATTGTAGGAGATTCCTCAAGAAAGG"
 				.getBytes();
 		ReferenceTracks tracks = new ReferenceTracks(0, seqName, ref);
-		QualityScorePreservation p = new QualityScorePreservation(
-				"R40X10-N40-U40");
+		QualityScorePreservation p = new QualityScorePreservation("R40X10-N40-U40");
 		for (int i = 0; i < ref.length; i++)
-			tracks.addCoverage(i+1, 66);
+			tracks.addCoverage(i + 1, 66);
 
 		for (String line : lines) {
 			SAMRecord record = buildSAMRecord(seqName, line);
 
-			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref,
-					record.getHeader());
+			Sam2CramRecordFactory f = new Sam2CramRecordFactory(ref, record.getHeader());
 			CramRecord cramRecord = f.createCramRecord(record);
 
 			p.addQualityScores(record, cramRecord, tracks);
 			if (!cramRecord.isForcePreserveQualityScores()) {
-				CramNormalizer.restoreQualityScores((byte) 30,
-						Collections.singletonList(cramRecord));
+				CramNormalizer.restoreQualityScores((byte) 30, Collections.singletonList(cramRecord));
 			}
 
 			StringBuffer sb = new StringBuffer();
@@ -207,8 +198,7 @@ public class TestQualityScorePreservation {
 			sb.append("\n");
 			sb.append(SAMUtils.phredToFastq(cramRecord.qualityScores));
 
-			assertArrayEquals(sb.toString(), record.getBaseQualities(),
-					cramRecord.qualityScores);
+			assertArrayEquals(sb.toString(), record.getBaseQualities(), cramRecord.qualityScores);
 		}
 	}
 

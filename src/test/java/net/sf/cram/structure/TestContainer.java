@@ -60,8 +60,7 @@ public class TestContainer {
 
 	@Test
 	public void testBlock() throws IOException {
-		Block b = new Block(BlockCompressionMethod.GZIP, BlockContentType.CORE,
-				0, "123457890".getBytes(), null);
+		Block b = new Block(BlockCompressionMethod.GZIP, BlockContentType.CORE, 0, "123457890".getBytes(), null);
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		b.write(baos);
@@ -83,13 +82,11 @@ public class TestContainer {
 		s.nofRecords = 17;
 		s.sequenceId = 18;
 		s.refMD5 = "1234567890123456".getBytes();
-		s.coreBlock = new Block(BlockCompressionMethod.GZIP,
-				BlockContentType.CORE, 0, "core123457890".getBytes(), null);
+		s.coreBlock = new Block(BlockCompressionMethod.GZIP, BlockContentType.CORE, 0, "core123457890".getBytes(), null);
 
 		s.external = new HashMap<Integer, Block>();
 		for (int i = 1; i < 5; i++) {
-			Block e1 = new Block(BlockCompressionMethod.GZIP,
-					BlockContentType.EXTERNAL, i,
+			Block e1 = new Block(BlockCompressionMethod.GZIP, BlockContentType.EXTERNAL, i,
 					"external123457890".getBytes(), null);
 			s.external.put(i, e1);
 		}
@@ -103,10 +100,8 @@ public class TestContainer {
 		sio.read(s2, bais);
 
 		assertEquals(s.contentIDs.length, s2.external.size());
-		assertArrayEquals(s.headerBlock.getRawContent(),
-				s2.headerBlock.getRawContent());
-		assertArrayEquals(s.coreBlock.getRawContent(),
-				s2.coreBlock.getRawContent());
+		assertArrayEquals(s.headerBlock.getRawContent(), s2.headerBlock.getRawContent());
+		assertArrayEquals(s.coreBlock.getRawContent(), s2.coreBlock.getRawContent());
 
 		for (int id : s.contentIDs) {
 			Block e1 = s.external.get(id);
@@ -116,9 +111,8 @@ public class TestContainer {
 		}
 	}
 
-	private void testALignmentSpan(Container container, CramHeader cramHeader,
-			List<CramRecord> records) throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+	private void testALignmentSpan(Container container, CramHeader cramHeader, List<CramRecord> records)
+			throws IllegalArgumentException, IllegalAccessException, IOException {
 		{
 			ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
 			for (int i = 0; i < container.slices.length; i++) {
@@ -130,14 +124,10 @@ public class TestContainer {
 				assertEquals(s.alignmentStart, first.alignmentStart);
 				int end = last.getAlignmentEnd();
 				System.out.println(end);
-				if (s.alignmentSpan != last.getAlignmentEnd()
-						- first.alignmentStart)
-					fail(String
-							.format("Slice %d alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
-									i, s.alignmentStart, s.alignmentSpan,
-									first.alignmentStart, last.alignmentStart,
-									last.getAlignmentEnd(),
-									first.readName, last.readName));
+				if (s.alignmentSpan != last.getAlignmentEnd() - first.alignmentStart)
+					fail(String.format("Slice %d alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n", i,
+							s.alignmentStart, s.alignmentSpan, first.alignmentStart, last.alignmentStart,
+							last.getAlignmentEnd(), first.readName, last.readName));
 
 			}
 		}
@@ -145,21 +135,16 @@ public class TestContainer {
 		CramRecord firstRecord1 = records.get(0);
 		CramRecord lastRecord1 = records.get(records.size() - 1);
 		assertEquals(container.alignmentStart, firstRecord1.alignmentStart);
-		if (container.alignmentSpan != lastRecord1.getAlignmentEnd()
-				- firstRecord1.alignmentStart)
-			fail(String
-					.format("Container alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
-							container.alignmentStart, container.alignmentSpan,
-							firstRecord1.alignmentStart,
-							lastRecord1.alignmentStart,
-							lastRecord1.getAlignmentEnd(),
-							firstRecord1.readName, lastRecord1.readName));
+		if (container.alignmentSpan != lastRecord1.getAlignmentEnd() - firstRecord1.alignmentStart)
+			fail(String.format("Container alignment span mismatch: %d, %d, %d, %d, %d, %s, %s\n",
+					container.alignmentStart, container.alignmentSpan, firstRecord1.alignmentStart,
+					lastRecord1.alignmentStart, lastRecord1.getAlignmentEnd(), firstRecord1.readName,
+					lastRecord1.readName));
 	}
 
 	@Ignore("Broken test.")
 	@Test
-	public void test() throws IOException, IllegalArgumentException,
-			IllegalAccessException {
+	public void test() throws IOException, IllegalArgumentException, IllegalAccessException {
 
 		String cramPath = "/data/set1/small.cram";
 		InputStream stream = getClass().getResourceAsStream(cramPath);
@@ -211,8 +196,7 @@ public class TestContainer {
 
 		System.out.println(container);
 
-		ArrayList<CramRecord> records = new ArrayList<CramRecord>(
-				container.nofRecords);
+		ArrayList<CramRecord> records = new ArrayList<CramRecord>(container.nofRecords);
 		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
 		parser.getRecords(container, records);
 
@@ -223,19 +207,15 @@ public class TestContainer {
 				System.out.println(records.get(i).toString());
 		}
 
-		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream(
-				BYTES);
+		ExposedByteArrayOutputStream baos = new ExposedByteArrayOutputStream(BYTES);
 		CramIO.writeCramHeader(cramHeader, baos);
 		byte[] b = baos.toByteArray();
 		ByteArrayInputStream bais = new ByteArrayInputStream(b);
 		CramHeader cramHeader2 = CramIO.readCramHeader(bais);
-		assertEquals(toString(cramHeader.samFileHeader),
-				toString(cramHeader2.samFileHeader));
+		assertEquals(toString(cramHeader.samFileHeader), toString(cramHeader2.samFileHeader));
 
-		ContainerFactory cf = new ContainerFactory(cramHeader.samFileHeader,
-				container.slices[0].nofRecords, true);
-		Container container2 = cf.buildContainer(records,
-				container.h.substitutionMatrix);
+		ContainerFactory cf = new ContainerFactory(cramHeader.samFileHeader, container.slices[0].nofRecords, true);
+		Container container2 = cf.buildContainer(records, container.h.substitutionMatrix);
 		for (int i = 0; i < container.slices.length; i++) {
 			container2.slices[i].refMD5 = container.slices[i].refMD5;
 		}
@@ -271,8 +251,7 @@ public class TestContainer {
 
 		System.out.println(container3);
 
-		ArrayList<CramRecord> records3 = new ArrayList<CramRecord>(
-				container3.nofRecords);
+		ArrayList<CramRecord> records3 = new ArrayList<CramRecord>(container3.nofRecords);
 		parser.getRecords(container3, records3);
 		testALignmentSpan(container3, cramHeader, records3);
 
@@ -285,8 +264,7 @@ public class TestContainer {
 		assertEquals(container.alignmentStart, container3.alignmentStart);
 		assertEquals(container.alignmentSpan, container3.alignmentSpan);
 		assertEquals(container.bases, container3.bases);
-		assertEquals(container.globalRecordCounter,
-				container3.globalRecordCounter);
+		assertEquals(container.globalRecordCounter, container3.globalRecordCounter);
 		assertEquals(container.landmarks.length, container3.landmarks.length);
 		assertEquals(container.nofRecords, container3.nofRecords);
 		assertEquals(container.sequenceId, container3.sequenceId);
@@ -296,13 +274,10 @@ public class TestContainer {
 			CramRecord r1 = records.get(i);
 			CramRecord r3 = records3.get(i);
 
-			assertTrue(
-					"Mismatch at " + i + ":\n" + r1.toString() + "\n"
-							+ r3.toString(), compare(r1, r3));
+			assertTrue("Mismatch at " + i + ":\n" + r1.toString() + "\n" + r3.toString(), compare(r1, r3));
 		}
 
-		FileOutputStream fos = new FileOutputStream(new File(
-				"./src/test/resources/data/set1/small.cram2"));
+		FileOutputStream fos = new FileOutputStream(new File("./src/test/resources/data/set1/small.cram2"));
 		fos.write(baos.getBuffer(), 0, baos.size());
 		fos.close();
 	}

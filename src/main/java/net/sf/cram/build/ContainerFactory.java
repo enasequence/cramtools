@@ -43,27 +43,22 @@ public class ContainerFactory {
 	public long globalRecordCounter = 0;
 	public boolean AP_delta = true;
 
-	public ContainerFactory(SAMFileHeader samFileHeader, int recordsPerSlice,
-			boolean preserveReadNames) {
+	public ContainerFactory(SAMFileHeader samFileHeader, int recordsPerSlice, boolean preserveReadNames) {
 		this.samFileHeader = samFileHeader;
 		this.recordsPerSlice = recordsPerSlice;
 		this.preserveReadNames = preserveReadNames;
 	}
 
-	public Container buildContainer(List<CramRecord> records)
-			throws IllegalArgumentException, IllegalAccessException,
+	public Container buildContainer(List<CramRecord> records) throws IllegalArgumentException, IllegalAccessException,
 			IOException {
 		return buildContainer(records, null);
 	}
 
-	public Container buildContainer(List<CramRecord> records,
-			SubstitutionMatrix substitutionMatrix)
-			throws IllegalArgumentException, IllegalAccessException,
-			IOException {
+	public Container buildContainer(List<CramRecord> records, SubstitutionMatrix substitutionMatrix)
+			throws IllegalArgumentException, IllegalAccessException, IOException {
 		// get stats, create compression header and slices
 		long time1 = System.nanoTime();
-		CompressionHeader h = new CompressionHeaderFactory().build(records,
-				substitutionMatrix);
+		CompressionHeader h = new CompressionHeaderFactory().build(records, substitutionMatrix);
 		h.AP_seriesDelta = AP_delta;
 		long time2 = System.nanoTime();
 
@@ -82,8 +77,7 @@ public class ContainerFactory {
 		long time3 = System.nanoTime();
 		long lastGlobalRecordCounter = c.globalRecordCounter;
 		for (int i = 0; i < records.size(); i += recordsPerSlice) {
-			List<CramRecord> sliceRecords = records.subList(i,
-					Math.min(records.size(), i + recordsPerSlice));
+			List<CramRecord> sliceRecords = records.subList(i, Math.min(records.size(), i + recordsPerSlice));
 			Slice slice = buildSlice(sliceRecords, h, samFileHeader);
 			slice.globalRecordCounter = lastGlobalRecordCounter;
 			lastGlobalRecordCounter += slice.nofRecords;
@@ -123,10 +117,8 @@ public class ContainerFactory {
 		}
 	}
 
-	private static Slice buildSlice(List<CramRecord> records,
-			CompressionHeader h, SAMFileHeader fileHeader)
-			throws IllegalArgumentException, IllegalAccessException,
-			IOException {
+	private static Slice buildSlice(List<CramRecord> records, CompressionHeader h, SAMFileHeader fileHeader)
+			throws IllegalArgumentException, IllegalAccessException, IOException {
 		Map<Integer, ExposedByteArrayOutputStream> map = new HashMap<Integer, ExposedByteArrayOutputStream>();
 		for (int id : h.externalIds) {
 			map.put(id, new ExposedByteArrayOutputStream());
@@ -150,10 +142,10 @@ public class ContainerFactory {
 			if (alStart != SAMRecord.NO_ALIGNMENT_START && r.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				seqIds[r.sequenceId]++;
 
-//				if (alStart != SAMRecord.NO_ALIGNMENT_START) {
-					minAlStart = Math.min(alStart, minAlStart);
-					maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
-//				}
+				// if (alStart != SAMRecord.NO_ALIGNMENT_START) {
+				minAlStart = Math.min(alStart, minAlStart);
+				maxAlEnd = Math.max(r.getAlignmentEnd(), maxAlEnd);
+				// }
 			}
 		}
 
@@ -178,9 +170,9 @@ public class ContainerFactory {
 			slice.alignmentSpan = 0;
 		} else {
 			slice.alignmentStart = minAlStart;
-			slice.alignmentSpan = maxAlEnd - minAlStart+1;
+			slice.alignmentSpan = maxAlEnd - minAlStart + 1;
 		}
-		
+
 		Writer writer = f.buildWriter(bos, map, h, slice.sequenceId);
 		int prevAlStart = slice.alignmentStart;
 		for (CramRecord r : records) {
@@ -189,8 +181,7 @@ public class ContainerFactory {
 			writer.write(r);
 		}
 
-		slice.contentType = slice.alignmentSpan > -1 ? BlockContentType.MAPPED_SLICE
-				: BlockContentType.RESERVED;
+		slice.contentType = slice.alignmentSpan > -1 ? BlockContentType.MAPPED_SLICE : BlockContentType.RESERVED;
 
 		bos.close();
 		slice.coreBlock = new Block();

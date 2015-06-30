@@ -112,8 +112,7 @@ public class FastqReader implements Iterator<FastqRead> {
 		// skip new line byte at the end of scores line:
 		is.skip(1);
 
-		return new FastqRead(bases.length, name, true, indexInSegment, bases,
-				scores);
+		return new FastqRead(bases.length, name, true, indexInSegment, bases, scores);
 	}
 
 	@Override

@@ -67,8 +67,7 @@ public class CanonicalHuffmanByteCodec2 extends AbstractBitCodec<Byte> {
 	}
 
 	@Override
-	public void readInto(BitInputStream bis, byte[] array, int offset,
-			int valueLen) throws IOException {
+	public void readInto(BitInputStream bis, byte[] array, int offset, int valueLen) throws IOException {
 		for (int i = 0; i < valueLen; i++)
 			array[offset + i] = helper.read(bis);
 	}

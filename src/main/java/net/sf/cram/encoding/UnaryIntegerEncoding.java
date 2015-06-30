@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -41,8 +40,8 @@ public class UnaryIntegerEncoding implements Encoding<Integer> {
 
 	public static EncodingParams toParam(int offset, boolean stopBit) {
 		UnaryIntegerEncoding e = new UnaryIntegerEncoding();
-		e.offset = offset ;
-		e.stopBit = stopBit ;
+		e.offset = offset;
+		e.stopBit = stopBit;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 

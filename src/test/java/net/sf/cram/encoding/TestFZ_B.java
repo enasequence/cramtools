@@ -27,24 +27,20 @@ public class TestFZ_B {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			String[] chunks = line.split("\t");
-			entries.add(new HistEntry(Integer.valueOf(chunks[0]), Integer
-					.valueOf(chunks[1])));
+			entries.add(new HistEntry(Integer.valueOf(chunks[0]), Integer.valueOf(chunks[1])));
 			count += Integer.valueOf(chunks[1]);
 		}
 		scanner.close();
 
 		IntegerEncodingCalculator c = new IntegerEncodingCalculator("qwe", 2000);
 		for (int i = 2; i < 50; i++)
-			c.calcs.add(new EncodingLengthCalculator(new GolombIntegerEncoding(
-					i)));
+			c.calcs.add(new EncodingLengthCalculator(new GolombIntegerEncoding(i)));
 
 		for (int i = 2; i < 50; i++)
-			c.calcs.add(new EncodingLengthCalculator(
-					new GolombRiceIntegerEncoding(i)));
+			c.calcs.add(new EncodingLengthCalculator(new GolombRiceIntegerEncoding(i)));
 
 		for (int i = 2; i < 50; i++) {
-			c.calcs.add(new EncodingLengthCalculator(new SubexpIntegerEncoding(
-					i)));
+			c.calcs.add(new EncodingLengthCalculator(new SubexpIntegerEncoding(i)));
 		}
 
 		for (HistEntry e : entries) {
@@ -62,21 +58,20 @@ public class TestFZ_B {
 		for (HistEntry entry : entries) {
 			bits += entry.count * codec.numberOfBits(entry.value);
 		}
-		System.out.printf("bits=%d, bits per value=%.2f\n", bits,
-				((float) bits) / count);
+		System.out.printf("bits=%d, bits per value=%.2f\n", bits, ((float) bits) / count);
 
-		short[] array = new short[entries.size() * count] ;
-		int j=0 ;
+		short[] array = new short[entries.size() * count];
+		int j = 0;
 		for (HistEntry entry : entries) {
 			for (int i = 0; i < entry.count; i++)
-				array[j]=((short) entry.value);
+				array[j] = ((short) entry.value);
 		}
-		shuffleArray(array) ;
-		
+		shuffleArray(array);
+
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		BitOutputStream bos = new DefaultBitOutputStream(baos);
-		for (Short value:array) {
-			codec.write(bos, value.intValue()) ;
+		for (Short value : array) {
+			codec.write(bos, value.intValue());
 		}
 
 		ByteArrayOutputStream gBAOS = new ByteArrayOutputStream();
@@ -89,19 +84,17 @@ public class TestFZ_B {
 		long time2 = System.currentTimeMillis();
 		System.out.printf("Time: %.2f\n", (time2 - time1) / 1000f);
 	}
-	
-	 static void shuffleArray(short[] ar)
-	  {
-	    Random rnd = new Random();
-	    for (int i = ar.length - 1; i >= 0; i--)
-	    {
-	      int index = rnd.nextInt(i + 1);
-	      // Simple swap
-	      short a = ar[index];
-	      ar[index] = ar[i];
-	      ar[i] = a;
-	    }
-	  }
+
+	static void shuffleArray(short[] ar) {
+		Random rnd = new Random();
+		for (int i = ar.length - 1; i >= 0; i--) {
+			int index = rnd.nextInt(i + 1);
+			// Simple swap
+			short a = ar[index];
+			ar[index] = ar[i];
+			ar[i] = a;
+		}
+	}
 
 	private static class HistEntry {
 		public int value;

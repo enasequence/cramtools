@@ -14,19 +14,16 @@ public class CramReadHeaderExample {
 	public static void main(String[] args) throws IOException {
 		File file = new File(args[0]);
 		SAMFileReader reader = new SAMFileReader(file);
-		for (SAMSequenceRecord sequenceRecord : reader.getFileHeader()
-				.getSequenceDictionary().getSequences()) {
+		for (SAMSequenceRecord sequenceRecord : reader.getFileHeader().getSequenceDictionary().getSequences()) {
 			String md5 = sequenceRecord.getAttribute(SAMSequenceRecord.MD5_TAG);
 			URL url = new URL(String.format(URI_PATTERN, md5));
 			InputStream is = null;
 			try {
 				is = url.openStream();
-				System.out.printf("Found: %s\t%s\n",
-						sequenceRecord.getSequenceName(), md5);
+				System.out.printf("Found: %s\t%s\n", sequenceRecord.getSequenceName(), md5);
 				is.close();
 			} catch (IOException e) {
-				System.out.printf("Not found: %s\t%s\n",
-						sequenceRecord.getSequenceName(), md5);
+				System.out.printf("Not found: %s\t%s\n", sequenceRecord.getSequenceName(), md5);
 			}
 		}
 		reader.close();

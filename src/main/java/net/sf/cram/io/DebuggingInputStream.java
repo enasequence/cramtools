@@ -19,8 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-public class DebuggingInputStream extends InputStream{
-	private InputStream delegate ;
+public class DebuggingInputStream extends InputStream {
+	private InputStream delegate;
 
 	public DebuggingInputStream(InputStream delegate) {
 		super();
@@ -30,31 +30,31 @@ public class DebuggingInputStream extends InputStream{
 	public int read() throws IOException {
 		int value = delegate.read();
 		System.err.println(value);
-		return value ;
+		return value;
 	}
 
 	public int read(byte[] b) throws IOException {
 		int value = delegate.read(b);
 		System.err.println(Arrays.toString(b));
-		return value ;
+		return value;
 	}
 
 	public int read(byte[] b, int off, int len) throws IOException {
 		int value = delegate.read(b, off, len);
-		System.err.println(Arrays.toString(Arrays.copyOfRange(b, off, off+len)));
-		return value ;
+		System.err.println(Arrays.toString(Arrays.copyOfRange(b, off, off + len)));
+		return value;
 	}
 
 	public long skip(long n) throws IOException {
 		long value = delegate.skip(n);
 		System.err.println("Skipping: " + n + ", " + value);
-		return value ;
+		return value;
 	}
 
 	public int available() throws IOException {
 		int value = delegate.available();
 		System.err.println("Availble: " + value);
-		return value ;
+		return value;
 	}
 
 	public void close() throws IOException {
@@ -75,7 +75,7 @@ public class DebuggingInputStream extends InputStream{
 	public boolean markSupported() {
 		boolean value = delegate.markSupported();
 		System.err.println("Mark supported: " + value);
-		return value ;
+		return value;
 	}
 
 }

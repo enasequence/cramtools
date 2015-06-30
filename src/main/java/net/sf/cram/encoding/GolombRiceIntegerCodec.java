@@ -20,20 +20,19 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class GolombRiceIntegerCodec extends AbstractBitCodec<Integer> {
 	private int m;
 	private int log2m;
-	private long mask ;
+	private long mask;
 	private boolean quotientBit = false;
 	private int offset = 0;
 
 	public GolombRiceIntegerCodec(int log2m) {
-		this (0, log2m) ;
+		this(0, log2m);
 	}
 
 	public GolombRiceIntegerCodec(int offset, int log2m) {
-		this (offset, log2m, false) ;
+		this(offset, log2m, false);
 	}
 
 	public GolombRiceIntegerCodec(int offset, int log2m, boolean quotientBit) {
@@ -41,7 +40,7 @@ public class GolombRiceIntegerCodec extends AbstractBitCodec<Integer> {
 		m = 1 << log2m;
 		this.quotientBit = quotientBit;
 		this.offset = offset;
-		mask = ~(~0 << log2m) ;
+		mask = ~(~0 << log2m);
 	}
 
 	public final Integer read(final BitInputStream bis) throws IOException {
@@ -113,7 +112,7 @@ public class GolombRiceIntegerCodec extends AbstractBitCodec<Integer> {
 
 	@Override
 	public Integer read(BitInputStream bis, int len) throws IOException {
-		throw new RuntimeException("Not implemented.") ;
+		throw new RuntimeException("Not implemented.");
 	}
 
 }

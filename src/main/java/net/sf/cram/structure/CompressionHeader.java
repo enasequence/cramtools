@@ -32,22 +32,22 @@ import net.sf.cram.io.ByteBufferUtils;
 import net.sf.picard.util.Log;
 
 public class CompressionHeader {
-	private static final String RN_readNamesIncluded = "RN" ;
-	private static final String AP_alignmentPositionIsDelta = "AP" ;
-	private static final String RR_referenceRequired = "RR" ;
-	private static final String TD_tagIdsDictionary = "TD" ;
-	private static final String SM_substitutionMatrix = "SM" ;
-	
+	private static final String RN_readNamesIncluded = "RN";
+	private static final String AP_alignmentPositionIsDelta = "AP";
+	private static final String RR_referenceRequired = "RR";
+	private static final String TD_tagIdsDictionary = "TD";
+	private static final String SM_substitutionMatrix = "SM";
+
 	private static Log log = Log.getInstance(CompressionHeader.class);
 
 	public boolean readNamesIncluded;
-	public boolean AP_seriesDelta=true;
-	public boolean referenceRequired=true;
+	public boolean AP_seriesDelta = true;
+	public boolean referenceRequired = true;
 
 	public Map<EncodingKey, EncodingParams> eMap;
 	public Map<Integer, EncodingParams> tMap;
 
-	public SubstitutionMatrix substitutionMatrix ;
+	public SubstitutionMatrix substitutionMatrix;
 
 	public List<Integer> externalIds;
 
@@ -143,12 +143,11 @@ public class CompressionHeader {
 					dictionary = parseDictionary(dictionaryBytes);
 				} else if (SM_substitutionMatrix.equals(key)) {
 					// parse subs matrix here:
-					byte[] matrixBytes = new byte[5] ;
+					byte[] matrixBytes = new byte[5];
 					buf.get(matrixBytes);
-					substitutionMatrix = new SubstitutionMatrix(matrixBytes) ;
+					substitutionMatrix = new SubstitutionMatrix(matrixBytes);
 				} else
-					throw new RuntimeException("Unknown preservation map key: "
-							+ key);
+					throw new RuntimeException("Unknown preservation map key: " + key);
 			}
 		}
 
@@ -176,8 +175,7 @@ public class CompressionHeader {
 
 				eMap.put(eKey, new EncodingParams(id, paramBytes));
 
-				log.debug(String.format("FOUND ENCODING: %s, %s, %s.",
-						eKey.name(), id.name(),
+				log.debug(String.format("FOUND ENCODING: %s, %s, %s.", eKey.name(), id.name(),
 						Arrays.toString(Arrays.copyOf(paramBytes, 20))));
 			}
 		}
@@ -220,7 +218,7 @@ public class CompressionHeader {
 
 			mapBuf.put(AP_alignmentPositionIsDelta.getBytes());
 			mapBuf.put((byte) (AP_seriesDelta ? 1 : 0));
-			
+
 			mapBuf.put(RR_referenceRequired.getBytes());
 			mapBuf.put((byte) (referenceRequired ? 1 : 0));
 

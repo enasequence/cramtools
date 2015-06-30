@@ -35,24 +35,21 @@ import net.sf.cram.structure.EncodingParams;
 
 public class DataWriterFactory {
 
-	public Writer buildWriter(BitOutputStream bos,
-			Map<Integer, ExposedByteArrayOutputStream> outputMap,
-			CompressionHeader h, int refId) throws IllegalArgumentException,
-			IllegalAccessException {
+	public Writer buildWriter(BitOutputStream bos, Map<Integer, ExposedByteArrayOutputStream> outputMap,
+			CompressionHeader h, int refId) throws IllegalArgumentException, IllegalAccessException {
 		Writer writer = new Writer();
 		writer.captureReadNames = h.readNamesIncluded;
-		writer.refId = refId ;
-		writer.substitutionMatrix = h.substitutionMatrix ;
-		writer.AP_delta = h.AP_seriesDelta ;
+		writer.refId = refId;
+		writer.substitutionMatrix = h.substitutionMatrix;
+		writer.AP_delta = h.AP_seriesDelta;
 
 		for (Field f : writer.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
 				DataSeries ds = f.getAnnotation(DataSeries.class);
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
-				
-				f.set(writer,
-						createWriter(type, h.eMap.get(key), bos, outputMap));
+
+				f.set(writer, createWriter(type, h.eMap.get(key), bos, outputMap));
 			}
 
 			if (f.isAnnotationPresent(DataSeriesMap.class)) {
@@ -62,32 +59,28 @@ public class DataWriterFactory {
 					Map<Integer, DataWriter<byte[]>> map = new HashMap<Integer, DataWriter<byte[]>>();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
-						DataWriter<byte[]> tagWtiter = createWriter(
-								DataSeriesType.BYTE_ARRAY, params, bos,
-								outputMap);
+						DataWriter<byte[]> tagWtiter = createWriter(DataSeriesType.BYTE_ARRAY, params, bos, outputMap);
 						map.put(key, tagWtiter);
 					}
 					f.set(writer, map);
 				}
 			}
 		}
-		
+
 		return writer;
 	}
 
-	private <T> DataWriter<T> createWriter(DataSeriesType valueType,
-			EncodingParams params, BitOutputStream bos,
+	private <T> DataWriter<T> createWriter(DataSeriesType valueType, EncodingParams params, BitOutputStream bos,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
 		if (encoding == null)
-			throw new RuntimeException("Encoding not found: value type="
-					+ valueType.name() + ", encoding id=" + params.id.name());
+			throw new RuntimeException("Encoding not found: value type=" + valueType.name() + ", encoding id="
+					+ params.id.name());
 
 		encoding.fromByteArray(params.params);
 
-		return new DefaultDataWriter<T>(encoding.buildCodec(null, outputMap),
-				bos);
+		return new DefaultDataWriter<T>(encoding.buildCodec(null, outputMap), bos);
 	}
 
 	private static class DefaultDataWriter<T> implements DataWriter<T> {

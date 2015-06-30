@@ -34,7 +34,7 @@ public class DefaultBitInputStream extends DataInputStream implements BitInputSt
 	private boolean throwEOF = false;
 	private static final long[] masks = new long[] { 0, (1L << 1) - 1, (1L << 2) - 1, (1L << 3) - 1, (1L << 4) - 1,
 			(1L << 5) - 1, (1L << 6) - 1, (1L << 7) - 1, (1L << 8) - 1 };
-	private boolean byteAligned = false ;
+	private boolean byteAligned = false;
 
 	public DefaultBitInputStream(InputStream in) {
 		this(in, true);
@@ -166,7 +166,7 @@ public class DefaultBitInputStream extends DataInputStream implements BitInputSt
 	public void alignToByte() throws IOException {
 		nofBufferedBits = 0;
 		byteBuffer = 0;
-		byteAligned = true ;
+		byteAligned = true;
 	}
 
 	@Override

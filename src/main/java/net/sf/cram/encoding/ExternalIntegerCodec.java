@@ -23,7 +23,6 @@ import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 import net.sf.cram.io.ByteBufferUtils;
 
-
 public class ExternalIntegerCodec extends AbstractBitCodec<Integer> {
 	private OutputStream os;
 	private InputStream is;
@@ -63,7 +62,7 @@ public class ExternalIntegerCodec extends AbstractBitCodec<Integer> {
 			return ByteBufferUtils.writeUnsignedITF8(value, nullOS);
 		} catch (IOException e) {
 			// this should never happened but still:
-			throw new RuntimeException(e) ;
+			throw new RuntimeException(e);
 		}
 	}
 

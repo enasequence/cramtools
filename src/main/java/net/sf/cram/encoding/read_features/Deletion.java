@@ -19,7 +19,7 @@ import java.io.Serializable;
 
 import net.sf.samtools.CigarOperator;
 
-public class Deletion implements Serializable, ReadFeature{
+public class Deletion implements Serializable, ReadFeature {
 
 	private int position;
 	private int length;
@@ -33,12 +33,11 @@ public class Deletion implements Serializable, ReadFeature{
 		this.length = length;
 	}
 
-
 	@Override
 	public byte getOperator() {
 		return operator;
 	}
-	
+
 	public int getPosition() {
 		return position;
 	}
@@ -72,7 +71,7 @@ public class Deletion implements Serializable, ReadFeature{
 
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer().append((char)operator).append('@');
+		StringBuffer sb = new StringBuffer().append((char) operator).append('@');
 		sb.append(position);
 		sb.append('+').append(length);
 		return sb.toString();

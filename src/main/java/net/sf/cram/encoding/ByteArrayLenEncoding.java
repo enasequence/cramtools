@@ -41,71 +41,70 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 		return ID;
 	}
 
-	public static EncodingParams toParam(EncodingParams lenParams,
-			EncodingParams byteParams) {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+	public static EncodingParams toParam(EncodingParams lenParams, EncodingParams byteParams) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			baos.write((byte) lenParams.id.ordinal());
 			ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, baos);
 			baos.write(lenParams.params);
-			
+
 			baos.write((byte) byteParams.id.ordinal());
 			ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, baos);
 			baos.write(byteParams.params);
 		} catch (IOException e) {
-			throw new RuntimeException("It never happened. ") ;
+			throw new RuntimeException("It never happened. ");
 		}
 		return new EncodingParams(ID, baos.toByteArray());
-//		ByteBuffer buf = ByteBuffer.allocate(1024);
-//		buf.put((byte) lenParams.id.ordinal());
-//		ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, buf);
-//		buf.put(lenParams.params);
-//
-//		buf.put((byte) byteParams.id.ordinal());
-//		ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, buf);
-//		buf.put(byteParams.params);
-//
-//		buf.flip();
-//		byte[] data = new byte[buf.limit()];
-//		buf.get(data);
-//
-//		EncodingParams params = new EncodingParams(ID, data);
-//		return params;
+		// ByteBuffer buf = ByteBuffer.allocate(1024);
+		// buf.put((byte) lenParams.id.ordinal());
+		// ByteBufferUtils.writeUnsignedITF8(lenParams.params.length, buf);
+		// buf.put(lenParams.params);
+		//
+		// buf.put((byte) byteParams.id.ordinal());
+		// ByteBufferUtils.writeUnsignedITF8(byteParams.params.length, buf);
+		// buf.put(byteParams.params);
+		//
+		// buf.flip();
+		// byte[] data = new byte[buf.limit()];
+		// buf.get(data);
+		//
+		// EncodingParams params = new EncodingParams(ID, data);
+		// return params;
 	}
 
 	public byte[] toByteArray() {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream() ;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			baos.write((byte) lenEncoding.id().ordinal());
-			byte[] lenBytes = lenEncoding.toByteArray() ;
+			byte[] lenBytes = lenEncoding.toByteArray();
 			ByteBufferUtils.writeUnsignedITF8(lenBytes.length, baos);
 			baos.write(lenBytes);
-			
+
 			baos.write((byte) byteEncoding.id().ordinal());
-			byte[] byteBytes = byteEncoding.toByteArray() ;
+			byte[] byteBytes = byteEncoding.toByteArray();
 			ByteBufferUtils.writeUnsignedITF8(byteBytes.length, baos);
 			baos.write(byteBytes);
 		} catch (IOException e) {
-			throw new RuntimeException("It never happened. ") ;
+			throw new RuntimeException("It never happened. ");
 		}
-		return baos.toByteArray() ;
-		
-//		ByteBuffer buf = ByteBuffer.allocate(1024);
-//		buf.put((byte) lenEncoding.id().ordinal());
-//		byte[] lenBytes = lenEncoding.toByteArray();
-//		ByteBufferUtils.writeUnsignedITF8(lenBytes.length, buf);
-//		buf.put(lenBytes);
-//
-//		buf.put((byte) byteEncoding.id().ordinal());
-//		byte[] byteBytes = lenEncoding.toByteArray();
-//		ByteBufferUtils.writeUnsignedITF8(byteBytes.length, buf);
-//		buf.put(byteBytes);
-//
-//		buf.flip();
-//		byte[] array = new byte[buf.limit()];
-//		buf.get(array);
-//
-//		return array;
+		return baos.toByteArray();
+
+		// ByteBuffer buf = ByteBuffer.allocate(1024);
+		// buf.put((byte) lenEncoding.id().ordinal());
+		// byte[] lenBytes = lenEncoding.toByteArray();
+		// ByteBufferUtils.writeUnsignedITF8(lenBytes.length, buf);
+		// buf.put(lenBytes);
+		//
+		// buf.put((byte) byteEncoding.id().ordinal());
+		// byte[] byteBytes = lenEncoding.toByteArray();
+		// ByteBufferUtils.writeUnsignedITF8(byteBytes.length, buf);
+		// buf.put(byteBytes);
+		//
+		// buf.flip();
+		// byte[] array = new byte[buf.limit()];
+		// buf.get(array);
+		//
+		// return array;
 	}
 
 	public void fromByteArray(byte[] data) {
@@ -131,17 +130,15 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 	@Override
 	public BitCodec<byte[]> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new ByteArrayLenCodec(
-				lenEncoding.buildCodec(inputMap, outputMap),
-				byteEncoding.buildCodec(inputMap, outputMap));
+		return new ByteArrayLenCodec(lenEncoding.buildCodec(inputMap, outputMap), byteEncoding.buildCodec(inputMap,
+				outputMap));
 	}
 
 	private static class ByteArrayLenCodec extends AbstractBitCodec<byte[]> {
 		private BitCodec<Integer> lenCodec;
 		private BitCodec<byte[]> byteCodec;
 
-		public ByteArrayLenCodec(BitCodec<Integer> lenCodec,
-				BitCodec<byte[]> byteCodec) {
+		public ByteArrayLenCodec(BitCodec<Integer> lenCodec, BitCodec<byte[]> byteCodec) {
 			super();
 			this.lenCodec = lenCodec;
 			this.byteCodec = byteCodec;
@@ -159,8 +156,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 		}
 
 		@Override
-		public long write(BitOutputStream bos, byte[] object)
-				throws IOException {
+		public long write(BitOutputStream bos, byte[] object) throws IOException {
 			long len = lenCodec.write(bos, object.length);
 			len += byteCodec.write(bos, object);
 			return len;
@@ -168,8 +164,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 
 		@Override
 		public long numberOfBits(byte[] object) {
-			return lenCodec.numberOfBits(object.length)
-					+ byteCodec.numberOfBits(object);
+			return lenCodec.numberOfBits(object.length) + byteCodec.numberOfBits(object);
 		}
 
 	}

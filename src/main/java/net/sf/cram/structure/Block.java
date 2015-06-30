@@ -34,8 +34,8 @@ public class Block {
 	public Block() {
 	}
 
-	public Block(BlockCompressionMethod method, BlockContentType contentType,
-			int contentId, byte[] rawContent, byte[] compressedContent) {
+	public Block(BlockCompressionMethod method, BlockContentType contentType, int contentId, byte[] rawContent,
+			byte[] compressedContent) {
 		this.method = method;
 		this.contentType = contentType;
 		this.contentId = contentId;
@@ -45,8 +45,7 @@ public class Block {
 			setCompressedContent(compressedContent);
 	}
 
-	public Block(InputStream is, boolean readContent, boolean uncompress)
-			throws IOException {
+	public Block(InputStream is, boolean readContent, boolean uncompress) throws IOException {
 		method = BlockCompressionMethod.values()[is.read()];
 
 		int contentTypeId = is.read();
@@ -67,15 +66,11 @@ public class Block {
 
 	@Override
 	public String toString() {
-		String raw = rawContent == null ? "NULL" : Arrays.toString(Arrays
-				.copyOf(rawContent, 20));
-		String comp = compressedContent == null ? "NULL" : Arrays
-				.toString(Arrays.copyOf(compressedContent, 20));
+		String raw = rawContent == null ? "NULL" : Arrays.toString(Arrays.copyOf(rawContent, 20));
+		String comp = compressedContent == null ? "NULL" : Arrays.toString(Arrays.copyOf(compressedContent, 20));
 
-		return String
-				.format("method=%d, type=%s, id=%d, raw size=%d, compressed size=%d, raw=%s, comp=%s.",
-						method, contentType.name(), contentId, rawContentSize,
-						compressedContentSize, raw, comp);
+		return String.format("method=%d, type=%s, id=%d, raw size=%d, compressed size=%d, raw=%s, comp=%s.", method,
+				contentType.name(), contentId, rawContentSize, compressedContentSize, raw, comp);
 	}
 
 	public boolean isCompressed() {
@@ -99,9 +94,9 @@ public class Block {
 			uncompress();
 		return rawContent;
 	}
-	
-	public int getRawContentSize () {
-		return rawContentSize ;
+
+	public int getRawContentSize() {
+		return rawContentSize;
 	}
 
 	public void setCompressedContent(byte[] compressed) {
@@ -157,8 +152,7 @@ public class Block {
 			}
 			break;
 		default:
-			throw new RuntimeException("Unknown block compression method: "
-					+ method.name());
+			throw new RuntimeException("Unknown block compression method: " + method.name());
 		}
 	}
 

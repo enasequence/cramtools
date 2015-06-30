@@ -112,8 +112,7 @@ public class IOUtils {
 		}
 	};
 
-	public final static byte[] readFully(InputStream is, int len)
-			throws IOException {
+	public final static byte[] readFully(InputStream is, int len) throws IOException {
 		byte[] b = new byte[len];
 		int off = 0;
 		if (len < 0)
@@ -129,8 +128,7 @@ public class IOUtils {
 		return b;
 	}
 
-	public final static void readFully(InputStream is, byte b[], int off,
-			int len) throws IOException {
+	public final static void readFully(InputStream is, byte b[], int off, int len) throws IOException {
 		if (len < 0)
 			throw new IndexOutOfBoundsException();
 		int n = 0;

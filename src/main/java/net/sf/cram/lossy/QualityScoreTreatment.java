@@ -25,8 +25,7 @@ public class QualityScoreTreatment {
 	}
 
 	public static QualityScoreTreatment preserve() {
-		return new QualityScoreTreatment(
-				QualityScoreTreatmentType.PRESERVE, 40);
+		return new QualityScoreTreatment(QualityScoreTreatmentType.PRESERVE, 40);
 	}
 
 	public static QualityScoreTreatment drop() {
@@ -34,12 +33,11 @@ public class QualityScoreTreatment {
 	}
 
 	public static QualityScoreTreatment bin(int bins) {
-		return new QualityScoreTreatment(QualityScoreTreatmentType.BIN,
-				bins);
+		return new QualityScoreTreatment(QualityScoreTreatmentType.BIN, bins);
 	}
-	
+
 	@Override
 	public String toString() {
-		return String.format("[%s%d]", type.name(), param) ;
+		return String.format("[%s%d]", type.name(), param);
 	}
 }

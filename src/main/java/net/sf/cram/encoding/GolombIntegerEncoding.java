@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -32,10 +31,10 @@ public class GolombIntegerEncoding implements Encoding<Integer> {
 
 	public GolombIntegerEncoding() {
 	}
-	
+
 	public GolombIntegerEncoding(int m) {
 		this.m = m;
-		this.offset = 0 ;
+		this.offset = 0;
 	}
 
 	@Override
@@ -46,14 +45,14 @@ public class GolombIntegerEncoding implements Encoding<Integer> {
 	public static EncodingParams toParam(int m) {
 		GolombIntegerEncoding e = new GolombIntegerEncoding();
 		e.m = m;
-		e.offset = 0 ;
+		e.offset = 0;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
-	
+
 	public static EncodingParams toParam(int m, int offset) {
 		GolombIntegerEncoding e = new GolombIntegerEncoding();
 		e.m = m;
-		e.offset = offset ;
+		e.offset = offset;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
@@ -70,7 +69,7 @@ public class GolombIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public void fromByteArray(byte[] data) {
-		ByteBuffer buf = ByteBuffer.wrap(data) ;
+		ByteBuffer buf = ByteBuffer.wrap(data);
 		offset = ByteBufferUtils.readUnsignedITF8(buf);
 		m = ByteBufferUtils.readUnsignedITF8(buf);
 	}

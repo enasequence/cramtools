@@ -43,13 +43,13 @@ public class BaseCategory {
 	public static BaseCategory lower_than_coverage(int coverage) {
 		return new BaseCategory(BaseCategoryType.LOWER_COVERAGE, coverage);
 	};
-	
+
 	public static BaseCategory insertion() {
 		return new BaseCategory(BaseCategoryType.INSERTION, -1);
 	};
-	
+
 	@Override
 	public String toString() {
-		return String.format("[%s%d]", type.name(), param) ;
+		return String.format("[%s%d]", type.name(), param);
 	}
 }

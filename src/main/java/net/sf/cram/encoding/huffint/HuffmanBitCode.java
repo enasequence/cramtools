@@ -21,9 +21,9 @@ class HuffmanBitCode {
 	int bitCode;
 	int bitLentgh;
 	int value;
-	
+
 	@Override
 	public String toString() {
-		return value + ":\t" + IOUtils.toBitString(bitCode).substring(32-bitLentgh)  + " " + bitCode;
+		return value + ":\t" + IOUtils.toBitString(bitCode).substring(32 - bitLentgh) + " " + bitCode;
 	}
 }

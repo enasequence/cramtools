@@ -149,8 +149,7 @@ public class Template {
 		public long counter = 0;
 		public long min = 0;
 
-		private ByteArrayHashWrapper tmpRemoveWrapper = new ByteArrayHashWrapper(
-				new byte[0]);
+		private ByteArrayHashWrapper tmpRemoveWrapper = new ByteArrayHashWrapper(new byte[0]);
 
 		public Template add(byte[] name, byte[] bases, byte[] scores) {
 			ByteArrayHashWrapper w = new ByteArrayHashWrapper(name);
@@ -211,9 +210,7 @@ public class Template {
 			} else {
 				System.out.println("incomplete");
 				if (hash.map.size() > maxHashMapSize) {
-					List<Template> list = hash
-							.purgeUpto((hash.counter - hash.min) / 2 + hash.min
-									+ 1);
+					List<Template> list = hash.purgeUpto((hash.counter - hash.min) / 2 + hash.min + 1);
 					if (!list.isEmpty())
 						giveupIncomplete(list);
 				}
@@ -237,13 +234,13 @@ public class Template {
 		}
 		Collections.shuffle(list);
 
-		final AtomicInteger counter = new AtomicInteger(0) ;
-		TemplateAssembler a = new TemplateAssembler(4*max) {
+		final AtomicInteger counter = new AtomicInteger(0);
+		TemplateAssembler a = new TemplateAssembler(4 * max) {
 
 			@Override
 			protected void templateComplete(Template t) {
 				System.out.println("template complete: " + new String(t.name));
-				counter.incrementAndGet() ;
+				counter.incrementAndGet();
 			}
 
 			@Override
@@ -265,7 +262,7 @@ public class Template {
 
 		for (byte[] name : list)
 			a.addSegment(name, "A".getBytes(), "Q".getBytes());
-		
+
 		System.out.println("Finishing, complete=" + counter.get());
 		a.finish();
 	}

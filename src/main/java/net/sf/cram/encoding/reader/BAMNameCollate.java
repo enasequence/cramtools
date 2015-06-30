@@ -72,8 +72,7 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 	}
 
 	public String report() {
-		return String.format("ready: %d, kicked %d, total: %d.", ready, kicked,
-				total);
+		return String.format("ready: %d, kicked %d, total: %d.", ready, kicked, total);
 	}
 
 	private static Log log = Log.getInstance(BAMNameCollate.class);
@@ -84,8 +83,7 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Cram2Fastq.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Cram2Fastq.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -95,8 +93,7 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -112,39 +109,28 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 
 		long maxRecords = params.maxRecords;
 
-		File overspillFile = new File(params.file.getAbsolutePath().replaceAll(
-				"\\.bam$", ".tmp.bam"));
-		File file0 = new File(params.file.getAbsolutePath().replaceAll(
-				"\\.bam$", ".read0.bam"));
-		File file1 = new File(params.file.getAbsolutePath().replaceAll(
-				"\\.bam$", ".read1.bam"));
-		File file2 = new File(params.file.getAbsolutePath().replaceAll(
-				"\\.bam$", ".read2.bam"));
+		File overspillFile = new File(params.file.getAbsolutePath().replaceAll("\\.bam$", ".tmp.bam"));
+		File file0 = new File(params.file.getAbsolutePath().replaceAll("\\.bam$", ".read0.bam"));
+		File file1 = new File(params.file.getAbsolutePath().replaceAll("\\.bam$", ".read1.bam"));
+		File file2 = new File(params.file.getAbsolutePath().replaceAll("\\.bam$", ".read2.bam"));
 
 		SAMFileReader reader = new SAMFileReader(params.file);
 		reader.getFileHeader().setSortOrder(SortOrder.unsorted);
 
 		BAMNameCollate collate = new BAMNameCollate();
 		collate.writers = new SAMFileWriter[3];
-		if (params.compression < Deflater.NO_COMPRESSION
-				|| params.compression > Deflater.BEST_COMPRESSION) {
-			System.err
-					.println("Invalid compression level, expecting an integer from 0 to 9. ");
+		if (params.compression < Deflater.NO_COMPRESSION || params.compression > Deflater.BEST_COMPRESSION) {
+			System.err.println("Invalid compression level, expecting an integer from 0 to 9. ");
 			System.exit(1);
 		}
-		BlockCompressedOutputStream
-				.setDefaultCompressionLevel(params.compression);
+		BlockCompressedOutputStream.setDefaultCompressionLevel(params.compression);
 		SAMFileWriterFactory writerFactory = new SAMFileWriterFactory();
 		writerFactory.setUseAsyncIo(true);
 		writerFactory.setAsyncOutputBufferSize(1024 * 100);
-		collate.writers[0] = writerFactory.makeBAMWriter(
-				reader.getFileHeader(), false, file0);
-		collate.writers[1] = writerFactory.makeBAMWriter(
-				reader.getFileHeader(), false, file1);
-		collate.writers[2] = writerFactory.makeBAMWriter(
-				reader.getFileHeader(), false, file2);
-		collate.overspillWriter = writerFactory.makeBAMWriter(
-				reader.getFileHeader(), false, overspillFile);
+		collate.writers[0] = writerFactory.makeBAMWriter(reader.getFileHeader(), false, file0);
+		collate.writers[1] = writerFactory.makeBAMWriter(reader.getFileHeader(), false, file1);
+		collate.writers[2] = writerFactory.makeBAMWriter(reader.getFileHeader(), false, file2);
+		collate.overspillWriter = writerFactory.makeBAMWriter(reader.getFileHeader(), false, overspillFile);
 
 		long time = System.currentTimeMillis();
 		long total = 0;
@@ -172,8 +158,7 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 			reader = new SAMFileReader(overspillFile);
 			SAMFileHeader header = reader.getFileHeader().clone();
 			header.setSortOrder(SortOrder.queryname);
-			SAMFileWriter writer = writerFactory.makeBAMWriter(header, false,
-					sorted);
+			SAMFileWriter writer = writerFactory.makeBAMWriter(header, false, sorted);
 
 			long overfill = 0;
 			System.out.println("Sorting overfill...");
@@ -200,10 +185,8 @@ public class BAMNameCollate extends NameCollate<BAMRead> {
 				aftersort++;
 				if (r1.getReadName().equals(r2.getReadName())) {
 					aftersortMatch++;
-					collate.writers[collate.getStreamIndex(r1)]
-							.addAlignment(r1);
-					collate.writers[collate.getStreamIndex(r2)]
-							.addAlignment(r2);
+					collate.writers[collate.getStreamIndex(r1)].addAlignment(r1);
+					collate.writers[collate.getStreamIndex(r2)].addAlignment(r2);
 					if (!iterator.hasNext())
 						break;
 					r1 = iterator.next();

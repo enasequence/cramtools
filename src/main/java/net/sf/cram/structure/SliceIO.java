@@ -73,12 +73,10 @@ public class SliceIO {
 
 	public void createSliceHeaderBlock(Slice s) throws IOException {
 		byte[] rawContent = createSliceHeaderBlockContent(s);
-		s.headerBlock = new Block(BlockCompressionMethod.RAW,
-				BlockContentType.MAPPED_SLICE, 0, rawContent, null);
+		s.headerBlock = new Block(BlockCompressionMethod.RAW, BlockContentType.MAPPED_SLICE, 0, rawContent, null);
 	}
 
-	public void readSliceBlocks(Slice s, boolean uncompressBlocks,
-			InputStream is) throws IOException {
+	public void readSliceBlocks(Slice s, boolean uncompressBlocks, InputStream is) throws IOException {
 		s.external = new HashMap<Integer, Block>();
 		for (int i = 0; i < s.nofBlocks; i++) {
 			Block b1 = new Block(is, true, uncompressBlocks);
@@ -94,17 +92,14 @@ public class SliceIO {
 				break;
 
 			default:
-				throw new RuntimeException(
-						"Not a slice block, content type id "
-								+ b1.contentType.name());
+				throw new RuntimeException("Not a slice block, content type id " + b1.contentType.name());
 			}
 		}
 	}
 
 	public void write(Slice s, OutputStream os) throws IOException {
 
-		s.nofBlocks = 1 + s.external.size() + (s.embeddedRefBlock == null ? 0
-				: 1);
+		s.nofBlocks = 1 + s.external.size() + (s.embeddedRefBlock == null ? 0 : 1);
 
 		{
 			s.contentIDs = new int[s.external.size()];

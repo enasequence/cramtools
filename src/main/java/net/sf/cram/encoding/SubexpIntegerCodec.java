@@ -20,14 +20,13 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class SubexpIntegerCodec extends AbstractBitCodec<Integer> {
 	private int offset = 0;
 	private int k = 2;
 	private boolean unaryBit = true;
-	
+
 	public SubexpIntegerCodec(int offset, int k) {
-		this (offset, k, true) ;
+		this(offset, k, true);
 	}
 
 	public SubexpIntegerCodec(int offset, int k, boolean unaryBit) {
@@ -123,7 +122,7 @@ public class SubexpIntegerCodec extends AbstractBitCodec<Integer> {
 
 	@Override
 	public Integer read(BitInputStream bis, int len) throws IOException {
-		throw new RuntimeException("Not implemented.") ;
+		throw new RuntimeException("Not implemented.");
 	}
 
 }

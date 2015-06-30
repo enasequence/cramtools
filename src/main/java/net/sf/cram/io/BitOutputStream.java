@@ -38,5 +38,5 @@ public interface BitOutputStream {
 	public void write(byte[] data) throws IOException;
 
 	public void write(byte b) throws IOException;
-	
+
 }

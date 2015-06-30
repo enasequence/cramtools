@@ -43,8 +43,7 @@ public class RefRepo {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ RefRepo.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + RefRepo.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -54,8 +53,7 @@ public class RefRepo {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -148,8 +146,7 @@ public class RefRepo {
 		public List<Entry> call() throws Exception {
 			List<Entry> list = new ArrayList<RefRepo.Entry>();
 
-			ReferenceSequenceFile rsFile = ReferenceSequenceFileFactory
-					.getReferenceSequenceFile(file);
+			ReferenceSequenceFile rsFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(file);
 
 			ReferenceSequence sequence = null;
 			while ((sequence = rsFile.nextSequence()) != null) {
@@ -194,8 +191,7 @@ public class RefRepo {
 				continue;
 			}
 
-			if (file.getName().endsWith(".fasta")
-					|| file.getName().endsWith(".fa")) {
+			if (file.getName().endsWith(".fasta") || file.getName().endsWith(".fa")) {
 				set.add(file.getAbsolutePath());
 			}
 		}
@@ -207,8 +203,7 @@ public class RefRepo {
 	private static Map<String, Entry> map = new HashMap<String, RefRepo.Entry>();
 
 	private static Entry parse(String line) {
-		Pattern pattern = Pattern
-				.compile("^@SQ\tSN:(\\w+)\tLN:(\\d+)\tUR:(\\w+)\tM5:([a-z0-9]+)$");
+		Pattern pattern = Pattern.compile("^@SQ\tSN:(\\w+)\tLN:(\\d+)\tUR:(\\w+)\tM5:([a-z0-9]+)$");
 		Matcher m = pattern.matcher(line);
 		if (!m.matches())
 			throw new RuntimeException("Improper format: " + line);
@@ -244,8 +239,7 @@ public class RefRepo {
 
 		@Override
 		public String toString() {
-			return String.format("@SQ\tSN:%s\tLN:%d\tUR:%s\tM5:%s", name,
-					length, file, md5);
+			return String.format("@SQ\tSN:%s\tLN:%d\tUR:%s\tM5:%s", name, length, file, md5);
 		}
 	}
 

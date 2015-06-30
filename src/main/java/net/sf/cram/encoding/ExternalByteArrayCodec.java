@@ -38,8 +38,7 @@ public class ExternalByteArrayCodec extends AbstractBitCodec<byte[]> {
 	}
 
 	@Override
-	public void readInto(BitInputStream bis, byte[] array, int offset,
-			int valueLen) throws IOException {
+	public void readInto(BitInputStream bis, byte[] array, int offset, int valueLen) throws IOException {
 		IOUtils.readFully(is, array, offset, valueLen);
 	}
 

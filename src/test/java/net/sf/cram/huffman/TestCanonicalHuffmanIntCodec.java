@@ -34,9 +34,9 @@ public class TestCanonicalHuffmanIntCodec {
 
 	@Test
 	public void test() throws IOException {
-		int size = 100000 ;
-		
-		long time5 = System.nanoTime() ;
+		int size = 100000;
+
+		long time5 = System.nanoTime();
 		CompressionHeaderFactory.HuffmanParamsCalculator cal = new HuffmanParamsCalculator();
 		for (int i = 0; i < size; i++) {
 			cal.add(ReadTag.nameType3BytesToInt("OQ", 'Z'));
@@ -57,14 +57,13 @@ public class TestCanonicalHuffmanIntCodec {
 
 		cal.calculate();
 
-		CanonicalHuffmanIntegerCodec c = new CanonicalHuffmanIntegerCodec(
-				cal.values(), cal.bitLens());
-		long time6 = System.nanoTime() ;
+		CanonicalHuffmanIntegerCodec c = new CanonicalHuffmanIntegerCodec(cal.values(), cal.bitLens());
+		long time6 = System.nanoTime();
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		DefaultBitOutputStream bos = new DefaultBitOutputStream(baos);
-		
-		long time1=System.nanoTime() ;
+
+		long time1 = System.nanoTime();
 		for (int i = 0; i < size; i++) {
 			for (int b : cal.values()) {
 				c.write(bos, b);
@@ -72,12 +71,12 @@ public class TestCanonicalHuffmanIntCodec {
 		}
 
 		bos.close();
-		long time2=System.nanoTime() ;
+		long time2 = System.nanoTime();
 
 		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
 		DefaultBitInputStream bis = new DefaultBitInputStream(bais);
 
-		long time3=System.nanoTime() ;
+		long time3 = System.nanoTime();
 		for (int i = 0; i < size; i++) {
 			for (int b : cal.values()) {
 				int v = c.read(bis);
@@ -85,8 +84,10 @@ public class TestCanonicalHuffmanIntCodec {
 					fail("Mismatch: " + v + " vs " + b);
 			}
 		}
-		long time4=System.nanoTime() ;
-		
-		System.out.printf("Size: %d bytes, bits per value: %.2f, create time %dms, write time %d ms, read time %d ms.", baos.size(), 8f*baos.size()/size/cal.values().length, (time6-time5)/1000000, (time2-time1)/1000000, (time4-time3)/1000000);
+		long time4 = System.nanoTime();
+
+		System.out.printf("Size: %d bytes, bits per value: %.2f, create time %dms, write time %d ms, read time %d ms.",
+				baos.size(), 8f * baos.size() / size / cal.values().length, (time6 - time5) / 1000000,
+				(time2 - time1) / 1000000, (time4 - time3) / 1000000);
 	}
 }

@@ -26,8 +26,7 @@ public interface BitCodec<T> {
 
 	public T read(BitInputStream bis, int valueLen) throws IOException;
 
-	public void readInto(BitInputStream bis, byte[] array, int offset,
-			int valueLen) throws IOException;
+	public void readInto(BitInputStream bis, byte[] array, int offset, int valueLen) throws IOException;
 
 	public void skip(BitInputStream bis) throws IOException;
 

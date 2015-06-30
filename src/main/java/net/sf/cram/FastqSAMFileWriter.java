@@ -32,15 +32,13 @@ public class FastqSAMFileWriter implements SAMFileWriter {
 	private FileOutputStream fos1;
 	private FileOutputStream fos2;
 
-	public FastqSAMFileWriter(PrintStream s1, PrintStream s2,
-			SAMFileHeader header) {
+	public FastqSAMFileWriter(PrintStream s1, PrintStream s2, SAMFileHeader header) {
 		this.s1 = s1;
 		this.s2 = s2;
 		this.header = header;
 	}
 
-	public FastqSAMFileWriter(String baseFileName, boolean gziped,
-			SAMFileHeader header) throws IOException {
+	public FastqSAMFileWriter(String baseFileName, boolean gziped, SAMFileHeader header) throws IOException {
 		File f1 = new File(baseFileName + "_1.fq" + (gziped ? ".gz" : ""));
 		File f2 = new File(baseFileName + "_2.fq" + (gziped ? ".gz" : ""));
 
@@ -48,10 +46,8 @@ public class FastqSAMFileWriter implements SAMFileWriter {
 		fos2 = new FileOutputStream(f2);
 
 		if (gziped) {
-			this.s1 = new PrintStream(new BufferedOutputStream(
-					new GZIPOutputStream(fos1)));
-			this.s2 = new PrintStream(new BufferedOutputStream(
-					new GZIPOutputStream(fos2)));
+			this.s1 = new PrintStream(new BufferedOutputStream(new GZIPOutputStream(fos1)));
+			this.s2 = new PrintStream(new BufferedOutputStream(new GZIPOutputStream(fos2)));
 		} else {
 			this.s1 = new PrintStream(new BufferedOutputStream(fos1));
 			this.s2 = new PrintStream(new BufferedOutputStream(fos2));
@@ -63,8 +59,7 @@ public class FastqSAMFileWriter implements SAMFileWriter {
 	@Override
 	public void addAlignment(SAMRecord alignment) {
 		PrintStream ps = s1;
-		if (s2 != null && alignment.getReadPairedFlag()
-				&& alignment.getFirstOfPairFlag())
+		if (s2 != null && alignment.getReadPairedFlag() && alignment.getFirstOfPairFlag())
 			ps = s2;
 
 		printFastq(ps, alignment);

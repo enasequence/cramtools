@@ -35,11 +35,11 @@ public class TestCramHeader {
 		InputStream stream = getClass().getResourceAsStream(cramPath);
 		assertNotNull("CRAM file not found: " + cramPath, stream);
 
-		CramHeader cramHeader = CramIO.readCramHeader(stream);		
+		CramHeader cramHeader = CramIO.readCramHeader(stream);
 		assertNotNull(cramHeader);
-		assertEquals(cramHeader.majorVersion, 2) ;
-		assertEquals(cramHeader.minorVersion, 0) ;
-		assertNotNull(cramHeader.samFileHeader) ;
+		assertEquals(cramHeader.majorVersion, 2);
+		assertEquals(cramHeader.minorVersion, 0);
+		assertNotNull(cramHeader.samFileHeader);
 	}
 
 }

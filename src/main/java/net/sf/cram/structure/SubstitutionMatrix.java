@@ -34,9 +34,9 @@ public class SubstitutionMatrix {
 		ORDER['T'] = 3;
 		ORDER['N'] = 4;
 	}
-	
-	private static Log log = Log.getInstance(SubstitutionMatrix.class) ;
-	
+
+	private static Log log = Log.getInstance(SubstitutionMatrix.class);
+
 	private byte[] bytes = new byte[5];
 	private byte[][] codes = new byte[255][255];
 	private byte[][] bases = new byte[255][255];
@@ -57,23 +57,23 @@ public class SubstitutionMatrix {
 				bases[BASES_LC[i]][codes[r][b]] = b;
 			}
 		}
-		
-		dump() ;
+
+		dump();
 	}
-	
-	public void dump () {
-		log.debug ("Subs matrix: " + Arrays.toString(bytes) + ": " + IOUtils.toBitString(bytes));
-		
-		StringBuffer sb = new StringBuffer("Subs matrix decoded: ") ;
-		for (byte r:"ACGTN".getBytes()) {
-			sb.append((char)r);
+
+	public void dump() {
+		log.debug("Subs matrix: " + Arrays.toString(bytes) + ": " + IOUtils.toBitString(bytes));
+
+		StringBuffer sb = new StringBuffer("Subs matrix decoded: ");
+		for (byte r : "ACGTN".getBytes()) {
+			sb.append((char) r);
 			sb.append(":");
-			for (int i=0; i<4; i++) {
-				sb.append((char)bases[r][i]);
+			for (int i = 0; i < 4; i++) {
+				sb.append((char) bases[r][i]);
 			}
-			sb.append("\t") ;
+			sb.append("\t");
 		}
-		log.debug(sb.toString()) ;
+		log.debug(sb.toString());
 	}
 
 	public SubstitutionMatrix(byte[] matrix) {
@@ -82,45 +82,45 @@ public class SubstitutionMatrix {
 		for (int i = 0; i < bases.length; i++)
 			Arrays.fill(bases[i], (byte) 'N');
 
-		bases['A'][(bytes[0] >> 6) & 3] = 'C' ;
-		bases['A'][(bytes[0] >> 4) & 3] = 'G' ;
-		bases['A'][(bytes[0] >> 2) & 3] = 'T' ;
-		bases['A'][(bytes[0] >> 0) & 3] = 'N' ;
+		bases['A'][(bytes[0] >> 6) & 3] = 'C';
+		bases['A'][(bytes[0] >> 4) & 3] = 'G';
+		bases['A'][(bytes[0] >> 2) & 3] = 'T';
+		bases['A'][(bytes[0] >> 0) & 3] = 'N';
 		for (int i = 0; i < 4; i++)
 			bases['a'][i] = bases['A'][i];
 
-		bases['C'][(bytes[1] >> 6) & 3] = 'A' ;
-		bases['C'][(bytes[1] >> 4) & 3] = 'G' ;
-		bases['C'][(bytes[1] >> 2) & 3] = 'T' ;
-		bases['C'][(bytes[1] >> 0) & 3] = 'N' ;
+		bases['C'][(bytes[1] >> 6) & 3] = 'A';
+		bases['C'][(bytes[1] >> 4) & 3] = 'G';
+		bases['C'][(bytes[1] >> 2) & 3] = 'T';
+		bases['C'][(bytes[1] >> 0) & 3] = 'N';
 		for (int i = 0; i < 4; i++)
 			bases['c'][i] = bases['C'][i];
 
-		bases['G'][(bytes[2] >> 6) & 3] = 'A' ;
-		bases['G'][(bytes[2] >> 4) & 3] = 'C' ;
-		bases['G'][(bytes[2] >> 2) & 3] = 'T' ;
-		bases['G'][(bytes[2] >> 0) & 3] = 'N' ;
+		bases['G'][(bytes[2] >> 6) & 3] = 'A';
+		bases['G'][(bytes[2] >> 4) & 3] = 'C';
+		bases['G'][(bytes[2] >> 2) & 3] = 'T';
+		bases['G'][(bytes[2] >> 0) & 3] = 'N';
 		for (int i = 0; i < 4; i++)
 			bases['g'][i] = bases['G'][i];
 
-		bases['T'][(bytes[3] >> 6) & 3] = 'A' ;
-		bases['T'][(bytes[3] >> 4) & 3] = 'C' ;
-		bases['T'][(bytes[3] >> 2) & 3] = 'G' ;
-		bases['T'][(bytes[3] >> 0) & 3] = 'N' ;
+		bases['T'][(bytes[3] >> 6) & 3] = 'A';
+		bases['T'][(bytes[3] >> 4) & 3] = 'C';
+		bases['T'][(bytes[3] >> 2) & 3] = 'G';
+		bases['T'][(bytes[3] >> 0) & 3] = 'N';
 		for (int i = 0; i < 4; i++)
 			bases['t'][i] = bases['T'][i];
 
-		bases['N'][(bytes[4] >> 6) & 3] = 'A' ;
-		bases['N'][(bytes[4] >> 4) & 3] = 'C' ;
-		bases['N'][(bytes[4] >> 2) & 3] = 'G' ;
-		bases['N'][(bytes[4] >> 0) & 3] = 'T' ;
+		bases['N'][(bytes[4] >> 6) & 3] = 'A';
+		bases['N'][(bytes[4] >> 4) & 3] = 'C';
+		bases['N'][(bytes[4] >> 2) & 3] = 'G';
+		bases['N'][(bytes[4] >> 0) & 3] = 'T';
 
 		for (byte refBase : BASES) {
 			for (byte code = 0; code < 4; code++)
 				codes[refBase][bases[refBase][code]] = code;
 		}
-		
-		dump() ;
+
+		dump();
 	}
 
 	public byte[] getEncodedMatrix() {
@@ -202,15 +202,13 @@ public class SubstitutionMatrix {
 	}
 
 	public static void main(String[] args) {
-		SubstitutionMatrix m = new SubstitutionMatrix(new byte[] { 27,
-				(byte) 228, 27, 27, 27 });
+		SubstitutionMatrix m = new SubstitutionMatrix(new byte[] { 27, (byte) 228, 27, 27, 27 });
 
 		for (byte refBase : BASES) {
 			for (byte base : BASES) {
 				if (refBase == base)
 					continue;
-				System.out.printf("Ref=%c, base=%c, code=%d\n", (char) refBase,
-						(char) base, m.code(refBase, base));
+				System.out.printf("Ref=%c, base=%c, code=%d\n", (char) refBase, (char) base, m.code(refBase, base));
 			}
 		}
 		System.out.println(Arrays.toString(m.bytes));
@@ -230,8 +228,7 @@ public class SubstitutionMatrix {
 			for (byte base : BASES) {
 				if (refBase == base)
 					continue;
-				System.out.printf("Ref=%c, base=%c, code=%d\n", (char) refBase,
-						(char) base, m.code(refBase, base));
+				System.out.printf("Ref=%c, base=%c, code=%d\n", (char) refBase, (char) base, m.code(refBase, base));
 			}
 		}
 		System.out.println(Arrays.toString(m.bytes));

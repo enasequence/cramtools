@@ -43,8 +43,7 @@ public class Dibify {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Dibify.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Dibify.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -54,8 +53,7 @@ public class Dibify {
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -68,8 +66,7 @@ public class Dibify {
 		}
 
 		if (params.referenceFasta != null)
-			System.setProperty("reference",
-					params.referenceFasta.getAbsolutePath());
+			System.setProperty("reference", params.referenceFasta.getAbsolutePath());
 
 		Log.setGlobalLogLevel(params.logLevel);
 
@@ -87,8 +84,7 @@ public class Dibify {
 			it = reader.query(query.sequence, query.start, query.end, false);
 		}
 
-		it = new BoundSAMRecordIterator(it, params.skipRecords,
-				params.skipRecords + params.maxRecords);
+		it = new BoundSAMRecordIterator(it, params.skipRecords, params.skipRecords + params.maxRecords);
 		SAMFieldSelector s = new SAMFieldSelector(params.fields);
 		SAMSubRecordStreamWriter writer = new SAMSubRecordStreamWriter();
 		writer.selector = s;
@@ -158,8 +154,7 @@ public class Dibify {
 		private Connection connection;
 		private String tableName;
 
-		public H2Writer(SAMFieldSelector selector, Connection connection,
-				String tableName) throws SQLException {
+		public H2Writer(SAMFieldSelector selector, Connection connection, String tableName) throws SQLException {
 			this.selector = selector;
 			this.connection = connection;
 			this.tableName = tableName;
@@ -175,22 +170,22 @@ public class Dibify {
 		public void write(SAMRecord record, long counter) {
 			values = selector.getValues(record, values);
 
-//			for (SAMRecordField f : SAMRecordField.SHARED) {
-//				if (f.type == FIELD_TYPE.TAG || !values.containsKey(f))
-//					continue;
-//
-//				Object value = values.remove(f);
-//				ps.print(SAMRecordField.toString(value));
-//			}
-//
-//			for (SAMRecordField f : values.keySet()) {
-//				Object value = values.get(f);
-//				ps.print(f.tagId);
-//				ps.print(':');
-//				ps.print(ReadTag.getTagValueType(value));
-//				ps.print(SAMRecordField.toString(value));
-//			}
-//			ps.print('\n');
+			// for (SAMRecordField f : SAMRecordField.SHARED) {
+			// if (f.type == FIELD_TYPE.TAG || !values.containsKey(f))
+			// continue;
+			//
+			// Object value = values.remove(f);
+			// ps.print(SAMRecordField.toString(value));
+			// }
+			//
+			// for (SAMRecordField f : values.keySet()) {
+			// Object value = values.get(f);
+			// ps.print(f.tagId);
+			// ps.print(':');
+			// ps.print(ReadTag.getTagValueType(value));
+			// ps.print(SAMRecordField.toString(value));
+			// }
+			// ps.print('\n');
 		}
 	}
 

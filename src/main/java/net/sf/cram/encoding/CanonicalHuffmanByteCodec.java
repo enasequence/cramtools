@@ -27,7 +27,6 @@ import java.util.TreeSet;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class CanonicalHuffmanByteCodec extends AbstractBitCodec<Byte> {
 
 	private TreeMap<Byte, HuffmanBitCode> codes;
@@ -121,16 +120,14 @@ public class CanonicalHuffmanByteCodec extends AbstractBitCodec<Byte> {
 				return result;
 			}
 		}
-		throw new RuntimeException("Bit code not found. Current state: "
-				+ bitsRead + " bits read, buf=" + buf);
+		throw new RuntimeException("Bit code not found. Current state: " + bitsRead + " bits read, buf=" + buf);
 	}
 
 	@Override
 	public long write(BitOutputStream bos, Byte object) throws IOException {
 		HuffmanBitCode bitCode = bitCodes[object];
 		if (bitCode == null)
-			throw new RuntimeException("Huffman code not found for value: "
-					+ object);
+			throw new RuntimeException("Huffman code not found for value: " + object);
 		bos.write(bitCode.bitCode, bitCode.bitLentgh);
 		return bitCode.bitLentgh;
 	}

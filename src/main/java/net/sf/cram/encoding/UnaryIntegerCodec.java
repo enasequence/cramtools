@@ -20,7 +20,6 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class UnaryIntegerCodec extends AbstractBitCodec<Integer> {
 	private boolean stopBit = false;
 	private int offset = 0;
@@ -48,12 +47,10 @@ public class UnaryIntegerCodec extends AbstractBitCodec<Integer> {
 	}
 
 	@Override
-	public final long write(BitOutputStream bos, Integer value)
-			throws IOException {
+	public final long write(BitOutputStream bos, Integer value) throws IOException {
 		int newValue = value + offset;
 		if (newValue < 0)
-			throw new IllegalArgumentException(
-					"Unary codec, negative values not allowed: " + newValue);
+			throw new IllegalArgumentException("Unary codec, negative values not allowed: " + newValue);
 
 		int bits = newValue + 1;
 

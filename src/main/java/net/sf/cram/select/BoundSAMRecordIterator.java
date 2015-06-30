@@ -24,8 +24,7 @@ class BoundSAMRecordIterator implements SAMRecordIterator {
 	private long firstRecord = 0, lastRecord = Long.MAX_VALUE;
 	private long counter = 0;
 
-	public BoundSAMRecordIterator(SAMRecordIterator delegate,
-			long firstRecord, long lastRecord) {
+	public BoundSAMRecordIterator(SAMRecordIterator delegate, long firstRecord, long lastRecord) {
 		this.delegate = delegate;
 		this.firstRecord = firstRecord;
 		this.lastRecord = lastRecord;
@@ -41,7 +40,7 @@ class BoundSAMRecordIterator implements SAMRecordIterator {
 		while (delegate.hasNext() && counter < firstRecord) {
 			next();
 		}
-		return counter < lastRecord && delegate.hasNext() ;
+		return counter < lastRecord && delegate.hasNext();
 	}
 
 	@Override
@@ -59,5 +58,5 @@ class BoundSAMRecordIterator implements SAMRecordIterator {
 	public SAMRecordIterator assertSorted(SortOrder sortOrder) {
 		return delegate.assertSorted(sortOrder);
 	}
-	
+
 }

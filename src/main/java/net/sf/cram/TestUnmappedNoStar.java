@@ -47,11 +47,9 @@ public class TestUnmappedNoStar {
 		if (query != null)
 			asq = new AlignmentSliceQuery(query);
 
-		File indexFile = query == null ? null : new File(
-				cramFile.getAbsolutePath() + ".bai");
+		File indexFile = query == null ? null : new File(cramFile.getAbsolutePath() + ".bai");
 
-		SAMFileReader
-				.setDefaultValidationStringency(ValidationStringency.STRICT);
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency.STRICT);
 		System.setProperty("reference", refFile.getAbsolutePath());
 		SAMFileReader reader = new SAMFileReader(cramFile, indexFile);
 
@@ -68,28 +66,23 @@ public class TestUnmappedNoStar {
 			if (!record.getReferenceName().equals(asq.sequence)) {
 				System.err.println("Wrong sequence found:");
 				System.err.println(record.getSAMString());
-				System.out.println("Problem found. Examined " + counter
-						+ " records. ");
+				System.out.println("Problem found. Examined " + counter + " records. ");
 				return;
 			}
 
 			boolean noStart_realRef = record.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START
-					&& !SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(record
-							.getReferenceName());
+					&& !SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(record.getReferenceName());
 			boolean realStart_noRef = record.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START
-					&& SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(record
-							.getReferenceName());
+					&& SAMRecord.NO_ALIGNMENT_REFERENCE_NAME.equals(record.getReferenceName());
 
 			if (noStart_realRef || realStart_noRef) {
 				System.err.println("Found invalid record:");
 				System.err.println(record.getSAMString());
-				System.out.println("Problem found. Examined " + counter
-						+ " records. ");
+				System.out.println("Problem found. Examined " + counter + " records. ");
 				return;
 			}
 		}
 
-		System.out.println("Problem not found. Examined " + counter
-				+ " records. ");
+		System.out.println("Problem not found. Examined " + counter + " records. ");
 	}
 }

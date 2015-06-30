@@ -31,7 +31,6 @@ public class InsertBase implements Serializable, ReadFeature {
 		this.base = base;
 	}
 
-
 	@Override
 	public byte getOperator() {
 		return operator;
@@ -63,7 +62,7 @@ public class InsertBase implements Serializable, ReadFeature {
 
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer().append((char)operator).append('@');
+		StringBuffer sb = new StringBuffer().append((char) operator).append('@');
 		sb.append(position);
 		sb.append('\\').appendCodePoint(base);
 		return sb.toString();

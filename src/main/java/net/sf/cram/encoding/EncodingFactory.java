@@ -19,8 +19,7 @@ import net.sf.cram.structure.EncodingID;
 
 public class EncodingFactory {
 
-	public <T> Encoding<T> createEncoding(DataSeriesType valueType,
-			EncodingID id) {
+	public <T> Encoding<T> createEncoding(DataSeriesType valueType, EncodingID id) {
 		switch (valueType) {
 		case BYTE:
 			switch (id) {

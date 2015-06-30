@@ -66,12 +66,10 @@ class Helper {
 		buildCodeBook();
 		buildCodes();
 
-		ArrayList<HuffmanBitCode> list = new ArrayList<HuffmanBitCode>(
-				codes.size());
+		ArrayList<HuffmanBitCode> list = new ArrayList<HuffmanBitCode>(codes.size());
 		list.addAll(codes.values());
 		Collections.sort(list, bitCodeComparator);
-		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list
-				.size()]);
+		sortedCodes = (HuffmanBitCode[]) list.toArray(new HuffmanBitCode[list.size()]);
 
 		sortedValues = Arrays.copyOf(values, values.length);
 		Arrays.sort(sortedValues);
@@ -147,8 +145,7 @@ class Helper {
 		int index = Arrays.binarySearch(sortedValues, value);
 		HuffmanBitCode code = sortedByValue[index];
 		if (code.value != value)
-			throw new RuntimeException(String.format(
-					"Searching for %d but found %s.", value, code.toString()));
+			throw new RuntimeException(String.format("Searching for %d but found %s.", value, code.toString()));
 		bos.write(code.bitCode, code.bitLentgh);
 		return code.bitLentgh;
 	}
@@ -179,8 +176,7 @@ class Helper {
 				if (index > -1 && sortedBitLensByBitCode[index] == len)
 					return sortedValuesByBitCode[index];
 
-				for (int j = i; sortedCodes[j + 1].bitLentgh == len
-						&& j < sortedCodes.length; j++)
+				for (int j = i; sortedCodes[j + 1].bitLentgh == len && j < sortedCodes.length; j++)
 					i++;
 			}
 
@@ -273,12 +269,9 @@ class Helper {
 		}
 		long time4 = System.nanoTime();
 
-		System.out
-				.printf("Size: %d bytes, bits per value: %.2f, create time %dms, write time %d ms, read time %d ms.",
-						baos.size(), 8f * baos.size() / size
-								/ cal.values().length,
-						(time6 - time5) / 1000000, (time2 - time1) / 1000000,
-						(time4 - time3) / 1000000);
+		System.out.printf("Size: %d bytes, bits per value: %.2f, create time %dms, write time %d ms, read time %d ms.",
+				baos.size(), 8f * baos.size() / size / cal.values().length, (time6 - time5) / 1000000,
+				(time2 - time1) / 1000000, (time4 - time3) / 1000000);
 	}
 
 }

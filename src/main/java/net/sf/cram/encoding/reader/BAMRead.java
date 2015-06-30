@@ -32,10 +32,9 @@ public class BAMRead implements IRead {
 		if (record.getReadName().length() != foe.getReadName().length())
 			return record.getReadName().length() - foe.getReadName().length();
 
-		for (int i = record.getReadName().length()-1; i >= 0; i--) {
+		for (int i = record.getReadName().length() - 1; i >= 0; i--) {
 			if (record.getReadName().charAt(i) != foe.getReadName().charAt(i))
-				return record.getReadName().charAt(i)
-						- foe.getReadName().charAt(i);
+				return record.getReadName().charAt(i) - foe.getReadName().charAt(i);
 		}
 
 		return 0;

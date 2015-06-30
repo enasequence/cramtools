@@ -26,5 +26,6 @@ import net.sf.cram.structure.EncodingKey;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataSeries {
 	EncodingKey key();
-	DataSeriesType type() ;
+
+	DataSeriesType type();
 }

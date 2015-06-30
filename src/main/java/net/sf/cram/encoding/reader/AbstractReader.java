@@ -88,7 +88,7 @@ public abstract class AbstractReader {
 
 	@DataSeries(key = EncodingKey.HC_HardClip, type = DataSeriesType.INT)
 	public DataReader<Integer> hardClipCodec;
-	
+
 	@DataSeries(key = EncodingKey.PD_padding, type = DataSeriesType.INT)
 	public DataReader<Integer> paddingCodec;
 

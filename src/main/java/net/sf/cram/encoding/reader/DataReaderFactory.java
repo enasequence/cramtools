@@ -40,13 +40,11 @@ public class DataReaderFactory {
 
 	private boolean collectStats = false;
 
-	public AbstractReader buildReader(AbstractReader reader,
-			BitInputStream bis, Map<Integer, InputStream> inputMap,
-			CompressionHeader h, int refId) throws IllegalArgumentException,
-			IllegalAccessException {
+	public AbstractReader buildReader(AbstractReader reader, BitInputStream bis, Map<Integer, InputStream> inputMap,
+			CompressionHeader h, int refId) throws IllegalArgumentException, IllegalAccessException {
 		reader.captureReadNames = h.readNamesIncluded;
 		reader.refId = refId;
-		reader.AP_delta = h.AP_seriesDelta ;
+		reader.AP_delta = h.AP_seriesDelta;
 
 		for (Field f : reader.getClass().getFields()) {
 			if (f.isAnnotationPresent(DataSeries.class)) {
@@ -56,8 +54,7 @@ public class DataReaderFactory {
 				if (h.eMap.get(key) == null) {
 					System.err.println("Encoding not found for key: " + key);
 				}
-				f.set(reader,
-						createReader(type, h.eMap.get(key), bis, inputMap));
+				f.set(reader, createReader(type, h.eMap.get(key), bis, inputMap));
 			}
 
 			if (f.isAnnotationPresent(DataSeriesMap.class)) {
@@ -67,9 +64,7 @@ public class DataReaderFactory {
 					IntHashMap map = new IntHashMap();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
-						DataReader<byte[]> tagReader = createReader(
-								DataSeriesType.BYTE_ARRAY, params, bis,
-								inputMap);
+						DataReader<byte[]> tagReader = createReader(DataSeriesType.BYTE_ARRAY, params, bis, inputMap);
 						map.put(key, tagReader);
 					}
 					f.set(reader, map);
@@ -81,34 +76,28 @@ public class DataReaderFactory {
 		return reader;
 	}
 
-	private <T> DataReader<T> createReader(DataSeriesType valueType,
-			EncodingParams params, BitInputStream bis,
+	private <T> DataReader<T> createReader(DataSeriesType valueType, EncodingParams params, BitInputStream bis,
 			Map<Integer, InputStream> inputMap) {
 		if (params.id == EncodingID.NULL)
-			return collectStats ? new DataReaderWithStats(
-					buildNullReader(valueType)) : buildNullReader(valueType);
+			return collectStats ? new DataReaderWithStats(buildNullReader(valueType)) : buildNullReader(valueType);
 
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
 		if (encoding == null)
-			throw new RuntimeException("Encoding not found for value type "
-					+ valueType.name() + ", id=" + params.id);
+			throw new RuntimeException("Encoding not found for value type " + valueType.name() + ", id=" + params.id);
 		encoding.fromByteArray(params.params);
 
-		return collectStats ? new DataReaderWithStats(new DefaultDataReader<T>(
-				encoding.buildCodec(inputMap, null), bis))
-				: new DefaultDataReader<T>(encoding.buildCodec(inputMap, null),
-						bis);
+		return collectStats ? new DataReaderWithStats(
+				new DefaultDataReader<T>(encoding.buildCodec(inputMap, null), bis)) : new DefaultDataReader<T>(
+				encoding.buildCodec(inputMap, null), bis);
 	}
 
 	private static <T> DataReader<T> buildNullReader(DataSeriesType valueType) {
 		switch (valueType) {
 		case BYTE:
-			return (DataReader<T>) new SingleValueReader<Byte>(new Byte(
-					(byte) 0));
+			return (DataReader<T>) new SingleValueReader<Byte>(new Byte((byte) 0));
 		case INT:
-			return (DataReader<T>) new SingleValueReader<Integer>(
-					new Integer(0));
+			return (DataReader<T>) new SingleValueReader<Integer>(new Integer(0));
 		case LONG:
 			return (DataReader<T>) new SingleValueReader<Long>(new Long(0));
 		case BYTE_ARRAY:
@@ -144,8 +133,7 @@ public class DataReaderFactory {
 		}
 
 		@Override
-		public void readByteArrayInto(byte[] dest, int offset, int len)
-				throws IOException {
+		public void readByteArrayInto(byte[] dest, int offset, int len) throws IOException {
 			codec.readInto(bis, dest, offset, len);
 		}
 	}
@@ -177,8 +165,7 @@ public class DataReaderFactory {
 		}
 
 		@Override
-		public void readByteArrayInto(byte[] dest, int offset, int len)
-				throws IOException {
+		public void readByteArrayInto(byte[] dest, int offset, int len) throws IOException {
 			if (byteValue != null)
 				for (int i = 0; i < len; i++)
 					dest[i + offset] = byteValue;
@@ -220,16 +207,15 @@ public class DataReaderFactory {
 		}
 
 		@Override
-		public void readByteArrayInto(byte[] dest, int offset, int len)
-				throws IOException {
+		public void readByteArrayInto(byte[] dest, int offset, int len) throws IOException {
 			long time = System.nanoTime();
 			delegate.readByteArrayInto(dest, offset, len);
 			nanos += System.nanoTime() - time;
 		}
 	}
 
-	public Map<String, DataReaderWithStats> getStats(CramRecordReader reader)
-			throws IllegalArgumentException, IllegalAccessException {
+	public Map<String, DataReaderWithStats> getStats(CramRecordReader reader) throws IllegalArgumentException,
+			IllegalAccessException {
 		Map<String, DataReaderWithStats> map = new TreeMap<String, DataReaderFactory.DataReaderWithStats>();
 		if (!collectStats)
 			return map;
@@ -246,8 +232,7 @@ public class DataReaderFactory {
 				DataSeriesMap dsm = f.getAnnotation(DataSeriesMap.class);
 				String name = dsm.name();
 				if ("TAG".equals(name)) {
-					Map<Integer, DataReader<byte[]>> tagMap = (Map<Integer, DataReader<byte[]>>) f
-							.get(reader);
+					Map<Integer, DataReader<byte[]>> tagMap = (Map<Integer, DataReader<byte[]>>) f.get(reader);
 					for (Integer key : tagMap.keySet()) {
 						String tag = ReadTag.intToNameType4Bytes(key);
 						map.put(tag, (DataReaderWithStats) tagMap.get(key));

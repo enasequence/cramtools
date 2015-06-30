@@ -23,5 +23,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataSeriesMap {
-	String name() default "TAG" ;
+	String name() default "TAG";
 }

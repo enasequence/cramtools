@@ -48,20 +48,17 @@ public class DecomposeBAM {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Bam2Cram.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
+	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
 		params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -109,12 +106,10 @@ public class DecomposeBAM {
 		for (Out out : map.values())
 			totalBytes += out.file.length();
 
-		log.info(String.format("Bases %d, bytes %d, b/b %.2f\n", bases,
-				totalBytes, 8f * totalBytes / bases));
+		log.info(String.format("Bases %d, bytes %d, b/b %.2f\n", bases, totalBytes, 8f * totalBytes / bases));
 	}
 
-	private static void writeTagValue(Map<String, Out> map, SAMTagAndValue tv)
-			throws IOException {
+	private static void writeTagValue(Map<String, Out> map, SAMTagAndValue tv) throws IOException {
 		String name = tv.tag;
 		char type = ReadTag.getTagValueType(tv.value);
 		byte[] value = ReadTag.writeSingleValue((byte) type, tv.value, false);
@@ -126,12 +121,10 @@ public class DecomposeBAM {
 			out.close();
 	}
 
-	private static void put(Map<String, Out> map, String name, String value)
-			throws IOException {
+	private static void put(Map<String, Out> map, String name, String value) throws IOException {
 		Out out = map.get(name);
 		if (out == null) {
-			out = new Out(name, params.arith, params.model, params.snappy,
-					params.raw);
+			out = new Out(name, params.arith, params.model, params.snappy, params.raw);
 			map.put(name, out);
 		}
 
@@ -142,8 +135,7 @@ public class DecomposeBAM {
 		private File file;
 		private OutputStream os;
 
-		public Out(String name, boolean arith, String modelName,
-				boolean snappy, boolean raw) throws IOException {
+		public Out(String name, boolean arith, String modelName, boolean snappy, boolean raw) throws IOException {
 			if (raw) {
 				this.file = new File(name + ".raw");
 				FileOutputStream fos = new FileOutputStream(this.file);
@@ -178,8 +170,7 @@ public class DecomposeBAM {
 			} else {
 				this.file = new File(name + ".gz");
 				FileOutputStream fos = new FileOutputStream(this.file);
-				GZIPOutputStream gos = new GZIPOutputStream(
-						new BufferedOutputStream(fos));
+				GZIPOutputStream gos = new GZIPOutputStream(new BufferedOutputStream(fos));
 				os = new BufferedOutputStream(gos);
 			}
 		}

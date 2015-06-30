@@ -44,8 +44,7 @@ public class CompressionHeaderBLock extends Block {
 		super(is, true, true);
 
 		if (contentType != BlockContentType.COMPRESSION_HEADER)
-			throw new RuntimeException("Content type does not match: "
-					+ contentType.name());
+			throw new RuntimeException("Content type does not match: " + contentType.name());
 
 		compressionHeader = new CompressionHeader();
 		compressionHeader.read(getRawContent());
