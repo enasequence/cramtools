@@ -46,8 +46,7 @@ public class GolombRiceIntegerCodecTest {
 	@Ignore
 	public void printCodes_1_to_256() throws IOException {
 		int golombRiceLogM = 2;
-		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
-				golombRiceLogM);
+		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(golombRiceLogM);
 		for (int i = 0; i < 256; i++) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			BitOutputStream bos = new DefaultBitOutputStream(baos);
@@ -59,9 +58,8 @@ public class GolombRiceIntegerCodecTest {
 			ByteArrayInputStream bais = new ByteArrayInputStream(buf);
 			BitInputStream bis = new DefaultBitInputStream(bais);
 			long number = codec.read(bis);
-			System.out.printf("%d: %d\t%s\t%d\t%s\n", i, number, IOUtils
-					.toBitString(buf).subSequence(0, len), len, IOUtils
-					.toBitString(buf));
+			System.out.printf("%d: %d\t%s\t%d\t%s\n", i, number, IOUtils.toBitString(buf).subSequence(0, len), len,
+					IOUtils.toBitString(buf));
 		}
 	}
 
@@ -70,8 +68,7 @@ public class GolombRiceIntegerCodecTest {
 		int value = 0;
 		long bitsLen = 3;
 		int golombRiceLogM = 2;
-		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
-				golombRiceLogM);
+		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(golombRiceLogM);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		BitOutputStream bos = new DefaultBitOutputStream(baos);
 		long len = codec.write(bos, value);
@@ -98,8 +95,7 @@ public class GolombRiceIntegerCodecTest {
 		int value = 1;
 		long bitsLen = 3;
 		int golombRiceLogM = 2;
-		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
-				golombRiceLogM);
+		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(golombRiceLogM);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		BitOutputStream bos = new DefaultBitOutputStream(baos);
 		long len = codec.write(bos, value);
@@ -126,8 +122,7 @@ public class GolombRiceIntegerCodecTest {
 		int value = 20;
 		long bitsLen = 8;
 		int golombRiceLogM = 2;
-		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
-				golombRiceLogM);
+		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(golombRiceLogM);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		BitOutputStream bos = new DefaultBitOutputStream(baos);
 		long len = codec.write(bos, value);
@@ -154,8 +149,7 @@ public class GolombRiceIntegerCodecTest {
 		int value = 255;
 		long bitsLen = 66;
 		int golombRiceLogM = 2;
-		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(
-				golombRiceLogM);
+		GolombRiceIntegerCodec codec = new GolombRiceIntegerCodec(golombRiceLogM);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		BitOutputStream bos = new DefaultBitOutputStream(baos);
 		long len = codec.write(bos, value);
@@ -171,14 +165,10 @@ public class GolombRiceIntegerCodecTest {
 		assertThat(number, is(value));
 
 		String bitsString = IOUtils.toBitString(buf);
-		assertThat(
-				bitsString,
-				equalTo("000000000000000000000000000000000000000000000000000000000000000111000000"));
+		assertThat(bitsString, equalTo("000000000000000000000000000000000000000000000000000000000000000111000000"));
 
 		String cutBitsString = bitsString.substring(0, (int) len);
-		assertThat(
-				cutBitsString,
-				equalTo("000000000000000000000000000000000000000000000000000000000000000111"));
+		assertThat(cutBitsString, equalTo("000000000000000000000000000000000000000000000000000000000000000111"));
 	}
 
 	@Test(timeout = 300)

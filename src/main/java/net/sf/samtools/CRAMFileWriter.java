@@ -45,8 +45,7 @@ public class CRAMFileWriter extends SAMFileWriterImpl {
 		return false;
 	}
 
-	protected void flushContainer() throws IllegalArgumentException,
-			IllegalAccessException, IOException {
+	protected void flushContainer() throws IllegalArgumentException, IllegalAccessException, IOException {
 		Container container = containerFactory.buildContainer(records);
 		records.clear();
 		CramIO.writeContainer(container, os);
@@ -61,16 +60,14 @@ public class CRAMFileWriter extends SAMFileWriterImpl {
 				throw new RuntimeException(e);
 			}
 
-		CramRecord cramRecord = sam2CramRecordFactory
-				.createCramRecord(alignment);
+		CramRecord cramRecord = sam2CramRecordFactory.createCramRecord(alignment);
 		records.add(cramRecord);
 	}
 
 	@Override
 	protected void writeHeader(String textHeader) {
 		SAMFileHeader header = new SAMFileHeader();
-		containerFactory = new ContainerFactory(header, recordsPerSlice,
-				preserveReadNames);
+		containerFactory = new ContainerFactory(header, recordsPerSlice, preserveReadNames);
 
 		header.setTextHeader(textHeader);
 		CramHeader cramHeader = new CramHeader(2, 0, fileName, header);

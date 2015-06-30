@@ -28,19 +28,16 @@ public class ReferenceTracks {
 	private final byte[] bases;
 	private final short[] coverage;
 	private final short[] mismatches;
-	
-	
-	public ReferenceTracks(int sequenceId, String sequenceName,
-			byte[] reference) {
-		this (sequenceId, sequenceName, reference, 1000000) ;
+
+	public ReferenceTracks(int sequenceId, String sequenceName, byte[] reference) {
+		this(sequenceId, sequenceName, reference, 1000000);
 	}
-	
-	public ReferenceTracks(int sequenceId, String sequenceName,
-			byte[] reference, int windowSize) {
+
+	public ReferenceTracks(int sequenceId, String sequenceName, byte[] reference, int windowSize) {
 		this.sequenceId = sequenceId;
 		this.sequenceName = sequenceName;
 		this.reference = reference;
-		
+
 		bases = new byte[Math.min(windowSize, reference.length)];
 		coverage = new short[Math.min(windowSize, reference.length)];
 		mismatches = new short[Math.min(windowSize, reference.length)];
@@ -71,8 +68,7 @@ public class ReferenceTracks {
 
 	public void ensure(int start, int end) {
 		if (end - start > bases.length)
-			throw new RuntimeException("Window is too small for start " + start
-					+ " end " + end);
+			throw new RuntimeException("Window is too small for start " + start + " end " + end);
 		if (position < start)
 			moveForwardTo(start);
 	}
@@ -86,12 +82,10 @@ public class ReferenceTracks {
 	 */
 	public void moveForwardTo(int newPos) {
 		if (newPos - 1 >= reference.length)
-			throw new RuntimeException("New position is beyond the reference: "
-					+ newPos);
+			throw new RuntimeException("New position is beyond the reference: " + newPos);
 
 		if (newPos < position)
-			throw new RuntimeException(
-					"Cannot shift to smaller position on the reference.");
+			throw new RuntimeException("Cannot shift to smaller position on the reference.");
 
 		if (newPos > reference.length - bases.length + 1)
 			newPos = reference.length - bases.length + 1;
@@ -99,8 +93,7 @@ public class ReferenceTracks {
 		if (newPos == position)
 			return;
 
-		System.arraycopy(reference, newPos - 1, bases, 0,
-				Math.min(bases.length, reference.length - newPos + 1));
+		System.arraycopy(reference, newPos - 1, bases, 0, Math.min(bases.length, reference.length - newPos + 1));
 
 		if (newPos > position && position + bases.length - newPos > 0) {
 			for (int i = 0; i < coverage.length; i++) {
@@ -121,16 +114,14 @@ public class ReferenceTracks {
 	}
 
 	public void reset() {
-		System.arraycopy(reference, position - 1, bases, 0,
-				Math.min(bases.length, reference.length - position + 1));
+		System.arraycopy(reference, position - 1, bases, 0, Math.min(bases.length, reference.length - position + 1));
 		Arrays.fill(coverage, (short) 0);
 		Arrays.fill(mismatches, (short) 0);
 	}
 
 	public void ensureRange(int start, int length) {
 		if (start < position)
-			throw new RuntimeException("Cannot move the window backwords: "
-					+ start);
+			throw new RuntimeException("Cannot move the window backwords: " + start);
 
 		if (start > position || start + length > position + bases.length)
 			moveForwardTo(start);

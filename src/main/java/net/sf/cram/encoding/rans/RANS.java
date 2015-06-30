@@ -23,8 +23,7 @@ public class RANS {
 	public static final int ORDER_BYTE_LENGTH = 1;
 	public static final int COMPRESSED_BYTE_LENGTH = 4;
 	public static final int RAW_BYTE_LENGTH = 4;
-	public static final int PREFIX_BYTE_LENGTH = ORDER_BYTE_LENGTH
-			+ COMPRESSED_BYTE_LENGTH + RAW_BYTE_LENGTH;
+	public static final int PREFIX_BYTE_LENGTH = ORDER_BYTE_LENGTH + COMPRESSED_BYTE_LENGTH + RAW_BYTE_LENGTH;
 	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
 	public static ByteBuffer uncompress(ByteBuffer in, ByteBuffer out) {
@@ -43,8 +42,7 @@ public class RANS {
 		else
 			out.limit(out_sz);
 		if (out.remaining() < out_sz)
-			throw new RuntimeException("Output buffer too small to fit "
-					+ out_sz + " bytes.");
+			throw new RuntimeException("Output buffer too small to fit " + out_sz + " bytes.");
 
 		switch (order) {
 		case ZERO:
@@ -76,8 +74,7 @@ public class RANS {
 		}
 	}
 
-	private static final ByteBuffer allocateIfNeeded(int in_size,
-			ByteBuffer out_buf) {
+	private static final ByteBuffer allocateIfNeeded(int in_size, ByteBuffer out_buf) {
 		int compressedSize = (int) (1.05 * in_size + 257 * 257 * 3 + 4);
 		if (out_buf == null)
 			return ByteBuffer.allocate(compressedSize);
@@ -87,8 +84,7 @@ public class RANS {
 		return out_buf;
 	}
 
-	private static final ByteBuffer encode_order0_way4(ByteBuffer in,
-			ByteBuffer out_buf) {
+	private static final ByteBuffer encode_order0_way4(ByteBuffer in, ByteBuffer out_buf) {
 		int in_size = in.remaining();
 		out_buf = allocateIfNeeded(in_size, out_buf);
 		int freqTableStart = PREFIX_BYTE_LENGTH;
@@ -103,13 +99,11 @@ public class RANS {
 		in.rewind();
 		int compressedBlob_size = E04.compress(in, syms, cp);
 
-		finilizeCompressed(0, out_buf, in_size, frequencyTable_size,
-				compressedBlob_size);
+		finilizeCompressed(0, out_buf, in_size, frequencyTable_size, compressedBlob_size);
 		return out_buf;
 	}
 
-	private static final ByteBuffer encode_order1_way4(ByteBuffer in,
-			ByteBuffer out_buf) {
+	private static final ByteBuffer encode_order1_way4(ByteBuffer in, ByteBuffer out_buf) {
 		int in_size = in.remaining();
 		out_buf = allocateIfNeeded(in_size, out_buf);
 		int freqTableStart = PREFIX_BYTE_LENGTH;
@@ -124,27 +118,23 @@ public class RANS {
 		in.rewind();
 		int compressedBlob_size = E14.compress(in, syms, cp);
 
-		finilizeCompressed(1, out_buf, in_size, frequencyTable_size,
-				compressedBlob_size);
+		finilizeCompressed(1, out_buf, in_size, frequencyTable_size, compressedBlob_size);
 		return out_buf;
 	}
 
-	private static final void finilizeCompressed(int order, ByteBuffer out_buf,
-			int in_size, int frequencyTable_size, int compressedBlob_size) {
-		out_buf.limit(PREFIX_BYTE_LENGTH + frequencyTable_size
-				+ compressedBlob_size);
+	private static final void finilizeCompressed(int order, ByteBuffer out_buf, int in_size, int frequencyTable_size,
+			int compressedBlob_size) {
+		out_buf.limit(PREFIX_BYTE_LENGTH + frequencyTable_size + compressedBlob_size);
 		out_buf.put(0, (byte) order);
 		out_buf.order(ByteOrder.LITTLE_ENDIAN);
 		int compressedSizeOffset = ORDER_BYTE_LENGTH;
-		out_buf.putInt(compressedSizeOffset, frequencyTable_size
-				+ compressedBlob_size);
+		out_buf.putInt(compressedSizeOffset, frequencyTable_size + compressedBlob_size);
 		int rawSizeOffset = ORDER_BYTE_LENGTH + COMPRESSED_BYTE_LENGTH;
 		out_buf.putInt(rawSizeOffset, in_size);
 		out_buf.rewind();
 	}
 
-	private static final ByteBuffer uncompress_order0_way4(ByteBuffer in,
-			ByteBuffer out) {
+	private static final ByteBuffer uncompress_order0_way4(ByteBuffer in, ByteBuffer out) {
 		in.order(ByteOrder.LITTLE_ENDIAN);
 		Decoding.ari_decoder D = new Decoding.ari_decoder();
 		Decoding.RansDecSymbol[] syms = new Decoding.RansDecSymbol[256];
@@ -158,8 +148,7 @@ public class RANS {
 		return out;
 	}
 
-	private static final ByteBuffer uncompress_order1_way4(ByteBuffer in,
-			ByteBuffer out_buf) {
+	private static final ByteBuffer uncompress_order1_way4(ByteBuffer in, ByteBuffer out_buf) {
 		ari_decoder[] D = new ari_decoder[256];
 		RansDecSymbol[][] syms = new RansDecSymbol[256][256];
 		for (int i = 0; i < syms.length; i++)

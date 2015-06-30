@@ -19,5 +19,5 @@ import java.io.IOException;
 
 public interface DataWriter<T> {
 
-	public long writeData (T value) throws IOException ;
+	public long writeData(T value) throws IOException;
 }

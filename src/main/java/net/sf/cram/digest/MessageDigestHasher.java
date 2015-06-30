@@ -5,8 +5,7 @@ import java.security.MessageDigest;
 class MessageDigestHasher extends AbstractSerialDigest<byte[]> {
 	private MessageDigest md;
 
-	protected MessageDigestHasher(MessageDigest md, Combine<byte[]> combine,
-			byte[] value) {
+	protected MessageDigestHasher(MessageDigest md, Combine<byte[]> combine, byte[] value) {
 		super(combine, value);
 		this.md = md;
 	}

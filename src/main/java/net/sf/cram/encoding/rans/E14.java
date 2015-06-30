@@ -8,8 +8,7 @@ import net.sf.cram.io.ByteBufferUtils;
 
 class E14 {
 
-	static int compress(ByteBuffer in, RansEncSymbol[][] syms,
-			ByteBuffer out_buf) {
+	static int compress(ByteBuffer in, RansEncSymbol[][] syms, ByteBuffer out_buf) {
 		int in_size = in.remaining();
 		int compressedBlob_size;
 		int rans0, rans1, rans2, rans3;

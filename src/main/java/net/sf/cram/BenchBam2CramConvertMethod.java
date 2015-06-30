@@ -38,7 +38,7 @@ import net.sf.samtools.SAMSequenceRecord;
 public class BenchBam2CramConvertMethod {
 
 	public static void main(String[] args) throws FileNotFoundException {
-		Log.setGlobalLogLevel(LogLevel.INFO) ;
+		Log.setGlobalLogLevel(LogLevel.INFO);
 		File bamFile;
 		File refFile;
 
@@ -77,15 +77,14 @@ public class BenchBam2CramConvertMethod {
 
 		String refName = refsUsed.iterator().next();
 		SAMSequenceRecord sequence = samFileHeader.getSequence(refName);
-		byte[] ref = new ReferenceSource(refFile).getReferenceBases(sequence,
-				true);
-		ReferenceTracks tracks = new ReferenceTracks(sequence.getSequenceIndex(), sequence.getSequenceName(), ref, ref.length) ;
-		QualityScorePreservation preservation = new QualityScorePreservation(
-				"*8");
+		byte[] ref = new ReferenceSource(refFile).getReferenceBases(sequence, true);
+		ReferenceTracks tracks = new ReferenceTracks(sequence.getSequenceIndex(), sequence.getSequenceName(), ref,
+				ref.length);
+		QualityScorePreservation preservation = new QualityScorePreservation("*8");
 
 		for (int i = 0; i < 1; i++) {
-			List<CramRecord> cramRecords = Bam2Cram.convert(samRecords,
-					samFileHeader, ref, tracks, preservation, false, null, null);
+			List<CramRecord> cramRecords = Bam2Cram.convert(samRecords, samFileHeader, ref, tracks, preservation,
+					false, null, null);
 			System.out.println(cramRecords.get(0).toString());
 		}
 	}

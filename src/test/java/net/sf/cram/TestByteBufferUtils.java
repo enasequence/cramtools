@@ -69,15 +69,12 @@ public class TestByteBufferUtils {
 				int readValue = ByteBufferUtils.readUnsignedITF8(buf);
 				readNanos += System.nanoTime() - time;
 				if (value.intValue() != readValue)
-					fail("Failed to read value: " + value + ", read instead "
-							+ readValue);
+					fail("Failed to read value: " + value + ", read instead " + readValue);
 			}
 		}
 
-		System.out
-				.printf("ByteBufferUtils: buf size %.2f megabytes, write time %dms, read time %dms.\n",
-						buf.limit() / 1024f / 1024f, writeNanos / 1000000,
-						readNanos / 1000000);
+		System.out.printf("ByteBufferUtils: buf size %.2f megabytes, write time %dms, read time %dms.\n",
+				buf.limit() / 1024f / 1024f, writeNanos / 1000000, readNanos / 1000000);
 	}
 
 	@Test
@@ -120,15 +117,12 @@ public class TestByteBufferUtils {
 				int readValue = buf.getInt();
 				readNanos += System.nanoTime() - time;
 				if (value.intValue() != readValue)
-					fail("Failed to read value: " + value + ", read instead "
-							+ readValue);
+					fail("Failed to read value: " + value + ", read instead " + readValue);
 			}
 		}
 
-		System.out
-				.printf("ByteBuffer: buf size %.2f megabytes, write time %dms, read time %dms.\n",
-						buf.limit() / 1024f / 1024f, writeNanos / 1000000,
-						readNanos / 1000000);
+		System.out.printf("ByteBuffer: buf size %.2f megabytes, write time %dms, read time %dms.\n",
+				buf.limit() / 1024f / 1024f, writeNanos / 1000000, readNanos / 1000000);
 	}
 
 	@Test
@@ -175,17 +169,15 @@ public class TestByteBufferUtils {
 			}
 		}
 
-		System.out
-				.printf("Direct bytes: buf size %.2f megabytes, write time %dms, read time %dms.\n",
-						buf.limit() / 1024f / 1024f, writeNanos / 1000000,
-						readNanos / 1000000);
+		System.out.printf("Direct bytes: buf size %.2f megabytes, write time %dms, read time %dms.\n",
+				buf.limit() / 1024f / 1024f, writeNanos / 1000000, readNanos / 1000000);
 	}
-	
+
 	@Test
 	public void test4() {
-		int value = ByteBufferUtils.readUnsignedITF8(new byte[]{-127, 8}) ;
+		int value = ByteBufferUtils.readUnsignedITF8(new byte[] { -127, 8 });
 		System.out.println(value);
-		
+
 		System.out.println(Arrays.toString(ByteBufferUtils.writeUnsignedITF8(value)));
 	}
 

@@ -121,8 +121,7 @@ public class CramRecordReader extends AbstractReader {
 
 					switch (operator) {
 					case ReadBase.operator:
-						ReadBase rb = new ReadBase(pos, bc.readData(),
-								qc.readData());
+						ReadBase rb = new ReadBase(pos, bc.readData(), qc.readData());
 						rf.add(rb);
 						break;
 					case Substitution.operator:
@@ -137,13 +136,11 @@ public class CramRecordReader extends AbstractReader {
 						rf.add(iv);
 						break;
 					case SoftClip.operator:
-						SoftClip fv = new SoftClip(pos,
-								softClipCodec.readData());
+						SoftClip fv = new SoftClip(pos, softClipCodec.readData());
 						rf.add(fv);
 						break;
 					case HardClip.operator:
-						HardClip hv = new HardClip(pos,
-								hardClipCodec.readData());
+						HardClip hv = new HardClip(pos, hardClipCodec.readData());
 						rf.add(hv);
 						break;
 					case Padding.operator:
@@ -163,8 +160,7 @@ public class CramRecordReader extends AbstractReader {
 						rf.add(ib);
 						break;
 					case BaseQualityScore.operator:
-						BaseQualityScore bqs = new BaseQualityScore(pos,
-								qc.readData());
+						BaseQualityScore bqs = new BaseQualityScore(pos, qc.readData());
 						rf.add(bqs);
 						break;
 					case Bases.operator:
@@ -176,8 +172,7 @@ public class CramRecordReader extends AbstractReader {
 						rf.add(scores);
 						break;
 					default:
-						throw new RuntimeException(
-								"Unknown read feature operator: " + operator);
+						throw new RuntimeException("Unknown read feature operator: " + operator);
 					}
 				}
 
@@ -204,9 +199,8 @@ public class CramRecordReader extends AbstractReader {
 			prevRecord = r;
 		} catch (Exception e) {
 			if (prevRecord != null)
-				System.err
-						.printf("Failed at record %d. Here is the previously read record: %s\n",
-								recordCounter, prevRecord.toString());
+				System.err.printf("Failed at record %d. Here is the previously read record: %s\n", recordCounter,
+						prevRecord.toString());
 			throw new RuntimeException(e);
 		}
 	}

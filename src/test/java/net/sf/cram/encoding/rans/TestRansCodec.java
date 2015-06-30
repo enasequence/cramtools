@@ -103,8 +103,7 @@ public class TestRansCodec {
 				try {
 					roundTrip(in);
 				} catch (AssertionError e) {
-					System.err.printf("Failed at size %d and data %s\n", size,
-							Arrays.toString(data));
+					System.err.printf("Failed at size %d and data %s\n", size, Arrays.toString(data));
 					throw e;
 				}
 			}
@@ -168,8 +167,7 @@ public class TestRansCodec {
 	@Test
 	public void testRansHeader() {
 		byte[] data = randomBytes_GD(1000, 0.01);
-		ByteBuffer compressed = RANS.compress(ByteBuffer.wrap(data),
-				ORDER.ZERO, null);
+		ByteBuffer compressed = RANS.compress(ByteBuffer.wrap(data), ORDER.ZERO, null);
 		assertThat(compressed.get(), is((byte) 0));
 		assertThat(compressed.getInt(), is(compressed.limit() - 9));
 		assertThat(compressed.getInt(), is(data.length));

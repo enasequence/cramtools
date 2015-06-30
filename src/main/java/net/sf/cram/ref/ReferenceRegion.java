@@ -33,8 +33,7 @@ public class ReferenceRegion {
 	 * @param alignmentEnd
 	 *            1-based inclusive
 	 */
-	public ReferenceRegion(byte[] bases, int sequenceIndex,
-			String sequenceName, long alignmentStart, long alignmentEnd) {
+	public ReferenceRegion(byte[] bases, int sequenceIndex, String sequenceName, long alignmentStart, long alignmentEnd) {
 		this.array = bases;
 		this.index = sequenceIndex;
 		this.name = sequenceName;
@@ -42,11 +41,9 @@ public class ReferenceRegion {
 		if (alignmentEnd == -1)
 			alignmentEnd = bases.length;
 
-		if (alignmentStart < 1 || alignmentEnd < alignmentStart
-				|| alignmentEnd - alignmentStart > bases.length
+		if (alignmentStart < 1 || alignmentEnd < alignmentStart || alignmentEnd - alignmentStart > bases.length
 				|| alignmentEnd - 1 > bases.length)
-			throw new IllegalArgumentException(String.format(
-					"Invalid reference region: %s, %d, %d.", sequenceName,
+			throw new IllegalArgumentException(String.format("Invalid reference region: %s, %d, %d.", sequenceName,
 					alignmentStart, alignmentEnd));
 
 		this.alignmentStart = alignmentStart;
@@ -60,9 +57,7 @@ public class ReferenceRegion {
 		int arrayPosition = (int) (arrayStart + (alignmentPosition - alignmentStart));
 
 		if (arrayPosition < 0 || arrayPosition > array.length)
-			throw new IllegalArgumentException(
-					"The alignment position is out of the region: "
-							+ alignmentPosition);
+			throw new IllegalArgumentException("The alignment position is out of the region: " + alignmentPosition);
 
 		return arrayPosition;
 	}

@@ -18,7 +18,6 @@ package net.sf.cram.encoding;
 import java.io.InputStream;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -49,8 +48,7 @@ public class ExternalByteArrayEncoding implements Encoding<byte[]> {
 	public BitCodec<byte[]> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
 		InputStream is = inputMap == null ? null : inputMap.get(contentId);
-		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap
-				.get(contentId);
+		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap.get(contentId);
 		return (BitCodec) new ExternalByteArrayCodec(os, is);
 	}
 

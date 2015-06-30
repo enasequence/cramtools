@@ -33,8 +33,7 @@ public class TestCramHeader {
 	public void test() throws IOException {
 
 		String cramPath = "/data/set1/small.cram";
-		InputStream stream = getClass().getResourceAsStream(
-				cramPath);
+		InputStream stream = getClass().getResourceAsStream(cramPath);
 
 		if (stream == null)
 			fail("CRAM file not found: " + cramPath);
@@ -42,9 +41,9 @@ public class TestCramHeader {
 		CramHeader cramHeader = CramIO.readCramHeader(stream);
 
 		assertNotNull(cramHeader);
-		assertEquals(cramHeader.majorVersion, 1) ;
-		assertEquals(cramHeader.minorVersion, 1) ;
-		assertNotNull(cramHeader.samFileHeader) ;
+		assertEquals(cramHeader.majorVersion, 1);
+		assertEquals(cramHeader.minorVersion, 1);
+		assertNotNull(cramHeader.samFileHeader);
 	}
 
 }

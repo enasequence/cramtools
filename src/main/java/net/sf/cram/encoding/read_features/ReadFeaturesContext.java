@@ -16,8 +16,8 @@ public class ReadFeaturesContext {
 	private SubstitutionMatrix substitutionMatrix;
 	private PositionedCigarElement lastCigarElement;
 
-	public ReadFeaturesContext(int positionInReference, byte[] referenceBases,
-			byte[] readBases, SubstitutionMatrix substitutionMatrix) {
+	public ReadFeaturesContext(int positionInReference, byte[] referenceBases, byte[] readBases,
+			SubstitutionMatrix substitutionMatrix) {
 		this.positionInReference = positionInReference;
 		this.referenceBases = referenceBases;
 		this.readBases = readBases;
@@ -41,30 +41,23 @@ public class ReadFeaturesContext {
 			lastCigarElement.len = len;
 		}
 		if (o.consumesReadBases() && o.consumesReferenceBases())
-			System.arraycopy(referenceBases, positionInReference - 1,
-					readBases, at - 1, len);
+			System.arraycopy(referenceBases, positionInReference - 1, readBases, at - 1, len);
 	}
 
 	private void extendLastBy(int delta) {
-		if (lastCigarElement.operator.consumesReadBases()
-				&& lastCigarElement.operator.consumesReferenceBases())
-			System.arraycopy(referenceBases, positionInReference - 1
-					+ lastCigarElement.len, readBases,
-					lastCigarElement.posInRead - 1 + lastCigarElement.len,
-					delta);
+		if (lastCigarElement.operator.consumesReadBases() && lastCigarElement.operator.consumesReferenceBases())
+			System.arraycopy(referenceBases, positionInReference - 1 + lastCigarElement.len, readBases,
+					lastCigarElement.posInRead - 1 + lastCigarElement.len, delta);
 
 		lastCigarElement.len += delta;
 	}
 
 	private void flushLast() {
-		cels.add(new CigarElement(lastCigarElement.len,
-				lastCigarElement.operator));
-		positionInReference += (lastCigarElement.operator
-				.consumesReferenceBases() ? lastCigarElement.len : 0);
+		cels.add(new CigarElement(lastCigarElement.len, lastCigarElement.operator));
+		positionInReference += (lastCigarElement.operator.consumesReferenceBases() ? lastCigarElement.len : 0);
 	}
 
-	public void addCigarElementAt(int newPosInRead, CigarOperator newOperator,
-			int newLength) {
+	public void addCigarElementAt(int newPosInRead, CigarOperator newOperator, int newLength) {
 		boolean M = (newOperator == CigarOperator.M);
 
 		if (lastCigarElement == null) {
@@ -85,14 +78,12 @@ public class ReadFeaturesContext {
 		boolean prevM = (lastCigarElement.operator == CigarOperator.M);
 
 		if (prevM && M) {
-			extendLastBy(newPosInRead + newLength
-					- (lastCigarElement.posInRead + lastCigarElement.len));
+			extendLastBy(newPosInRead + newLength - (lastCigarElement.posInRead + lastCigarElement.len));
 			return;
 		}
 
 		int lastReadPos = (lastCigarElement.operator.consumesReadBases() ? lastCigarElement.posInRead
-				+ lastCigarElement.len - 1
-				: lastCigarElement.posInRead - 1);
+				+ lastCigarElement.len - 1 : lastCigarElement.posInRead - 1);
 		int unaccountedBases = newPosInRead - lastReadPos - 1;
 		if (prevM && !M) {
 			if (unaccountedBases > 0)
@@ -105,8 +96,7 @@ public class ReadFeaturesContext {
 		if (!prevM && M) {
 			flushLast();
 
-			setLastTo(newPosInRead - unaccountedBases, CigarOperator.M,
-					unaccountedBases + newLength);
+			setLastTo(newPosInRead - unaccountedBases, CigarOperator.M, unaccountedBases + newLength);
 			return;
 		}
 
@@ -139,20 +129,15 @@ public class ReadFeaturesContext {
 			if (lastCigarElement.operator != CigarOperator.M) {
 				flushLast();
 
-				int lastReadPos = (lastCigarElement.operator
-						.consumesReadBases() ? lastCigarElement.posInRead
-						+ lastCigarElement.len - 1
-						: lastCigarElement.posInRead - 1);
+				int lastReadPos = (lastCigarElement.operator.consumesReadBases() ? lastCigarElement.posInRead
+						+ lastCigarElement.len - 1 : lastCigarElement.posInRead - 1);
 				if (lastReadPos < readBases.length) {
-					setLastTo(lastReadPos + 1, CigarOperator.M,
-							readBases.length - lastReadPos);
+					setLastTo(lastReadPos + 1, CigarOperator.M, readBases.length - lastReadPos);
 					flushLast();
 				}
 			} else {
-				int lastReadPos = (lastCigarElement.operator
-						.consumesReadBases() ? lastCigarElement.posInRead
-						+ lastCigarElement.len - 1
-						: lastCigarElement.posInRead - 1);
+				int lastReadPos = (lastCigarElement.operator.consumesReadBases() ? lastCigarElement.posInRead
+						+ lastCigarElement.len - 1 : lastCigarElement.posInRead - 1);
 				extendLastBy(readBases.length - lastReadPos);
 				flushLast();
 			}
@@ -172,8 +157,7 @@ public class ReadFeaturesContext {
 
 		@Override
 		public String toString() {
-			return String.format("%s, read=%d, len=%d", operator.name(),
-					posInRead, len);
+			return String.format("%s, read=%d, len=%d", operator.name(), posInRead, len);
 		}
 	}
 
@@ -184,10 +168,8 @@ public class ReadFeaturesContext {
 
 	public void addSubs(int pos, Byte code) {
 		addCigarElementAt(pos, CigarOperator.M, 1);
-		byte refBase = referenceBases[positionInReference
-				- 1
-				+ (lastCigarElement.operator.consumesReferenceBases() ? lastCigarElement.len - 1
-						: 0)];
+		byte refBase = referenceBases[positionInReference - 1
+				+ (lastCigarElement.operator.consumesReferenceBases() ? lastCigarElement.len - 1 : 0)];
 		byte base = substitutionMatrix.base(refBase, code);
 		readBases[pos - 1] = base;
 	}

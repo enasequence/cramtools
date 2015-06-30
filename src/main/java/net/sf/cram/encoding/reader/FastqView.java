@@ -63,8 +63,7 @@ public class FastqView {
 		int line = 0;
 		float nameLength = 0;
 		float readLength = 0;
-		for (int i = start; i < start + length
-				|| readCount < maxReadsToAnalyze; i++) {
+		for (int i = start; i < start + length || readCount < maxReadsToAnalyze; i++) {
 			if (buf[start] == '\n') {
 				switch (newLineCounter % 4) {
 				case 0:
@@ -79,8 +78,7 @@ public class FastqView {
 					break;
 
 				default:
-					throw new RuntimeException(
-							"Bad implementation, should have never happened.");
+					throw new RuntimeException("Bad implementation, should have never happened.");
 				}
 				line = 0;
 			} else
@@ -113,8 +111,7 @@ public class FastqView {
 		return readCount;
 	}
 
-	public static int buildIndex(int[] index, int[] nameLength, byte[] buf,
-			int start, int length) {
+	public static int buildIndex(int[] index, int[] nameLength, byte[] buf, int start, int length) {
 		int readCount = 0;
 		index[readCount++] = start;
 		int newLineCounter = 0;
@@ -144,32 +141,32 @@ public class FastqView {
 		return readCount;
 	}
 
-	public static int readOffset (int read, LongBuffer buf) {
-		long entry = buf.get(read) ;
-		return (int) (0xFFFFFFFF & (entry >>> (8*5))) ;
+	public static int readOffset(int read, LongBuffer buf) {
+		long entry = buf.get(read);
+		return (int) (0xFFFFFFFF & (entry >>> (8 * 5)));
 	}
-	
-	public static int readNameLength (int read, LongBuffer buf) {
-		long entry = buf.get(read) ;
-		return (int) (0x0000FFFF & (entry >> (8*3))) ;
+
+	public static int readNameLength(int read, LongBuffer buf) {
+		long entry = buf.get(read);
+		return (int) (0x0000FFFF & (entry >> (8 * 3)));
 	}
-	
-	public static int readLength (int read, LongBuffer buf) {
-		long entry = buf.get(read) ;
-		return (int) (0x00FFFFFF & entry) ;
+
+	public static int readLength(int read, LongBuffer buf) {
+		long entry = buf.get(read);
+		return (int) (0x00FFFFFF & entry);
 	}
-	
-//	private static class IndexComparator implements Comparator<T>
-	
+
+	// private static class IndexComparator implements Comparator<T>
+
 	public static void main(String[] args) {
-		ByteBuffer buf = ByteBuffer.allocate(8) ;
-		buf.put (new byte[]{0, 0, 1, 0, 2, 0, 0, 3}) ;
-		
-		buf.rewind() ;
+		ByteBuffer buf = ByteBuffer.allocate(8);
+		buf.put(new byte[] { 0, 0, 1, 0, 2, 0, 0, 3 });
+
+		buf.rewind();
 		System.out.println(readOffset(0, buf.asLongBuffer()));
-		buf.rewind() ;
+		buf.rewind();
 		System.out.println(readNameLength(0, buf.asLongBuffer()));
-		buf.rewind() ;
+		buf.rewind();
 		System.out.println(readLength(0, buf.asLongBuffer()));
 	}
 }

@@ -50,21 +50,17 @@ public class ValidateCramFile {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ ValidateCramFile.class.getPackage()
-						.getImplementationVersion());
+		System.out.println("Version " + ValidateCramFile.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
+	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -94,24 +90,20 @@ public class ValidateCramFile {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		SAMIterator iterator = new SAMIterator(bis, new ReferenceSource(
-				params.reference));
+		SAMIterator iterator = new SAMIterator(bis, new ReferenceSource(params.reference));
 		CramHeader cramHeader = iterator.getCramHeader();
 
 		iterator.close();
 
-		ProgressLogger progress = new ProgressLogger(log, 100000,
-				"Validated Read");
-		SamFileValidator v = new SamFileValidator(new PrintWriter(System.out),
-				1);
+		ProgressLogger progress = new ProgressLogger(log, 100000, "Validated Read");
+		SamFileValidator v = new SamFileValidator(new PrintWriter(System.out), 1);
 		List<SAMValidationError.Type> errors = new ArrayList<SAMValidationError.Type>();
 		errors.add(Type.MATE_NOT_FOUND);
 		// errors.add(Type.MISSING_TAG_NM);
 		v.setErrorsToIgnore(errors);
 		v.init(referenceSequenceFile, cramHeader.samFileHeader);
-		CramFileIterable iterable = new SAMIterator.CramFileIterable(
-				params.cramFile, new ReferenceSource(params.reference),
-				ValidationStringency.STRICT);
+		CramFileIterable iterable = new SAMIterator.CramFileIterable(params.cramFile, new ReferenceSource(
+				params.reference), ValidationStringency.STRICT);
 
 		v.validateSamRecords(iterable, cramHeader.samFileHeader);
 		log.info("Elapsed seconds: " + progress.getElapsedSeconds());

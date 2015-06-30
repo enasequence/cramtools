@@ -41,8 +41,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 		return ID;
 	}
 
-	public static EncodingParams toParam(EncodingParams lenParams,
-			EncodingParams byteParams) {
+	public static EncodingParams toParam(EncodingParams lenParams, EncodingParams byteParams) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try {
 			baos.write((byte) lenParams.id.ordinal());
@@ -133,17 +132,15 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 	@Override
 	public BitCodec<byte[]> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
-		return new ByteArrayLenCodec(
-				lenEncoding.buildCodec(inputMap, outputMap),
-				byteEncoding.buildCodec(inputMap, outputMap));
+		return new ByteArrayLenCodec(lenEncoding.buildCodec(inputMap, outputMap), byteEncoding.buildCodec(inputMap,
+				outputMap));
 	}
 
 	private static class ByteArrayLenCodec extends AbstractBitCodec<byte[]> {
 		private BitCodec<Integer> lenCodec;
 		private BitCodec<byte[]> byteCodec;
 
-		public ByteArrayLenCodec(BitCodec<Integer> lenCodec,
-				BitCodec<byte[]> byteCodec) {
+		public ByteArrayLenCodec(BitCodec<Integer> lenCodec, BitCodec<byte[]> byteCodec) {
 			super();
 			this.lenCodec = lenCodec;
 			this.byteCodec = byteCodec;
@@ -161,8 +158,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 		}
 
 		@Override
-		public long write(BitOutputStream bos, byte[] object)
-				throws IOException {
+		public long write(BitOutputStream bos, byte[] object) throws IOException {
 			long len = lenCodec.write(bos, object.length);
 			len += byteCodec.write(bos, object);
 			return len;
@@ -170,8 +166,7 @@ public class ByteArrayLenEncoding implements Encoding<byte[]> {
 
 		@Override
 		public long numberOfBits(byte[] object) {
-			return lenCodec.numberOfBits(object.length)
-					+ byteCodec.numberOfBits(object);
+			return lenCodec.numberOfBits(object.length) + byteCodec.numberOfBits(object);
 		}
 
 	}

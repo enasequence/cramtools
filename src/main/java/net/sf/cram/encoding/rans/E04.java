@@ -7,8 +7,7 @@ import net.sf.cram.io.ByteBufferUtils;
 
 class E04 {
 
-	static final int compress(ByteBuffer in, RansEncSymbol[] syms,
-			ByteBuffer cp) {
+	static final int compress(ByteBuffer in, RansEncSymbol[] syms, ByteBuffer cp) {
 		int cdata_size;
 		int in_size = in.remaining();
 		int rans0, rans1, rans2, rans3;
@@ -22,14 +21,11 @@ class E04 {
 		int i;
 		switch (i = (in_size & 3)) {
 		case 3:
-			rans2 = Encoding.RansEncPutSymbol(rans2, ptr,
-					syms[0xFF & in.get(in_size - (i - 2))]);
+			rans2 = Encoding.RansEncPutSymbol(rans2, ptr, syms[0xFF & in.get(in_size - (i - 2))]);
 		case 2:
-			rans1 = Encoding.RansEncPutSymbol(rans1, ptr,
-					syms[0xFF & in.get(in_size - (i - 1))]);
+			rans1 = Encoding.RansEncPutSymbol(rans1, ptr, syms[0xFF & in.get(in_size - (i - 1))]);
 		case 1:
-			rans0 = Encoding.RansEncPutSymbol(rans0, ptr,
-					syms[0xFF & in.get(in_size - (i - 0))]);
+			rans0 = Encoding.RansEncPutSymbol(rans0, ptr, syms[0xFF & in.get(in_size - (i - 0))]);
 		case 0:
 			break;
 		}

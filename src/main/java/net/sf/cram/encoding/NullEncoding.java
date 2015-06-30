@@ -18,7 +18,6 @@ package net.sf.cram.encoding;
 import java.io.InputStream;
 import java.util.Map;
 
-
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
 import net.sf.cram.structure.EncodingParams;
@@ -28,7 +27,7 @@ public class NullEncoding<T> implements Encoding<T> {
 
 	public NullEncoding() {
 	}
-	
+
 	@Override
 	public EncodingID id() {
 		return ENCODING_ID;

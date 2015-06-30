@@ -33,8 +33,7 @@ import net.sf.samtools.util.BinaryCodec;
 public class SliceIO {
 	private static Log log = Log.getInstance(SliceIO.class);
 
-	public void readSliceHeadBlock(int major, Slice s, InputStream is)
-			throws IOException {
+	public void readSliceHeadBlock(int major, Slice s, InputStream is) throws IOException {
 		s.headerBlock = new Block(major, is, true, true);
 		parseSliceHeaderBlock(major, s);
 	}
@@ -58,13 +57,11 @@ public class SliceIO {
 		if (major < 3)
 			return;
 		byte[] bytes = ByteBufferUtils.readFully(is);
-		s.sliceTags = BinaryTagCodec.readTags(bytes, 0, bytes.length,
-				ValidationStringency.DEFAULT_STRINGENCY);
+		s.sliceTags = BinaryTagCodec.readTags(bytes, 0, bytes.length, ValidationStringency.DEFAULT_STRINGENCY);
 
 		SAMBinaryTagAndValue tags = s.sliceTags;
 		while (tags != null) {
-			log.debug(String.format("Found slice tag: %s", SAMTagUtil
-					.getSingleton().makeStringTag(tags.tag)));
+			log.debug(String.format("Found slice tag: %s", SAMTagUtil.getSingleton().makeStringTag(tags.tag)));
 			tags = tags.getNext();
 		}
 	}
@@ -91,8 +88,7 @@ public class SliceIO {
 			BinaryTagCodec tc = new BinaryTagCodec(bc);
 			SAMBinaryTagAndValue tv = s.sliceTags;
 			do {
-				log.debug("Writing slice tag: "
-						+ SAMTagUtil.getSingleton().makeStringTag(tv.tag));
+				log.debug("Writing slice tag: " + SAMTagUtil.getSingleton().makeStringTag(tv.tag));
 				tc.writeTag(tv.tag, tv.value, tv.isUnsignedArray());
 			} while ((tv = tv.getNext()) != null);
 			// BinaryCodec doesn't seem to cache things.
@@ -105,12 +101,10 @@ public class SliceIO {
 
 	public void createSliceHeaderBlock(Slice s) throws IOException {
 		byte[] rawContent = createSliceHeaderBlockContent(s);
-		s.headerBlock = new Block(BlockCompressionMethod.RAW,
-				BlockContentType.MAPPED_SLICE, 0, rawContent, null);
+		s.headerBlock = new Block(BlockCompressionMethod.RAW, BlockContentType.MAPPED_SLICE, 0, rawContent, null);
 	}
 
-	public void readSliceBlocks(int major, Slice s, boolean uncompressBlocks,
-			InputStream is) throws IOException {
+	public void readSliceBlocks(int major, Slice s, boolean uncompressBlocks, InputStream is) throws IOException {
 		s.external = new HashMap<Integer, Block>();
 		for (int i = 0; i < s.nofBlocks; i++) {
 			Block b1 = new Block(major, is, true, uncompressBlocks);
@@ -126,17 +120,14 @@ public class SliceIO {
 				break;
 
 			default:
-				throw new RuntimeException(
-						"Not a slice block, content type id "
-								+ b1.contentType.name());
+				throw new RuntimeException("Not a slice block, content type id " + b1.contentType.name());
 			}
 		}
 	}
 
 	public void write(Slice s, OutputStream os) throws IOException {
 
-		s.nofBlocks = 1 + s.external.size()
-				+ (s.embeddedRefBlock == null ? 0 : 1);
+		s.nofBlocks = 1 + s.external.size() + (s.embeddedRefBlock == null ? 0 : 1);
 
 		{
 			s.contentIDs = new int[s.external.size()];

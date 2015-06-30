@@ -22,8 +22,8 @@ public class Substitution implements Serializable, ReadFeature {
 	private int position;
 	private byte base = -1;
 	private byte refernceBase = -1;
-	private BaseChange baseChange ;
-	private byte code =-1;
+	private BaseChange baseChange;
+	private byte code = -1;
 
 	public byte getCode() {
 		return code;
@@ -81,21 +81,23 @@ public class Substitution implements Serializable, ReadFeature {
 			} else if (!v.baseChange.equals(baseChange))
 				return false;
 		}
-		
+
 		if ((code != v.code) & (code == -1 || v.code == -1)) {
-			return false ;
+			return false;
 		}
-		
+
 		if (code > -1 && v.code > -1) {
-			if (refernceBase != v.refernceBase) return false ;
-			if (base != v.base) return false ;
+			if (refernceBase != v.refernceBase)
+				return false;
+			if (base != v.base)
+				return false;
 		}
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer().append((char)operator).append('@');
+		StringBuffer sb = new StringBuffer().append((char) operator).append('@');
 		sb.append(position);
 		if (baseChange != null)
 			sb.append('/').append(baseChange.getChange());

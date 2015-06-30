@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -32,7 +31,7 @@ public class HuffmanEncoding implements Encoding<Integer> {
 
 	public HuffmanEncoding() {
 	}
-	
+
 	@Override
 	public EncodingID id() {
 		return ENCODING_ID;

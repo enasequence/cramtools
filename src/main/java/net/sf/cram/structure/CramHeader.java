@@ -34,18 +34,15 @@ public final class CramHeader {
 	public CramHeader() {
 	}
 
-	public CramHeader(int majorVersion, int minorVersion, String id,
-			SAMFileHeader samFileHeader) {
+	public CramHeader(int majorVersion, int minorVersion, String id, SAMFileHeader samFileHeader) {
 		this.majorVersion = (byte) majorVersion;
 		this.minorVersion = (byte) minorVersion;
-		System.arraycopy(id.getBytes(), 0, this.id, 0,
-				Math.min(id.length(), this.id.length));
+		System.arraycopy(id.getBytes(), 0, this.id, 0, Math.min(id.length(), this.id.length));
 		this.samFileHeader = samFileHeader;
 	}
 
 	public void setID(String stringID) {
-		System.arraycopy(stringID.getBytes(), 0, this.id, 0,
-				Math.min(this.id.length, stringID.length()));
+		System.arraycopy(stringID.getBytes(), 0, this.id, 0, Math.min(this.id.length, stringID.length()));
 	}
 
 	@Override

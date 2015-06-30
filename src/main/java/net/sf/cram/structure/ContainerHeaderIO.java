@@ -24,13 +24,11 @@ import net.sf.cram.io.ByteBufferUtils;
 
 public class ContainerHeaderIO {
 
-	public boolean readContainerHeader(Container c, InputStream is)
-			throws IOException {
+	public boolean readContainerHeader(Container c, InputStream is) throws IOException {
 		return readContainerHeader(2, c, is);
 	}
 
-	public boolean readContainerHeader(int major, Container c, InputStream is)
-			throws IOException {
+	public boolean readContainerHeader(int major, Container c, InputStream is) throws IOException {
 		byte[] peek = new byte[4];
 		int ch = is.read();
 		if (ch == -1)
@@ -59,8 +57,7 @@ public class ContainerHeaderIO {
 		return true;
 	}
 
-	public int writeContainerHeader(Container c, OutputStream os)
-			throws IOException {
+	public int writeContainerHeader(Container c, OutputStream os) throws IOException {
 		CRC32_OutputStream cos = new CRC32_OutputStream(os);
 
 		int len = ByteBufferUtils.writeInt32(c.containerByteSize, cos);

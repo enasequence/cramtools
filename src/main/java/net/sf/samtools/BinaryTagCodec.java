@@ -116,14 +116,12 @@ public class BinaryTagCodec {
 			} else if (attributeValue instanceof float[]) {
 				elementSize = 4;
 			} else {
-				throw new IllegalArgumentException("Unsupported array type: "
-						+ attributeValue.getClass());
+				throw new IllegalArgumentException("Unsupported array type: " + attributeValue.getClass());
 			}
 			return numElements * elementSize + FIXED_BINARY_ARRAY_TAG_SIZE;
 		default:
-			throw new IllegalArgumentException(
-					"When writing BAM, unrecognized tag type "
-							+ attributeValue.getClass().getName());
+			throw new IllegalArgumentException("When writing BAM, unrecognized tag type "
+					+ attributeValue.getClass().getName());
 		}
 	}
 
@@ -150,23 +148,19 @@ public class BinaryTagCodec {
 		} else if (value instanceof Float) {
 			return 'f';
 		} else if (value instanceof Number) {
-			if (!(value instanceof Byte || value instanceof Short
-					|| value instanceof Integer || value instanceof Long)) {
-				throw new IllegalArgumentException("Unrecognized tag type "
-						+ value.getClass().getName());
+			if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)) {
+				throw new IllegalArgumentException("Unrecognized tag type " + value.getClass().getName());
 			}
 			return getIntegerType(((Number) value).longValue());
 		} /*
 		 * Note that H tag type is never written anymore, because B style is
 		 * more compact. else if (value instanceof byte[]) { return 'H'; }
 		 */
-		else if (value instanceof byte[] || value instanceof short[]
-				|| value instanceof int[] || value instanceof float[]) {
+		else if (value instanceof byte[] || value instanceof short[] || value instanceof int[]
+				|| value instanceof float[]) {
 			return 'B';
 		} else {
-			throw new IllegalArgumentException(
-					"When writing BAM, unrecognized tag type "
-							+ value.getClass().getName());
+			throw new IllegalArgumentException("When writing BAM, unrecognized tag type " + value.getClass().getName());
 		}
 	}
 
@@ -178,8 +172,7 @@ public class BinaryTagCodec {
 	 */
 	static private char getIntegerType(final long val) {
 		if (val > MAX_UINT) {
-			throw new IllegalArgumentException(
-					"Integer attribute value too large to be encoded in BAM");
+			throw new IllegalArgumentException("Integer attribute value too large to be encoded in BAM");
 		}
 		if (val > MAX_INT) {
 			return 'I';
@@ -205,15 +198,13 @@ public class BinaryTagCodec {
 		if (val >= Integer.MIN_VALUE) {
 			return 'i';
 		}
-		throw new IllegalArgumentException(
-				"Integer attribute value too negative to be encoded in BAM");
+		throw new IllegalArgumentException("Integer attribute value too negative to be encoded in BAM");
 	}
 
 	/**
 	 * Write the given tag name and value to disk.
 	 */
-	public void writeTag(final short tag, final Object value,
-			final boolean isUnsignedArray) {
+	public void writeTag(final short tag, final Object value, final boolean isUnsignedArray) {
 		binaryCodec.writeShort(tag);
 		final char tagValueType = getTagValueType(value);
 		binaryCodec.writeByte(tagValueType);
@@ -256,9 +247,7 @@ public class BinaryTagCodec {
 			writeArray(value, isUnsignedArray);
 			break;
 		default:
-			throw new IllegalArgumentException(
-					"When writing BAM, unrecognized tag type "
-							+ value.getClass().getName());
+			throw new IllegalArgumentException("When writing BAM, unrecognized tag type " + value.getClass().getName());
 		}
 	}
 
@@ -292,8 +281,7 @@ public class BinaryTagCodec {
 				binaryCodec.writeFloat(element);
 
 		} else
-			throw new SAMException("Unrecognized array value type: "
-					+ value.getClass());
+			throw new SAMException("Unrecognized array value type: " + value.getClass());
 	}
 
 	/**
@@ -307,11 +295,9 @@ public class BinaryTagCodec {
 	 * @param length
 	 *            How many bytes in binaryRep are tag storage.
 	 */
-	public static SAMBinaryTagAndValue readTags(final byte[] binaryRep,
-			final int offset, final int length,
+	public static SAMBinaryTagAndValue readTags(final byte[] binaryRep, final int offset, final int length,
 			final SAMFileReader.ValidationStringency validationStringency) {
-		final ByteBuffer byteBuffer = ByteBuffer
-				.wrap(binaryRep, offset, length);
+		final ByteBuffer byteBuffer = ByteBuffer.wrap(binaryRep, offset, length);
 		byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
 		SAMBinaryTagAndValue head = null;
@@ -322,14 +308,11 @@ public class BinaryTagCodec {
 			final byte tagType = byteBuffer.get();
 			final SAMBinaryTagAndValue tmp;
 			if (tagType != 'B') {
-				tmp = new SAMBinaryTagAndValue(tag, readSingleValue(tagType,
-						byteBuffer, validationStringency));
+				tmp = new SAMBinaryTagAndValue(tag, readSingleValue(tagType, byteBuffer, validationStringency));
 			} else {
-				final TagValueAndUnsignedArrayFlag valueAndFlag = readArray(
-						byteBuffer, validationStringency);
+				final TagValueAndUnsignedArrayFlag valueAndFlag = readArray(byteBuffer, validationStringency);
 				if (valueAndFlag.isUnsignedArray)
-					tmp = new SAMBinaryTagAndUnsignedArrayValue(tag,
-							valueAndFlag.value);
+					tmp = new SAMBinaryTagAndUnsignedArrayValue(tag, valueAndFlag.value);
 				else
 					tmp = new SAMBinaryTagAndValue(tag, valueAndFlag.value);
 			}
@@ -363,8 +346,7 @@ public class BinaryTagCodec {
 	 *            Little-ending byte buffer to read value from.
 	 * @return Value in in-memory Object form.
 	 */
-	public static Object readSingleValue(final byte tagType,
-			final ByteBuffer byteBuffer,
+	public static Object readSingleValue(final byte tagType, final ByteBuffer byteBuffer,
 			final SAMFileReader.ValidationStringency validationStringency) {
 		switch (tagType) {
 		case 'Z':
@@ -376,10 +358,8 @@ public class BinaryTagCodec {
 			if (val <= Integer.MAX_VALUE) {
 				return (int) val;
 			}
-			SAMUtils.processValidationError(new SAMValidationError(
-					SAMValidationError.Type.TAG_VALUE_TOO_LARGE, "Tag value "
-							+ val + " too large to store as signed integer.",
-					null), validationStringency);
+			SAMUtils.processValidationError(new SAMValidationError(SAMValidationError.Type.TAG_VALUE_TOO_LARGE,
+					"Tag value " + val + " too large to store as signed integer.", null), validationStringency);
 			// convert to unsigned int stored in a long
 			return val;
 		case 'i':
@@ -400,8 +380,7 @@ public class BinaryTagCodec {
 			final String hexRep = readNullTerminatedString(byteBuffer);
 			return StringUtil.hexStringToBytes(hexRep);
 		default:
-			throw new SAMFormatException("Unrecognized tag type: "
-					+ (char) tagType);
+			throw new SAMFormatException("Unrecognized tag type: " + (char) tagType);
 		}
 	}
 
@@ -413,8 +392,7 @@ public class BinaryTagCodec {
 	 * @return CVO containing the value in in-memory Object form, and a flag
 	 *         indicating whether it is unsigned or not.
 	 */
-	private static TagValueAndUnsignedArrayFlag readArray(
-			final ByteBuffer byteBuffer,
+	private static TagValueAndUnsignedArrayFlag readArray(final ByteBuffer byteBuffer,
 			final SAMFileReader.ValidationStringency validationStringency) {
 		final byte arrayType = byteBuffer.get();
 		final boolean isUnsigned = Character.isUpperCase(arrayType);
@@ -455,8 +433,7 @@ public class BinaryTagCodec {
 		}
 
 		default:
-			throw new SAMFormatException("Unrecognized tag array type: "
-					+ (char) arrayType);
+			throw new SAMFormatException("Unrecognized tag array type: " + (char) arrayType);
 		}
 		return new TagValueAndUnsignedArrayFlag(value, isUnsigned);
 	}

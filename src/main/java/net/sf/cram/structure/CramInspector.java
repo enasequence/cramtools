@@ -42,8 +42,7 @@ public class CramInspector extends JFrame {
 	HashMap<Class, JComponent> viewers = new HashMap<Class, JComponent>();
 	JComponent nullViewer = new JLabel("Nothing to see here.");
 
-	public CramInspector(String name, InputStream is) throws HeadlessException,
-			IOException, IllegalAccessException {
+	public CramInspector(String name, InputStream is) throws HeadlessException, IOException, IllegalAccessException {
 		setTitle(name == null ? "Unknown" : name);
 		setSize(800, 600);
 		setLocationRelativeTo(null);
@@ -70,8 +69,7 @@ public class CramInspector extends JFrame {
 			public void valueChanged(final TreeSelectionEvent e) {
 				final TreePath path = e.getPath();
 				final Object lastPathComponent = path.getLastPathComponent();
-				if (lastPathComponent != null
-						&& lastPathComponent instanceof DefaultMutableTreeNode) {
+				if (lastPathComponent != null && lastPathComponent instanceof DefaultMutableTreeNode) {
 					DefaultMutableTreeNode node = (DefaultMutableTreeNode) lastPathComponent;
 					Object object = node.getUserObject();
 					CramInspector.this.show(object);
@@ -123,8 +121,8 @@ public class CramInspector extends JFrame {
 			@Override
 			public void run() {
 				try {
-					final CramInspector inspector = new CramInspector("test",
-							new FileInputStream("c:/temp/15544_1#1.cram"));
+					final CramInspector inspector = new CramInspector("test", new FileInputStream(
+							"c:/temp/15544_1#1.cram"));
 					// new FileInputStream("c:/temp/15544_2#6.cram"));
 					// new FileInputStream("c:/temp/11791_6#58.cram"));
 					// new FileInputStream("c:/temp/15434_1#36.cram"));
@@ -152,11 +150,9 @@ public class CramInspector extends JFrame {
 		protected String getText(final Object object) {
 			CramHeader cramHeader = (CramHeader) object;
 			StringBuilder sb = new StringBuilder();
-			sb.append("Version: ").append(cramHeader.getMajorVersion())
-					.append(".").append(cramHeader.getMinorVersion())
-					.append("\n");
-			sb.append("ID: ").append(
-					ByteBufferUtils.toHexString(cramHeader.getId()));
+			sb.append("Version: ").append(cramHeader.getMajorVersion()).append(".")
+					.append(cramHeader.getMinorVersion()).append("\n");
+			sb.append("ID: ").append(ByteBufferUtils.toHexString(cramHeader.getId()));
 			final SAMFileHeader samFileHeader = cramHeader.getSamFileHeader();
 			SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
 			StringWriter stringWriter = new StringWriter();
@@ -173,23 +169,18 @@ public class CramInspector extends JFrame {
 			Container container = (Container) object;
 
 			StringBuilder sb = new StringBuilder();
-			sb.append(String.format("Reference: %d:%d-%d\n",
-					container.sequenceId, container.alignmentStart,
+			sb.append(String.format("Reference: %d:%d-%d\n", container.sequenceId, container.alignmentStart,
 					container.alignmentSpan));
 			sb.append(String.format("Blocks: %d\n", container.blockCount));
 			sb.append(String.format("Offset: %d\n", container.offset));
 			sb.append(String.format("Bases: %d\n", container.bases));
 			sb.append(String.format("Checksum: 0x%s\n",
-					ByteBufferUtils.toHexString(ByteBufferUtils
-							.writeInt32(container.checksum))));
-			sb.append(String.format("Size in bytes: %d\n",
-					container.containerByteSize));
+					ByteBufferUtils.toHexString(ByteBufferUtils.writeInt32(container.checksum))));
+			sb.append(String.format("Size in bytes: %d\n", container.containerByteSize));
 			sb.append(String.format("GRC: %d\n", container.globalRecordCounter));
 			sb.append(String.format("EOF: %s\n", container.isEOF()));
-			sb.append(String.format("Landmarks: %s\n",
-					Arrays.toString(container.landmarks)));
-			sb.append(String.format("Slices: %d\n",
-					container.slices == null ? 0 : container.slices.length));
+			sb.append(String.format("Landmarks: %s\n", Arrays.toString(container.landmarks)));
+			sb.append(String.format("Slices: %d\n", container.slices == null ? 0 : container.slices.length));
 			return sb.toString();
 		}
 	}
@@ -201,14 +192,11 @@ public class CramInspector extends JFrame {
 
 			StringBuilder sb = new StringBuilder();
 			sb.append(String.format("Content ID: %d\n", block.contentId));
-			sb.append(String.format("Content type: %s\n",
-					block.contentType.name()));
+			sb.append(String.format("Content type: %s\n", block.contentType.name()));
 			sb.append(String.format("Raw size: %d\n", block.getRawContentSize()));
-			sb.append(String.format("Compressed size: %d\n",
-					block.getCompressedContentSize()));
+			sb.append(String.format("Compressed size: %d\n", block.getCompressedContentSize()));
 			sb.append(String.format("Compressed: %s\n", block.isCompressed()));
-			sb.append(String.format("Uncompressed: %s\n",
-					block.isUncompressed()));
+			sb.append(String.format("Uncompressed: %s\n", block.isUncompressed()));
 			sb.append(String.format("Method: %s\n", block.method.name()));
 
 			byte[] data = block.getRawContent();
@@ -228,36 +216,25 @@ public class CramInspector extends JFrame {
 
 			StringBuilder sb = new StringBuilder();
 			sb.append(String.format("Content ID: %d\n", slice.sequenceId));
-			sb.append(String.format("Alignment start: %d\n",
-					slice.alignmentStart));
-			sb.append(String
-					.format("Alignment span: %d\n", slice.alignmentSpan));
+			sb.append(String.format("Alignment start: %d\n", slice.alignmentStart));
+			sb.append(String.format("Alignment span: %d\n", slice.alignmentSpan));
 			sb.append(String.format("Bases: %d\n", slice.bases));
-			sb.append(String.format("Container offset: %d\n",
-					slice.containerOffset));
-			sb.append(String.format("Content IDs: %s\n",
-					Arrays.toString(slice.contentIDs)));
-			sb.append(String.format(
-					"Content type: %s\n",
-					slice.contentType == null ? "null" : slice.contentType
-							.name()));
-			sb.append(String.format("Embedded ref block ID: %d\n",
-					slice.embeddedRefBlockContentID));
-			sb.append(String.format("External blocks: %d\n",
-					slice.external.size()));
+			sb.append(String.format("Container offset: %d\n", slice.containerOffset));
+			sb.append(String.format("Content IDs: %s\n", Arrays.toString(slice.contentIDs)));
+			sb.append(String.format("Content type: %s\n", slice.contentType == null ? "null" : slice.contentType.name()));
+			sb.append(String.format("Embedded ref block ID: %d\n", slice.embeddedRefBlockContentID));
+			sb.append(String.format("External blocks: %d\n", slice.external.size()));
 			sb.append(String.format("GRC: %d\n", slice.globalRecordCounter));
 			sb.append(String.format("Index: %d\n", slice.index));
 			sb.append(String.format("Blocks: %d\n", slice.nofBlocks));
 			sb.append(String.format("Records: %d\n", slice.nofRecords));
 			sb.append(String.format("Offset: %d\n", slice.offset));
-			sb.append(String.format("Ref MD5: %s\n",
-					ByteBufferUtils.toHexString(slice.refMD5)));
+			sb.append(String.format("Ref MD5: %s\n", ByteBufferUtils.toHexString(slice.refMD5)));
 			sb.append(String.format("Size: %d\n", slice.size));
 			if (slice.sliceTags != null) {
 				SAMBinaryTagAndValue tags = slice.sliceTags;
 				while (tags != null) {
-					String tagID = SAMTagUtil.getSingleton().makeStringTag(
-							tags.tag);
+					String tagID = SAMTagUtil.getSingleton().makeStringTag(tags.tag);
 					String value = null;
 					if (tags.value instanceof Array)
 						value = Arrays.toString((Object[]) tags.value);
@@ -278,21 +255,17 @@ public class CramInspector extends JFrame {
 
 			StringBuilder sb = new StringBuilder();
 			sb.append(String.format("AP delta: %s\n", h.AP_seriesDelta));
-			sb.append(String.format("Read names included: %s\n",
-					h.readNamesIncluded));
+			sb.append(String.format("Read names included: %s\n", h.readNamesIncluded));
 			sb.append(String.format("Ref required: %s\n", h.referenceRequired));
 
-			sb.append(String.format("Subs matrix: %s\n",
-					h.substitutionMatrix.toString()));
+			sb.append(String.format("Subs matrix: %s\n", h.substitutionMatrix.toString()));
 
 			sb.append(String.format("External compressors:\n"));
 			for (Integer id : h.externalCompressors.keySet())
-				sb.append(String.format("\t%d\t%s: %d\n", id,
-						h.externalCompressors.get(id)));
+				sb.append(String.format("\t%d\t%s: %d\n", id, h.externalCompressors.get(id)));
 
 			if (h.externalIds != null)
-				sb.append(String.format("External IDs: %d\n",
-						Arrays.toString(h.externalIds.toArray())));
+				sb.append(String.format("External IDs: %d\n", Arrays.toString(h.externalIds.toArray())));
 
 			sb.append(String.format("Dictionary:\n"));
 			for (int id = 0; id < h.dictionary.length; id++) {
@@ -305,13 +278,12 @@ public class CramInspector extends JFrame {
 
 			sb.append(String.format("Encodings:\n"));
 			for (EncodingKey key : h.eMap.keySet())
-				sb.append(String.format("\t%s\t%s\n", key.name(),
-						h.eMap.get(key)));
+				sb.append(String.format("\t%s\t%s\n", key.name(), h.eMap.get(key)));
 
 			sb.append(String.format("Tags:\n"));
 			for (Integer tc : h.tMap.keySet())
-				sb.append(String.format("\t%s\t%s\n", SAMTagUtil.getSingleton()
-						.makeStringTag(tc.shortValue()), h.tMap.get(tc)));
+				sb.append(String.format("\t%s\t%s\n", SAMTagUtil.getSingleton().makeStringTag(tc.shortValue()),
+						h.tMap.get(tc)));
 			return sb.toString();
 		}
 	}
@@ -333,8 +305,8 @@ public class CramInspector extends JFrame {
 			Encoding encoding = (Encoding) object;
 
 			StringBuilder sb = new StringBuilder();
-			sb.append(String.format("Encoding: id=%s; params: %s\n",
-					encoding.id(), Arrays.toString(encoding.toByteArray())));
+			sb.append(String.format("Encoding: id=%s; params: %s\n", encoding.id(),
+					Arrays.toString(encoding.toByteArray())));
 			return sb.toString();
 		}
 	}

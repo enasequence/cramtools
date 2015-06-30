@@ -94,10 +94,8 @@ public class TestBAMRecordView {
 		System.out.println(new String(baos2.toByteArray()));
 		System.out.println();
 
-		SAMFileReader
-				.setDefaultValidationStringency(ValidationStringency.SILENT);
-		SAMFileReader reader2 = new SAMFileReader(new ByteArrayInputStream(
-				baos2.toByteArray()));
+		SAMFileReader.setDefaultValidationStringency(ValidationStringency.SILENT);
+		SAMFileReader reader2 = new SAMFileReader(new ByteArrayInputStream(baos2.toByteArray()));
 		SAMRecordIterator iterator = reader2.iterator();
 		while (iterator.hasNext()) {
 			record = iterator.next();
@@ -105,27 +103,23 @@ public class TestBAMRecordView {
 		}
 		System.out.println("------------------------------------------");
 
-		BlockCompressedOutputStream bcos = new BlockCompressedOutputStream(
-				baos, null);
+		BlockCompressedOutputStream bcos = new BlockCompressedOutputStream(baos, null);
 		bcos.write("BAM\1".getBytes());
 		bcos.write(CramIO.toByteArray(header));
 		ByteBufferUtils.writeInt32(header.getSequenceDictionary().size(), bcos);
-		for (final SAMSequenceRecord sequenceRecord : header
-				.getSequenceDictionary().getSequences()) {
+		for (final SAMSequenceRecord sequenceRecord : header.getSequenceDictionary().getSequences()) {
 			byte[] bytes = sequenceRecord.getSequenceName().getBytes();
 			ByteBufferUtils.writeInt32(bytes.length + 1, bcos);
 			bcos.write(sequenceRecord.getSequenceName().getBytes());
 			bcos.write(0);
-			ByteBufferUtils
-					.writeInt32(sequenceRecord.getSequenceLength(), bcos);
+			ByteBufferUtils.writeInt32(sequenceRecord.getSequenceLength(), bcos);
 		}
 		bcos.write(buf, 0, len);
 		bcos.close();
 
 		System.out.println(new String(baos.toByteArray()));
 
-		SAMFileReader reader = new SAMFileReader(new ByteArrayInputStream(
-				baos.toByteArray()));
+		SAMFileReader reader = new SAMFileReader(new ByteArrayInputStream(baos.toByteArray()));
 		iterator = reader.iterator();
 		while (iterator.hasNext()) {
 			record = iterator.next();

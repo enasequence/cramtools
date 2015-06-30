@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.mask;
 
-
 public class ReadMaskException extends Exception {
 
 	public ReadMaskException() {

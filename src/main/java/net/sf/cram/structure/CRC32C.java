@@ -8,8 +8,8 @@ import java.util.zip.Checksum;
 
 /**
  * This class generates a CRC32C checksum, defined by rfc3720 section B.4.
- *
- *
+ * 
+ * 
  */
 public class CRC32C implements Checksum {
 

@@ -30,34 +30,29 @@ import org.junit.Test;
 public class TestReaderToFasta {
 
 	@Test
-	public void test() throws IOException, IllegalArgumentException,
-			IllegalAccessException, NoSuchAlgorithmException {
+	public void test() throws IOException, IllegalArgumentException, IllegalAccessException, NoSuchAlgorithmException {
 		String pathToRefFile = "bin/data/set1/small.fa";
 		String pathToBamFile = "bin/data/set1/small.bam";
 
 		SAMFileReader samFileReader = new SAMFileReader(new File(pathToBamFile));
 		Map<String, byte[]> readMap = new HashMap<String, byte[]>();
 		for (SAMRecord record : samFileReader) {
-			readMap.put(
-					record.getReadName()
-							+ (record.getReadPairedFlag() ? (record
-									.getFirstOfPairFlag() ? "/1" : "/2") : ""),
+			readMap.put(record.getReadName()
+					+ (record.getReadPairedFlag() ? (record.getFirstOfPairFlag() ? "/1" : "/2") : ""),
 					record.getReadBases());
 		}
 		samFileReader.close();
 
-		ReferenceSource referenceSource = new ReferenceSource(new File(
-				pathToRefFile));
+		ReferenceSource referenceSource = new ReferenceSource(new File(pathToRefFile));
 		File cramFile = File.createTempFile("bam", ".cram");
 
-		Bam2Cram.main(String.format("-l error -I %s -R %s -O %s",
-				pathToBamFile, pathToRefFile, cramFile.getAbsolutePath())
-				.split(" "));
+		Bam2Cram.main(String.format("-l error -I %s -R %s -O %s", pathToBamFile, pathToRefFile,
+				cramFile.getAbsolutePath()).split(" "));
 
 		InputStream is = new FileInputStream(cramFile);
 		ReaderToFasta reader = new ReaderToFasta();
 		reader.reverseNegativeReads = false;
-		reader.appendSegmentIndexToReadNames = true ;
+		reader.appendSegmentIndexToReadNames = true;
 
 		CramHeader cramHeader = CramIO.readCramHeader(is);
 		Container container = null;
@@ -68,15 +63,12 @@ public class TestReaderToFasta {
 
 			for (Slice s : container.slices) {
 				if (s.sequenceId != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					SAMSequenceRecord sequence = cramHeader.samFileHeader
-							.getSequence(s.sequenceId);
+					SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(s.sequenceId);
 					ref = referenceSource.getReferenceBases(sequence, true);
 				}
 				Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 				for (Integer exId : s.external.keySet()) {
-					inputMap.put(exId,
-							new ByteArrayInputStream(s.external.get(exId)
-									.getRawContent()));
+					inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId).getRawContent()));
 				}
 
 				reader.referenceSequence = ref;
@@ -84,8 +76,7 @@ public class TestReaderToFasta {
 				reader.substitutionMatrix = container.h.substitutionMatrix;
 				reader.recordCounter = 0;
 				reader.appendSegmentIndexToReadNames = true;
-				f.buildReader(reader, new DefaultBitInputStream(
-						new ByteArrayInputStream(s.coreBlock.getRawContent())),
+				f.buildReader(reader, new DefaultBitInputStream(new ByteArrayInputStream(s.coreBlock.getRawContent())),
 						inputMap, container.h, s.sequenceId);
 
 				for (int i = 0; i < s.nofRecords; i++) {
@@ -97,8 +88,7 @@ public class TestReaderToFasta {
 					byte[] bytes = new byte[buf.limit()];
 					buf.get(bytes);
 
-					Scanner scanner = new Scanner(new ByteArrayInputStream(
-							bytes));
+					Scanner scanner = new Scanner(new ByteArrayInputStream(bytes));
 					while (scanner.hasNextLine()) {
 						String name = scanner.nextLine().substring(1);
 						String baseString = scanner.nextLine();

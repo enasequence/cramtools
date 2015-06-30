@@ -20,7 +20,6 @@ import java.io.IOException;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class GolombLongCodec extends AbstractBitCodec<Long> {
 	private int m;
 	private boolean quotientBit = true;
@@ -36,8 +35,7 @@ public class GolombLongCodec extends AbstractBitCodec<Long> {
 
 	public GolombLongCodec(long offset, int m, boolean quotientBit) {
 		if (m < 2)
-			throw new IllegalArgumentException(
-					"M parameter must be at least 2.");
+			throw new IllegalArgumentException("M parameter must be at least 2.");
 		this.m = m;
 		this.quotientBit = quotientBit;
 		this.offset = offset;
@@ -61,8 +59,7 @@ public class GolombLongCodec extends AbstractBitCodec<Long> {
 	}
 
 	@Override
-	public final long write(final BitOutputStream bos, final Long value)
-			throws IOException {
+	public final long write(final BitOutputStream bos, final Long value) throws IOException {
 		long newValue = value + offset;
 		long quotient = (long) (newValue / m);
 		long reminder = newValue % m;
@@ -76,8 +73,7 @@ public class GolombLongCodec extends AbstractBitCodec<Long> {
 			bos.write(reminder, (int) ceiling - 1);
 			len += ceiling - 1;
 		} else {
-			bos.write((int) (reminder + Math.pow(2, ceiling) - m),
-					(int) ceiling);
+			bos.write((int) (reminder + Math.pow(2, ceiling) - m), (int) ceiling);
 			len += ceiling;
 		}
 		return len;

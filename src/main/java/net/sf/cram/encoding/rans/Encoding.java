@@ -12,8 +12,7 @@ class Encoding {
 		int rcp_shift; // Reciprocal shift
 	}
 
-	static void RansEncSymbolInit(RansEncSymbol s, int start, int freq,
-			int scale_bits) {
+	static void RansEncSymbolInit(RansEncSymbol s, int start, int freq, int scale_bits) {
 		// RansAssert(scale_bits <= 16); RansAssert(start <= (1u <<
 		// scale_bits)); RansAssert(freq <= (1u << scale_bits) - start);
 

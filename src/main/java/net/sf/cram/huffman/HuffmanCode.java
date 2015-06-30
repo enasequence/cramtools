@@ -27,8 +27,7 @@ import java.util.TreeMap;
 public class HuffmanCode {
 
 	@Deprecated
-	public static <T> HuffmanTree<T> buildTreeUsingPriorityQueue(
-			int[] charFreqs, T[] values) {
+	public static <T> HuffmanTree<T> buildTreeUsingPriorityQueue(int[] charFreqs, T[] values) {
 		PriorityQueue<HuffmanTree<T>> queue = new PriorityQueue<HuffmanTree<T>>();
 
 		for (int i = 0; i < charFreqs.length; i++)
@@ -68,8 +67,7 @@ public class HuffmanCode {
 		return list.isEmpty() ? null : list.remove();
 	}
 
-	public static <T> void getValuesAndBitLengths(List<T> values,
-			List<Integer> lens, HuffmanTree<T> tree) {
+	public static <T> void getValuesAndBitLengths(List<T> values, List<Integer> lens, HuffmanTree<T> tree) {
 		TreeMap<T, HuffmanBitCode<T>> codes = new TreeMap<T, HuffmanBitCode<T>>();
 		getBitCode(tree, new HuffmanBitCode<T>(), codes);
 
@@ -80,8 +78,7 @@ public class HuffmanCode {
 		}
 	}
 
-	public static void printTree(HuffmanTree<?> tree, StringBuffer prefix,
-			PrintStream ps) {
+	public static void printTree(HuffmanTree<?> tree, StringBuffer prefix, PrintStream ps) {
 		if (tree instanceof HuffmanLeaf) {
 			HuffmanLeaf<?> leaf = (HuffmanLeaf<?>) tree;
 
@@ -136,8 +133,7 @@ public class HuffmanCode {
 		T value;
 	}
 
-	private static <T> void getBitCode(HuffmanTree<T> tree,
-			HuffmanBitCode<T> code, Map<T, HuffmanBitCode<T>> codes) {
+	private static <T> void getBitCode(HuffmanTree<T> tree, HuffmanBitCode<T> code, Map<T, HuffmanBitCode<T>> codes) {
 		if (tree instanceof HuffmanLeaf) {
 			HuffmanLeaf<T> leaf = (HuffmanLeaf<T>) tree;
 			HuffmanBitCode<T> readyCode = new HuffmanBitCode<T>();

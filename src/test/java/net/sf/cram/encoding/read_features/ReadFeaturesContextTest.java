@@ -124,8 +124,7 @@ public class ReadFeaturesContextTest {
 		Cigar cigar = readFeaturesContext.createCigar();
 
 		assertThat(cigar.toString(), is("1M2I1D17M"));
-		assertThat(new String(bases), bases,
-				is("AccGggAAAAAAAAAAAAAA".getBytes()));
+		assertThat(new String(bases), bases, is("AccGggAAAAAAAAAAAAAA".getBytes()));
 	}
 
 	@Test
@@ -138,8 +137,7 @@ public class ReadFeaturesContextTest {
 		Cigar cigar = readFeaturesContext.createCigar();
 
 		assertThat(cigar.toString(), is("20M"));
-		assertThat(new String(bases), bases,
-				is("AcGtNAAAAAAAAAAAAAAA".getBytes()));
+		assertThat(new String(bases), bases, is("AcGtNAAAAAAAAAAAAAAA".getBytes()));
 	}
 
 	@Test

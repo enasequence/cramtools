@@ -15,10 +15,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMTagUtil;
 
 public class ContentDigests {
-	public static final EnumSet<KNOWN_DIGESTS> ALL = EnumSet
-			.allOf(KNOWN_DIGESTS.class);
-	public static final EnumSet<KNOWN_DIGESTS> CRC32 = EnumSet.of(
-			KNOWN_DIGESTS.BD, KNOWN_DIGESTS.SD);
+	public static final EnumSet<KNOWN_DIGESTS> ALL = EnumSet.allOf(KNOWN_DIGESTS.class);
+	public static final EnumSet<KNOWN_DIGESTS> CRC32 = EnumSet.of(KNOWN_DIGESTS.BD, KNOWN_DIGESTS.SD);
 
 	private static Log log = Log.getInstance(ContentDigests.class);
 	private List<Digester> digesters = new LinkedList<ContentDigests.Digester>();
@@ -39,8 +37,7 @@ public class ContentDigests {
 			List<Digester> digesters = new LinkedList<ContentDigests.Digester>();
 			SAMBinaryTagAndValue binaryTag = binaryTags;
 			while (binaryTag != null) {
-				String tagID = SAMTagUtil.getSingleton().makeStringTag(
-						binaryTag.tag);
+				String tagID = SAMTagUtil.getSingleton().makeStringTag(binaryTag.tag);
 				KNOWN_DIGESTS hash = null;
 				try {
 					hash = KNOWN_DIGESTS.valueOf(tagID);
@@ -56,8 +53,7 @@ public class ContentDigests {
 		}
 	}
 
-	private ContentDigests(List<Digester> hashers)
-			throws NoSuchAlgorithmException {
+	private ContentDigests(List<Digester> hashers) throws NoSuchAlgorithmException {
 		this.digesters = hashers;
 	}
 
@@ -100,17 +96,15 @@ public class ContentDigests {
 				continue;
 
 			if (!(foundTag.value instanceof byte[]))
-				throw new RuntimeException("Expecting a byte array but got: "
-						+ foundTag.value.getClass().getName());
+				throw new RuntimeException("Expecting a byte array but got: " + foundTag.value.getClass().getName());
 
 			byte[] expected = (byte[]) foundTag.value;
 			byte[] actual = digester.digest.asByteArray();
 			if (!Arrays.equals(expected, actual)) {
 				String expectedString = ByteBufferUtils.toHexString(expected);
 				String actualString = ByteBufferUtils.toHexString(actual);
-				log.error(String
-						.format("Content hash mismatch for tag %s, actual: %s; expected: %s",
-								digester.tagID, actualString, expectedString));
+				log.error(String.format("Content hash mismatch for tag %s, actual: %s; expected: %s", digester.tagID,
+						actualString, expectedString));
 				return false;
 			} else
 				log.debug("Content digest ok: " + digester.tagID);
@@ -148,23 +142,20 @@ public class ContentDigests {
 		BD {
 			@Override
 			Digester createDigester() {
-				return new Digester(new Crc32Hasher(new IntegerSumCombine()),
-						SERIES.BASES, name());
+				return new Digester(new Crc32Hasher(new IntegerSumCombine()), SERIES.BASES, name());
 			}
 		},
 		SD {
 			@Override
 			Digester createDigester() {
-				return new Digester(new Crc32Hasher(new IntegerSumCombine()),
-						SERIES.SCORES, name());
+				return new Digester(new Crc32Hasher(new IntegerSumCombine()), SERIES.SCORES, name());
 			}
 		},
 		B5 {
 			@Override
 			Digester createDigester() {
 				try {
-					return new Digester(new MessageDigestHasher(
-							MessageDigest.getInstance("SHA-512"),
+					return new Digester(new MessageDigestHasher(MessageDigest.getInstance("SHA-512"),
 							new ByteSumCombine(), null), SERIES.BASES, name());
 				} catch (NoSuchAlgorithmException e) {
 					throw new RuntimeException(e);
@@ -175,8 +166,7 @@ public class ContentDigests {
 			@Override
 			Digester createDigester() {
 				try {
-					return new Digester(new MessageDigestHasher(
-							MessageDigest.getInstance("SHA-512"),
+					return new Digester(new MessageDigestHasher(MessageDigest.getInstance("SHA-512"),
 							new ByteSumCombine(), null), SERIES.SCORES, name());
 				} catch (NoSuchAlgorithmException e) {
 					throw new RuntimeException(e);
@@ -187,8 +177,7 @@ public class ContentDigests {
 			@Override
 			Digester createDigester() {
 				try {
-					return new Digester(new MessageDigestHasher(
-							MessageDigest.getInstance("SHA-1"),
+					return new Digester(new MessageDigestHasher(MessageDigest.getInstance("SHA-1"),
 							new ByteSumCombine(), null), SERIES.BASES, name());
 				} catch (NoSuchAlgorithmException e) {
 					throw new RuntimeException(e);
@@ -199,8 +188,7 @@ public class ContentDigests {
 			@Override
 			Digester createDigester() {
 				try {
-					return new Digester(new MessageDigestHasher(
-							MessageDigest.getInstance("SHA-1"),
+					return new Digester(new MessageDigestHasher(MessageDigest.getInstance("SHA-1"),
 							new ByteSumCombine(), null), SERIES.SCORES, name());
 				} catch (NoSuchAlgorithmException e) {
 					throw new RuntimeException(e);

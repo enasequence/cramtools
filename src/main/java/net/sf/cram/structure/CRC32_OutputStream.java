@@ -37,15 +37,13 @@ public class CRC32_OutputStream extends FilterOutputStream {
 
 	public byte[] getCrc32_BigEndian() {
 		long value = crc32.getValue();
-		return new byte[] { (byte) (0xFF & (value >> 24)),
-				(byte) (0xFF & (value >> 16)), (byte) (0xFF & (value >> 8)),
+		return new byte[] { (byte) (0xFF & (value >> 24)), (byte) (0xFF & (value >> 16)), (byte) (0xFF & (value >> 8)),
 				(byte) (0xFF & value) };
 	}
 
 	public byte[] getCrc32_LittleEndian() {
 		long value = crc32.getValue();
-		return new byte[] { (byte) (0xFF & (value)),
-				(byte) (0xFF & (value >> 8)), (byte) (0xFF & (value >> 16)),
+		return new byte[] { (byte) (0xFF & (value)), (byte) (0xFF & (value >> 8)), (byte) (0xFF & (value >> 16)),
 				(byte) (0xFF & (value >> 24)) };
 	}
 }

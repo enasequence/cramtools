@@ -36,13 +36,11 @@ class CraiIndexer {
 	private CramIndex index;
 	private CramHeader cramHeader;
 
-	public CraiIndexer(InputStream is, File output)
-			throws FileNotFoundException, IOException {
+	public CraiIndexer(InputStream is, File output) throws FileNotFoundException, IOException {
 		this.is = new CountingInputStream(is);
 		cramHeader = CramIO.readCramHeader(this.is);
 
-		index = new CramIndex(new GZIPOutputStream(new BufferedOutputStream(
-				new FileOutputStream(output))));
+		index = new CramIndex(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(output))));
 
 	}
 

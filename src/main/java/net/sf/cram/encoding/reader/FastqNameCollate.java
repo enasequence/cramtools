@@ -46,7 +46,6 @@ public class FastqNameCollate extends NameCollate<FastqRead> {
 	}
 
 	public String report() {
-		return String.format("ready: %d, kicked %d, total: %d.", ready, kicked,
-				total);
+		return String.format("ready: %d, kicked %d, total: %d.", ready, kicked, total);
 	}
 }

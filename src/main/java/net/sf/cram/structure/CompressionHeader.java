@@ -150,8 +150,7 @@ public class CompressionHeader {
 					buf.get(matrixBytes);
 					substitutionMatrix = new SubstitutionMatrix(matrixBytes);
 				} else
-					throw new RuntimeException("Unknown preservation map key: "
-							+ key);
+					throw new RuntimeException("Unknown preservation map key: " + key);
 			}
 		}
 
@@ -181,8 +180,7 @@ public class CompressionHeader {
 
 				eMap.put(eKey, new EncodingParams(id, paramBytes));
 
-				log.debug(String.format("FOUND ENCODING: %s, %s, %s.",
-						eKey.name(), id.name(),
+				log.debug(String.format("FOUND ENCODING: %s, %s, %s.", eKey.name(), id.name(),
 						Arrays.toString(Arrays.copyOf(paramBytes, 20))));
 			}
 		}

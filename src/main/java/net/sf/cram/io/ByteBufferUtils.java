@@ -61,15 +61,12 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 16) == 0)
-			return ((b1 & 31) << 24) | is.read() << 16 | is.read() << 8
-					| is.read();
+			return ((b1 & 31) << 24) | is.read() << 16 | is.read() << 8 | is.read();
 
-		return ((b1 & 15) << 28) | is.read() << 20 | is.read() << 12
-				| is.read() << 4 | (15 & is.read());
+		return ((b1 & 15) << 28) | is.read() << 20 | is.read() << 12 | is.read() << 4 | (15 & is.read());
 	}
 
-	public static final int writeUnsignedITF8(int value, OutputStream os)
-			throws IOException {
+	public static final int writeUnsignedITF8(int value, OutputStream os) throws IOException {
 		if ((value >>> 7) == 0) {
 			os.write(value);
 			return 8;
@@ -104,8 +101,7 @@ public class ByteBufferUtils {
 		return 40;
 	}
 
-	public static final long readUnsignedLTF8(InputStream is)
-			throws IOException {
+	public static final long readUnsignedLTF8(InputStream is) throws IOException {
 		int b1 = is.read();
 		if (b1 == -1)
 			throw new EOFException();
@@ -182,8 +178,7 @@ public class ByteBufferUtils {
 		return result;
 	}
 
-	public static final int writeUnsignedLTF8(long value, OutputStream os)
-			throws IOException {
+	public static final int writeUnsignedLTF8(long value, OutputStream os) throws IOException {
 		if ((value >>> 7) == 0) {
 			// no contol bits
 			os.write((int) value);
@@ -317,11 +312,9 @@ public class ByteBufferUtils {
 		}
 
 		if ((b1 & 16) == 0)
-			return ((b1 & 31) << 24) | (0xFF & buf.get()) << 16
-					| (0xFF & buf.get()) << 8 | (0xFF & buf.get());
+			return ((b1 & 31) << 24) | (0xFF & buf.get()) << 16 | (0xFF & buf.get()) << 8 | (0xFF & buf.get());
 
-		return ((b1 & 15) << 28) | (0xFF & buf.get()) << 20
-				| (0xFF & buf.get()) << 12 | (0xFF & buf.get()) << 4
+		return ((b1 & 15) << 28) | (0xFF & buf.get()) << 20 | (0xFF & buf.get()) << 12 | (0xFF & buf.get()) << 4
 				| (15 & buf.get());
 	}
 
@@ -360,8 +353,7 @@ public class ByteBufferUtils {
 	}
 
 	private static ExposedByteArrayOutputStream ltf8TestBAOS = new ExposedByteArrayOutputStream();
-	private static ByteArrayInputStream ltf8TestBAIS = new ByteArrayInputStream(
-			ltf8TestBAOS.getBuffer());
+	private static ByteArrayInputStream ltf8TestBAIS = new ByteArrayInputStream(ltf8TestBAOS.getBuffer());
 
 	private static boolean testLTF8vwITF8(long value) throws IOException {
 		ltf8TestBAOS.reset();
@@ -403,10 +395,8 @@ public class ByteBufferUtils {
 
 	public static void main(String[] args) throws IOException {
 		testLTF8vwITF8(0x3f12);
-		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils
-				.writeUnsignedITF8(0x3f12)));
-		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils
-				.writeUnsignedLTF8(0x3f12)));
+		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils.writeUnsignedITF8(0x3f12)));
+		System.out.println(ByteBufferUtils.toHex(ByteBufferUtils.writeUnsignedLTF8(0x3f12)));
 
 		for (int i = 0; i < 10000000; i++)
 			testLTF8vwITF8(i);
@@ -536,8 +526,7 @@ public class ByteBufferUtils {
 				System.out.printf("%d=%s\n", i, toHex(bytes));
 				int value = readUnsignedITF8(buf);
 				if (i != value)
-					throw new RuntimeException("Read " + value
-							+ " but expecting " + i);
+					throw new RuntimeException("Read " + value + " but expecting " + i);
 
 				if (System.nanoTime() - time > 1000 * 1000 * 1000) {
 					time = System.nanoTime();
@@ -551,8 +540,7 @@ public class ByteBufferUtils {
 
 			byte[] b = new byte[s.length() / 2];
 			for (int i = 0; i < s.length(); i += 2) {
-				b[i / 2] = (byte) Integer.valueOf(s.substring(i, i + 2), 16)
-						.intValue();
+				b[i / 2] = (byte) Integer.valueOf(s.substring(i, i + 2), 16).intValue();
 			}
 			System.out.println(Arrays.toString(b));
 
@@ -568,8 +556,7 @@ public class ByteBufferUtils {
 			b = writeUnsignedITF8(-4757);
 			StringBuffer sb = new StringBuffer();
 			for (byte t : b) {
-				System.out.printf("byte %d, hex %s\n", t,
-						String.format("%02x", (0xFF & t)).toUpperCase());
+				System.out.printf("byte %d, hex %s\n", t, String.format("%02x", (0xFF & t)).toUpperCase());
 				sb.append(String.format("%02x", (0xFF & t)).toUpperCase());
 			}
 			System.out.println(sb.toString());
@@ -579,8 +566,7 @@ public class ByteBufferUtils {
 	public static String toHex(byte[] bytes) {
 		StringBuffer sb = new StringBuffer();
 		for (byte t : bytes) {
-			sb.append(String.format("%02x", (0xFF & t)).toUpperCase()).append(
-					' ');
+			sb.append(String.format("%02x", (0xFF & t)).toUpperCase()).append(' ');
 		}
 		return sb.toString();
 	}
@@ -604,8 +590,7 @@ public class ByteBufferUtils {
 	public static int int32(byte[] data) throws IOException {
 		if (data.length != 4)
 			throw new IllegalArgumentException("Expecting a 4-byte integer. ");
-		return (0xFF & data[0]) | ((0xFF & data[1]) << 8)
-				| ((0xFF & data[2]) << 16) | ((0xFF & data[3]) << 24);
+		return (0xFF & data[0]) | ((0xFF & data[1]) << 8) | ((0xFF & data[2]) << 16) | ((0xFF & data[3]) << 24);
 	}
 
 	public static int writeInt32(int value, OutputStream os) throws IOException {
@@ -658,8 +643,7 @@ public class ByteBufferUtils {
 		return readFully(data, data.length, 0, is);
 	}
 
-	public static int readFully(byte[] data, int length, int offset,
-			InputStream inputStream) throws IOException {
+	public static int readFully(byte[] data, int length, int offset, InputStream inputStream) throws IOException {
 		if (length < 0)
 			throw new IndexOutOfBoundsException();
 		int n = 0;
@@ -672,8 +656,7 @@ public class ByteBufferUtils {
 		return n;
 	}
 
-	public static long copyLarge(InputStream input, OutputStream output)
-			throws IOException {
+	public static long copyLarge(InputStream input, OutputStream output) throws IOException {
 		byte[] buffer = new byte[1024 * 4];
 		long count = 0;
 		int n = 0;
@@ -698,8 +681,7 @@ public class ByteBufferUtils {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		long count = copyLarge(input, output);
 		if (count > Integer.MAX_VALUE)
-			throw new RuntimeException(
-					"Failed to copy data because the size is over 2g limit. ");
+			throw new RuntimeException("Failed to copy data because the size is over 2g limit. ");
 		try {
 			input.close();
 		} catch (IOException e) {
@@ -708,15 +690,13 @@ public class ByteBufferUtils {
 	}
 
 	public static byte[] gunzip(byte[] data) throws IOException {
-		GZIPInputStream gis = new GZIPInputStream(
-				new ByteArrayInputStream(data));
+		GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(data));
 		return readFully(gis);
 	}
 
 	public static byte[] bunzip2(byte[] data) throws IOException {
 		CBZip2InputStream bis = null;
-		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
-				data);
+		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
 		// hello, apache!
 		byteArrayInputStream.read();
 		byteArrayInputStream.read();
@@ -735,14 +715,12 @@ public class ByteBufferUtils {
 	}
 
 	public static byte[] rans(byte[] data, int order) {
-		ByteBuffer buf = RANS.compress(ByteBuffer.wrap(data),
-				ORDER.fromInt(order), null);
+		ByteBuffer buf = RANS.compress(ByteBuffer.wrap(data), ORDER.fromInt(order), null);
 		return toByteArray(buf);
 	}
 
 	public static byte[] unxz(byte[] data) throws IOException {
-		XZCompressorInputStream is = new XZCompressorInputStream(
-				new ByteArrayInputStream(data));
+		XZCompressorInputStream is = new XZCompressorInputStream(new ByteArrayInputStream(data));
 		return readFully(is);
 	}
 
@@ -754,8 +732,7 @@ public class ByteBufferUtils {
 		return baos.toByteArray();
 	}
 
-	public static int GZIP_COMPRESSION_LEVEL = Integer.valueOf(System
-			.getProperty("gzip.compression.level", "5"));
+	public static int GZIP_COMPRESSION_LEVEL = Integer.valueOf(System.getProperty("gzip.compression.level", "5"));
 
 	public static byte[] gzip(byte[] data) throws IOException {
 		return gzip(data, GZIP_COMPRESSION_LEVEL);
@@ -775,8 +752,7 @@ public class ByteBufferUtils {
 	}
 
 	public static byte[] bzip2(byte[] data) throws IOException {
-		return readFully(new BZip2CompressorInputStream(
-				new ByteArrayInputStream(data)));
+		return readFully(new BZip2CompressorInputStream(new ByteArrayInputStream(data)));
 	}
 
 	public static byte[] unbzip2(byte[] data) throws IOException {
@@ -803,8 +779,7 @@ public class ByteBufferUtils {
 		}
 
 		for (int i = 0; i < data.length % 8; i++) {
-			octet = octet
-					| (data[data.length - (data.length % 8) + i] << (64 - (i * 8)));
+			octet = octet | (data[data.length - (data.length % 8) + i] << (64 - (i * 8)));
 		}
 		hash = hash * 1099511628211L;
 
@@ -853,15 +828,13 @@ public class ByteBufferUtils {
 			throw new RuntimeException("Not a hex string: " + s);
 		byte data[] = new byte[clean.length() / 2];
 		for (int i = 0; i < clean.length(); i += 2) {
-			data[i / 2] = (Integer.decode("0x" + clean.charAt(i)
-					+ clean.charAt(i + 1))).byteValue();
+			data[i / 2] = (Integer.decode("0x" + clean.charAt(i) + clean.charAt(i + 1))).byteValue();
 		}
 		return data;
 	}
 
 	public static byte[] toByteArray(ByteBuffer buf) {
-		if (buf.hasArray() && buf.arrayOffset() == 0
-				&& buf.array().length == buf.limit())
+		if (buf.hasArray() && buf.arrayOffset() == 0 && buf.array().length == buf.limit())
 			return buf.array();
 
 		byte[] bytes = new byte[buf.remaining()];
@@ -918,8 +891,7 @@ public class ByteBufferUtils {
 		}
 
 		public byte[] getByteValue() {
-			return new byte[] { (byte) (0xFF & (value >> 24)),
-					(byte) (0xFF & (value >> 16)),
+			return new byte[] { (byte) (0xFF & (value >> 24)), (byte) (0xFF & (value >> 16)),
 					(byte) (0xFF & (value >> 8)), (byte) (0xFF & value) };
 		}
 	}

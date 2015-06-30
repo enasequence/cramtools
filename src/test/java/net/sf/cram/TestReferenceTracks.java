@@ -41,13 +41,13 @@ public class TestReferenceTracks {
 		assertThat(t.coverageAt(2), is((short) 2));
 		t.addCoverage(3, 3);
 		assertThat(t.coverageAt(3), is((short) 3));
-		
+
 		t.moveForwardTo(3);
-		
+
 		assertThat(t.coverageAt(3), is((short) 3));
 		t.addCoverage(4, 4);
 		assertThat(t.coverageAt(4), is((short) 4));
-		
+
 		t.moveForwardTo(4);
 
 		assertThat(t.coverageAt(4), is((short) 4));

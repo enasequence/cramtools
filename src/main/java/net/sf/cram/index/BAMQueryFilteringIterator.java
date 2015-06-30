@@ -46,9 +46,8 @@ public class BAMQueryFilteringIterator implements CloseableIterator<SAMRecord> {
 	private final QueryType mQueryType;
 	private boolean isClosed = false;
 
-	public BAMQueryFilteringIterator(final CloseableIterator<SAMRecord> iterator,
-			final String sequence, final int start, final int end,
-			final QueryType queryType, SAMFileHeader fileHeader) {
+	public BAMQueryFilteringIterator(final CloseableIterator<SAMRecord> iterator, final String sequence,
+			final int start, final int end, final QueryType queryType, SAMFileHeader fileHeader) {
 		this.wrappedIterator = iterator;
 		mReferenceIndex = fileHeader.getSequenceIndex(sequence);
 		mRegionStart = start;
@@ -77,8 +76,7 @@ public class BAMQueryFilteringIterator implements CloseableIterator<SAMRecord> {
 	 */
 	public SAMRecord next() {
 		if (!hasNext())
-			throw new NoSuchElementException(
-					"BAMQueryFilteringIterator: no next element available");
+			throw new NoSuchElementException("BAMQueryFilteringIterator: no next element available");
 		final SAMRecord currentRead = mNextRecord;
 		mNextRecord = advance();
 		return currentRead;
@@ -128,8 +126,8 @@ public class BAMQueryFilteringIterator implements CloseableIterator<SAMRecord> {
 			if (mQueryType == QueryType.STARTING_AT) {
 				alignmentEnd = -1;
 			} else {
-				alignmentEnd = (record.getAlignmentEnd() != SAMRecord.NO_ALIGNMENT_START ? record
-						.getAlignmentEnd() : alignmentStart);
+				alignmentEnd = (record.getAlignmentEnd() != SAMRecord.NO_ALIGNMENT_START ? record.getAlignmentEnd()
+						: alignmentStart);
 			}
 
 			if (alignmentStart > mRegionEnd) {
@@ -138,13 +136,11 @@ public class BAMQueryFilteringIterator implements CloseableIterator<SAMRecord> {
 			}
 			// Filter for overlap with region
 			if (mQueryType == QueryType.CONTAINED) {
-				if (alignmentStart >= mRegionStart
-						&& alignmentEnd <= mRegionEnd) {
+				if (alignmentStart >= mRegionStart && alignmentEnd <= mRegionEnd) {
 					return record;
 				}
 			} else if (mQueryType == QueryType.OVERLAPPING) {
-				if (alignmentEnd >= mRegionStart
-						&& alignmentStart <= mRegionEnd) {
+				if (alignmentEnd >= mRegionStart && alignmentStart <= mRegionEnd) {
 					return record;
 				}
 			} else {

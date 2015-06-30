@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -27,10 +26,10 @@ import net.sf.cram.structure.EncodingParams;
 
 public class GammaIntegerEncoding implements Encoding<Integer> {
 	public static final EncodingID ENCODING_ID = EncodingID.GAMMA;
-	private int offset ;
+	private int offset;
 
 	public GammaIntegerEncoding() {
-		this (0) ;
+		this(0);
 	}
 
 	public GammaIntegerEncoding(int offset) {
@@ -44,7 +43,7 @@ public class GammaIntegerEncoding implements Encoding<Integer> {
 
 	public static EncodingParams toParam(int offset) {
 		GammaIntegerEncoding e = new GammaIntegerEncoding();
-		e.offset = offset ;
+		e.offset = offset;
 		return new EncodingParams(ENCODING_ID, e.toByteArray());
 	}
 
@@ -60,7 +59,7 @@ public class GammaIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public void fromByteArray(byte[] data) {
-		offset = ByteBufferUtils.readUnsignedITF8(data) ;
+		offset = ByteBufferUtils.readUnsignedITF8(data);
 	}
 
 	@Override

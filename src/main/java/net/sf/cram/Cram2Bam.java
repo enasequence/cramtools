@@ -78,20 +78,17 @@ public class Cram2Bam {
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version "
-				+ Cram2Bam.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + Cram2Bam.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
+	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
 			jc.parse(args);
 		} catch (Exception e) {
-			System.out
-					.println("Failed to parse parameteres, detailed message below: ");
+			System.out.println("Failed to parse parameteres, detailed message below: ");
 			System.out.println(e.getMessage());
 			System.out.println();
 			System.out.println("See usage: -h");
@@ -113,8 +110,7 @@ public class Cram2Bam {
 
 		InputStream is = null;
 		try {
-			is = CramIO.openCramInputStream(params.cramURL, params.decrypt,
-					params.password);
+			is = CramIO.openCramInputStream(params.cramURL, params.decrypt, params.password);
 		} catch (Exception e2) {
 			log.error("Failed to open CRAM from: " + params.cramURL, e2);
 			System.exit(1);
@@ -128,8 +124,7 @@ public class Cram2Bam {
 		}
 
 		ReferenceSource referenceSource = new ReferenceSource(params.reference);
-		referenceSource
-				.setDownloadTriesBeforeFailing(params.downloadTriesBeforeFailing);
+		referenceSource.setDownloadTriesBeforeFailing(params.downloadTriesBeforeFailing);
 
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
 		fix.setConfirmMD5(!params.skipMD5Checks);
@@ -137,24 +132,21 @@ public class Cram2Bam {
 		fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
 		try {
 			log.info("Preparing the header...");
-			fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary()
-					.getSequences());
+			fix.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
 		} catch (MD5MismatchError e) {
 			log.error(e.getMessage());
 			System.exit(1);
 		}
 		fix.addCramtoolsPG(cramHeader.samFileHeader);
 
-		BlockCompressedOutputStream
-				.setDefaultCompressionLevel(ByteBufferUtils.GZIP_COMPRESSION_LEVEL);
+		BlockCompressedOutputStream.setDefaultCompressionLevel(ByteBufferUtils.GZIP_COMPRESSION_LEVEL);
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
 		samFileWriterFactory.setAsyncOutputBufferSize(params.asyncBamBuffer);
 		samFileWriterFactory.setCreateIndex(false);
 		samFileWriterFactory.setCreateMd5File(false);
 		samFileWriterFactory.setUseAsyncIo(params.syncBamOutput);
 
-		SAMFileWriter writer = createSAMFileWriter(params, cramHeader,
-				samFileWriterFactory);
+		SAMFileWriter writer = createSAMFileWriter(params, cramHeader, samFileWriterFactory);
 
 		Container c = null;
 		AlignmentSliceQuery location = null;
@@ -162,15 +154,12 @@ public class Cram2Bam {
 			if (params.locations.size() > 1)
 				throw new RuntimeException("Only one location is supported.");
 			if (!(is instanceof SeekableStream))
-				throw new RuntimeException(
-						"Cannot use random access on a stream.");
+				throw new RuntimeException("Cannot use random access on a stream.");
 
 			location = new AlignmentSliceQuery(params.locations.get(0));
-			location.sequenceId = cramHeader.samFileHeader
-					.getSequenceIndex(location.sequence);
+			location.sequenceId = cramHeader.samFileHeader.getSequenceIndex(location.sequence);
 			if (location.sequenceId < 0) {
-				log.error("Reference sequence not found for name: "
-						+ location.sequence);
+				log.error("Reference sequence not found for name: " + location.sequence);
 				return;
 			}
 
@@ -201,8 +190,7 @@ public class Cram2Bam {
 		long time = 0;
 		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>(10000);
 
-		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader,
-				referenceSource);
+		CramNormalizer n = new CramNormalizer(cramHeader.samFileHeader, referenceSource);
 
 		byte[] ref = null;
 		int prevSeqId = -1;
@@ -220,8 +208,7 @@ public class Cram2Bam {
 			if (location != null && location.sequenceId != c.sequenceId)
 				break;
 
-			if (params.countOnly && location == null
-					&& params.requiredFlags == 0 && params.filteringFlags == 0) {
+			if (params.countOnly && location == null && params.requiredFlags == 0 && params.filteringFlags == 0) {
 				recordCount += c.nofRecords;
 				baseCount += c.bases;
 				continue;
@@ -251,12 +238,9 @@ public class Cram2Bam {
 
 					default:
 						if (prevSeqId < 0 || prevSeqId != slice.sequenceId) {
-							SAMSequenceRecord sequence = cramHeader.samFileHeader
-									.getSequence(slice.sequenceId);
-							log.info("Loading reference sequence "
-									+ sequence.getSequenceName());
-							ref = referenceSource.getReferenceBases(sequence,
-									true);
+							SAMSequenceRecord sequence = cramHeader.samFileHeader.getSequence(slice.sequenceId);
+							log.info("Loading reference sequence " + sequence.getSequenceName());
+							ref = referenceSource.getReferenceBases(sequence, true);
 							Utils.upperCase(ref);
 							prevSeqId = slice.sequenceId;
 						}
@@ -266,15 +250,11 @@ public class Cram2Bam {
 				if (slice.sequenceId > -1) {
 					try {
 
-						if (slice.embeddedRefBlock == null
-								&& !slice.validateRefMD5(ref)) {
+						if (slice.embeddedRefBlock == null && !slice.validateRefMD5(ref)) {
 							log.error(String
 									.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
-											slice.sequenceId,
-											slice.alignmentStart,
-											slice.alignmentSpan, String.format(
-													"%032x", new BigInteger(1,
-															slice.refMD5))));
+											slice.sequenceId, slice.alignmentStart, slice.alignmentSpan,
+											String.format("%032x", new BigInteger(1, slice.refMD5))));
 							if (!params.resilient)
 								System.exit(1);
 						}
@@ -284,20 +264,17 @@ public class Cram2Bam {
 				}
 
 				long time1 = System.nanoTime();
-				n.normalize(cramRecords, true, ref, refOffset_zeroBased,
-						c.h.substitutionMatrix, c.h.AP_seriesDelta);
+				n.normalize(cramRecords, true, ref, refOffset_zeroBased, c.h.substitutionMatrix, c.h.AP_seriesDelta);
 				long time2 = System.nanoTime();
 				normTime += time2 - time1;
 
 				if (slice.sliceTags != null) {
-					ContentDigests digests = ContentDigests
-							.create(slice.sliceTags);
+					ContentDigests digests = ContentDigests.create(slice.sliceTags);
 					digests.addCramRecords(cramRecords);
 					digests.test(slice.sliceTags);
 				}
 
-				Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(
-						cramHeader.samFileHeader);
+				Cram2BamRecordFactory c2sFactory = new Cram2BamRecordFactory(cramHeader.samFileHeader);
 
 				long c2sTime = 0;
 				long sWriteTime = 0;
@@ -306,13 +283,11 @@ public class Cram2Bam {
 				SAMRecord prevSR = null;
 				for (CramRecord r : cramRecords) {
 					// check if the record ends before the query start:
-					if (location != null && r.sequenceId == location.sequenceId
-							&& r.getAlignmentEnd() < location.start)
+					if (location != null && r.sequenceId == location.sequenceId && r.getAlignmentEnd() < location.start)
 						continue;
 
 					// we got all the reads for random access:
-					if (location != null && location.sequenceId == r.sequenceId
-							&& location.end < r.alignmentStart) {
+					if (location != null && location.sequenceId == r.sequenceId && location.end < r.alignmentStart) {
 						enough = true;
 						break;
 					}
@@ -320,11 +295,9 @@ public class Cram2Bam {
 					time = System.nanoTime();
 					SAMRecord s = c2sFactory.create(r);
 
-					if (params.requiredFlags != 0
-							&& ((params.requiredFlags & s.getFlags()) == 0))
+					if (params.requiredFlags != 0 && ((params.requiredFlags & s.getFlags()) == 0))
 						continue;
-					if (params.filteringFlags != 0
-							&& ((params.filteringFlags & s.getFlags()) != 0))
+					if (params.filteringFlags != 0 && ((params.filteringFlags & s.getFlags()) != 0))
 						continue;
 					if (params.countOnly) {
 						recordCount++;
@@ -332,22 +305,18 @@ public class Cram2Bam {
 						continue;
 					}
 
-					if (ref != null
-							&& s.getReadBases() != SAMRecord.NULL_SEQUENCE)
-						Utils.calculateMdAndNmTags(s, ref,
-								params.calculateMdTag, params.calculateNmTag);
+					if (ref != null && s.getReadBases() != SAMRecord.NULL_SEQUENCE)
+						Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag, params.calculateNmTag);
 					c2sTime += System.nanoTime() - time;
 					samTime += System.nanoTime() - time;
 
 					time = System.nanoTime();
 					if (s.getReadUnmappedFlag() && s.getAlignmentStart() == 0) {
 						if (prevSR == null) {
-							s.setAlignmentStart(slice.alignmentStart
-									+ r.alignmentDelta);
+							s.setAlignmentStart(slice.alignmentStart + r.alignmentDelta);
 							s.setReferenceIndex(slice.sequenceId);
 						} else {
-							s.setAlignmentStart(prevSR.getAlignmentStart()
-									+ r.alignmentDelta);
+							s.setAlignmentStart(prevSR.getAlignmentStart() + r.alignmentDelta);
 							s.setReferenceName(prevSR.getReferenceName());
 						}
 					}
@@ -361,15 +330,11 @@ public class Cram2Bam {
 					prevSR = s;
 				}
 
-				log.info(String
-						.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
-								c.readTime / 1000000, c.parseTime / 1000000,
-								(time2 - time1) / 1000000, c2sTime / 1000000,
-								sWriteTime / 1000000));
+				log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
+						c.readTime / 1000000, c.parseTime / 1000000, (time2 - time1) / 1000000, c2sTime / 1000000,
+						sWriteTime / 1000000));
 
-				if (enough
-						|| (params.outputFile == null && System.out
-								.checkError()))
+				if (enough || (params.outputFile == null && System.out.checkError()))
 					break;
 			}
 
@@ -381,17 +346,12 @@ public class Cram2Bam {
 
 		writer.close();
 
-		log.warn(String
-				.format("TIMES: io %ds, parse %ds, norm %ds, convert %ds, BAM write %ds",
-						readTime / 1000000000, parseTime / 1000000000,
-						normTime / 1000000000, samTime / 1000000000,
-						writeTime / 1000000000));
+		log.warn(String.format("TIMES: io %ds, parse %ds, norm %ds, convert %ds, BAM write %ds", readTime / 1000000000,
+				parseTime / 1000000000, normTime / 1000000000, samTime / 1000000000, writeTime / 1000000000));
 	}
 
-	private static Container skipToContainer(
-			SeekableStream cramFileInputStream, CramHeader header,
-			AlignmentSliceQuery location) throws IOException,
-			ReadNotFoundException, URISyntaxException {
+	private static Container skipToContainer(SeekableStream cramFileInputStream, CramHeader header,
+			AlignmentSliceQuery location) throws IOException, ReadNotFoundException, URISyntaxException {
 		Container c = null;
 		String source = cramFileInputStream.getSource();
 		if (source == null)
@@ -403,8 +363,7 @@ public class Cram2Bam {
 			try {
 				entries = getCraiEntries(source, header, location);
 			} catch (URISyntaxException e1) {
-				throw new RuntimeException("Failed to read index file for "
-						+ source);
+				throw new RuntimeException("Failed to read index file for " + source);
 			}
 			if (entries != null) {
 
@@ -430,8 +389,7 @@ public class Cram2Bam {
 			try {
 				filePointers = getBaiFilePointers(source, header, location);
 			} catch (URISyntaxException e1) {
-				throw new RuntimeException("Failed to read index for "
-						+ cramFileInputStream.getSource());
+				throw new RuntimeException("Failed to read index for " + cramFileInputStream.getSource());
 			}
 			if (filePointers == null)
 				return null;
@@ -455,9 +413,8 @@ public class Cram2Bam {
 		return c;
 	}
 
-	private static long[] getBaiFilePointers(String source, CramHeader header,
-			AlignmentSliceQuery location) throws IOException,
-			ReadNotFoundException, URISyntaxException {
+	private static long[] getBaiFilePointers(String source, CramHeader header, AlignmentSliceQuery location)
+			throws IOException, ReadNotFoundException, URISyntaxException {
 		long[] filePointers = null;
 
 		InputStream is = CramIO.openInputStreamFromURL(source + ".bai");
@@ -471,15 +428,13 @@ public class Cram2Bam {
 		ByteBufferUtils.copyLarge(is, os);
 
 		if (indexFile.exists())
-			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(
-					indexFile, header.samFileHeader.getSequenceDictionary(),
-					location.sequence, location.start, location.end);
+			filePointers = BAMIndexFactory.SHARED_INSTANCE.getBAMIndexPointers(indexFile,
+					header.samFileHeader.getSequenceDictionary(), location.sequence, location.start, location.end);
 
 		return filePointers;
 	}
 
-	private static List<CramIndex.Entry> getCraiEntries(String source,
-			CramHeader header, AlignmentSliceQuery location)
+	private static List<CramIndex.Entry> getCraiEntries(String source, CramHeader header, AlignmentSliceQuery location)
 			throws IOException, URISyntaxException {
 		InputStream is;
 		try {
@@ -489,21 +444,18 @@ public class Cram2Bam {
 		}
 
 		if (is != null) {
-			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(
-					is));
+			GZIPInputStream gis = new GZIPInputStream(new BufferedInputStream(is));
 			BufferedInputStream bis = new BufferedInputStream(gis);
 			List<CramIndex.Entry> full = CramIndex.readIndex(gis);
 			Collections.sort(full);
 
 			List<CramIndex.Entry> entries = new LinkedList<CramIndex.Entry>();
-			SAMSequenceRecord sequence = header.samFileHeader
-					.getSequence(location.sequence);
+			SAMSequenceRecord sequence = header.samFileHeader.getSequence(location.sequence);
 			if (sequence == null)
-				throw new RuntimeException("Sequence not found: "
-						+ location.sequence);
+				throw new RuntimeException("Sequence not found: " + location.sequence);
 
-			entries.addAll(CramIndex.find(full, sequence.getSequenceIndex(),
-					location.start, location.end - location.start));
+			entries.addAll(CramIndex.find(full, sequence.getSequenceIndex(), location.start, location.end
+					- location.start));
 
 			bis.close();
 
@@ -512,9 +464,8 @@ public class Cram2Bam {
 		return null;
 	}
 
-	private static SAMFileWriter createSAMFileWriter(Params params,
-			CramHeader cramHeader, SAMFileWriterFactory samFileWriterFactory)
-			throws IOException {
+	private static SAMFileWriter createSAMFileWriter(Params params, CramHeader cramHeader,
+			SAMFileWriterFactory samFileWriterFactory) throws IOException {
 		/*
 		 * building sam writer, sometimes we have to go deeper to get to the
 		 * required functionality:
@@ -522,24 +473,18 @@ public class Cram2Bam {
 		SAMFileWriter writer = null;
 		if (params.outputFastq) {
 			if (params.cramURL == null) {
-				writer = new FastqSAMFileWriter(System.out, null,
-						cramHeader.samFileHeader);
+				writer = new FastqSAMFileWriter(System.out, null, cramHeader.samFileHeader);
 			} else {
-				writer = new FastqSAMFileWriter(
-						CramIO.getFileName(params.cramURL), false,
-						cramHeader.samFileHeader);
+				writer = new FastqSAMFileWriter(CramIO.getFileName(params.cramURL), false, cramHeader.samFileHeader);
 
 			}
 		} else if (params.outputFastqGz) {
 			if (params.cramURL == null) {
 				GZIPOutputStream gos = new GZIPOutputStream(System.out);
 				PrintStream ps = new PrintStream(gos);
-				writer = new FastqSAMFileWriter(ps, null,
-						cramHeader.samFileHeader);
+				writer = new FastqSAMFileWriter(ps, null, cramHeader.samFileHeader);
 			} else {
-				writer = new FastqSAMFileWriter(
-						CramIO.getFileName(params.cramURL), true,
-						cramHeader.samFileHeader);
+				writer = new FastqSAMFileWriter(CramIO.getFileName(params.cramURL), true, cramHeader.samFileHeader);
 
 			}
 		} else if (params.outputFile == null) {
@@ -550,12 +495,11 @@ public class Cram2Bam {
 				ret.setHeader(cramHeader.samFileHeader);
 				writer = ret;
 			} else {
-				writer = Utils.createSAMTextWriter(samFileWriterFactory, os,
-						cramHeader.samFileHeader, params.printSAMHeader);
+				writer = Utils.createSAMTextWriter(samFileWriterFactory, os, cramHeader.samFileHeader,
+						params.printSAMHeader);
 			}
 		} else {
-			writer = samFileWriterFactory.makeSAMOrBAMWriter(
-					cramHeader.samFileHeader, true, params.outputFile);
+			writer = samFileWriterFactory.makeSAMOrBAMWriter(cramHeader.samFileHeader, true, params.outputFile);
 		}
 		return writer;
 	}

@@ -37,7 +37,8 @@ public class BetaIntegerCodec extends AbstractBitCodec<Integer> {
 	@Override
 	public final long write(BitOutputStream bos, Integer value) throws IOException {
 		// if (value + offset < 0)
-//			throw new IllegalArgumentException("Value is less then offset: " + value);
+		// throw new IllegalArgumentException("Value is less then offset: " +
+		// value);
 
 		int nofBits = (int) numberOfBits(value);
 		long newValue = value + offset;
@@ -49,7 +50,7 @@ public class BetaIntegerCodec extends AbstractBitCodec<Integer> {
 	public final long numberOfBits(Integer value) {
 		if (value > (1L << readNofBits))
 			throw new IllegalArgumentException("Value written is bigger then allowed: value=" + value
-							+ ", max nof bits=" + readNofBits);
+					+ ", max nof bits=" + readNofBits);
 
 		return readNofBits;
 	}

@@ -48,18 +48,15 @@ class Decoding {
 	}
 
 	// Equivalent to RansDecAdvance that takes a symbol.
-	static int RansDecAdvanceSymbol(int r, ByteBuffer pptr, RansDecSymbol sym,
-			int scale_bits) {
-		return Decoding
-				.RansDecAdvance(r, pptr, sym.start, sym.freq, scale_bits);
+	static int RansDecAdvanceSymbol(int r, ByteBuffer pptr, RansDecSymbol sym, int scale_bits) {
+		return Decoding.RansDecAdvance(r, pptr, sym.start, sym.freq, scale_bits);
 	}
 
 	// Advances in the bit stream by "popping" a single symbol with range start
 	// "start" and frequency "freq". All frequencies are assumed to sum to
 	// "1 << scale_bits",
 	// and the resulting bytes get written to ptr (which is updated).
-	static int RansDecAdvance(int r, ByteBuffer pptr, int start, int freq,
-			int scale_bits) {
+	static int RansDecAdvance(int r, ByteBuffer pptr, int start, int freq, int scale_bits) {
 		int mask = (1 << scale_bits) - 1;
 
 		// s, x = D(x)

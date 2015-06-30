@@ -29,8 +29,7 @@ public abstract class AbstractBitCodec<T> implements BitCodec<T> {
 	public abstract T read(BitInputStream bis, int valueLen) throws IOException;
 
 	@Override
-	public void readInto(BitInputStream bis, byte[] array, int offset,
-			int valueLen) throws IOException {
+	public void readInto(BitInputStream bis, byte[] array, int offset, int valueLen) throws IOException {
 		throw new RuntimeException("Not implemented.");
 	}
 
@@ -45,8 +44,7 @@ public abstract class AbstractBitCodec<T> implements BitCodec<T> {
 	}
 
 	@Override
-	public abstract long write(BitOutputStream bos, T object)
-			throws IOException;
+	public abstract long write(BitOutputStream bos, T object) throws IOException;
 
 	@Override
 	public abstract long numberOfBits(T object);

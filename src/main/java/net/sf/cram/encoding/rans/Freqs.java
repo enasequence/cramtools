@@ -47,8 +47,7 @@ class Freqs {
 		assert (x < Constants.TOTFREQ);
 	}
 
-	static void readStats_o1(ByteBuffer cp, ari_decoder[] D,
-			RansDecSymbol[][] syms) {
+	static void readStats_o1(ByteBuffer cp, ari_decoder[] D, RansDecSymbol[][] syms) {
 		int rle_i = 0;
 		int i = 0xFF & cp.get();
 		do {
@@ -62,8 +61,7 @@ class Freqs {
 					D[i].fc[j] = new FC();
 				if ((D[i].fc[j].F = (0xFF & cp.get())) >= 128) {
 					D[i].fc[j].F &= ~128;
-					D[i].fc[j].F = ((D[i].fc[j].F & 127) << 8)
-							| (0xFF & cp.get());
+					D[i].fc[j].F = ((D[i].fc[j].F & 127) << 8) | (0xFF & cp.get());
 				}
 				D[i].fc[j].C = x;
 
@@ -73,8 +71,7 @@ class Freqs {
 				if (syms[i][j] == null)
 					syms[i][j] = new RansDecSymbol();
 
-				Decoding.RansDecSymbolInit(syms[i][j], D[i].fc[j].C,
-						D[i].fc[j].F);
+				Decoding.RansDecSymbolInit(syms[i][j], D[i].fc[j].C, D[i].fc[j].F);
 
 				/* Build reverse lookup table */
 				if (D[i].R == null)
@@ -206,8 +203,7 @@ class Freqs {
 			C[j] = T;
 			T += F[j];
 			if (F[j] != 0) {
-				Encoding.RansEncSymbolInit(syms[j], C[j], F[j],
-						Constants.TF_SHIFT);
+				Encoding.RansEncSymbolInit(syms[j], C[j], F[j], Constants.TF_SHIFT);
 			}
 		}
 		return syms;
@@ -257,8 +253,7 @@ class Freqs {
 			int x = 0;
 			for (int j = 0; j < 256; j++) {
 				if (F_i_[j] != 0) {
-					Encoding.RansEncSymbolInit(syms[i][j], x, F_i_[j],
-							Constants.TF_SHIFT);
+					Encoding.RansEncSymbolInit(syms[i][j], x, F_i_[j], Constants.TF_SHIFT);
 					x += F_i_[j];
 				}
 			}

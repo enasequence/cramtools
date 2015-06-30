@@ -22,7 +22,6 @@ import java.io.OutputStream;
 import net.sf.cram.io.BitInputStream;
 import net.sf.cram.io.BitOutputStream;
 
-
 public class ExternalLongCodec extends AbstractBitCodec<Long> {
 	private OutputStream os;
 	private InputStream is;
@@ -44,8 +43,8 @@ public class ExternalLongCodec extends AbstractBitCodec<Long> {
 
 	@Override
 	public long write(BitOutputStream bos, Long value) throws IOException {
-		for (int i=0; i<8; i++) {
-			os.write((int) (value & 0xFF)) ;
+		for (int i = 0; i < 8; i++) {
+			os.write((int) (value & 0xFF));
 			value >>>= 8;
 		}
 		return 64;

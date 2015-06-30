@@ -35,8 +35,8 @@ public class Block {
 	public Block() {
 	}
 
-	public Block(BlockCompressionMethod method, BlockContentType contentType,
-			int contentId, byte[] rawContent, byte[] compressedContent) {
+	public Block(BlockCompressionMethod method, BlockContentType contentType, int contentId, byte[] rawContent,
+			byte[] compressedContent) {
 		this.method = method;
 		this.contentType = contentType;
 		this.contentId = contentId;
@@ -46,13 +46,11 @@ public class Block {
 			setCompressedContent(compressedContent);
 	}
 
-	public Block(InputStream is, boolean readContent, boolean uncompress)
-			throws IOException {
+	public Block(InputStream is, boolean readContent, boolean uncompress) throws IOException {
 		this(2, is, readContent, uncompress);
 	}
 
-	public Block(int major, InputStream is, boolean readContent,
-			boolean uncompress) throws IOException {
+	public Block(int major, InputStream is, boolean readContent, boolean uncompress) throws IOException {
 		if (major >= 3)
 			is = new CRC32_InputStream(is);
 		method = BlockCompressionMethod.values()[is.read()];
@@ -71,8 +69,7 @@ public class Block {
 				int actualChecksum = ((CRC32_InputStream) is).getCRC32();
 				checksum = ByteBufferUtils.int32(is);
 				if (checksum != actualChecksum)
-					throw new RuntimeException(String.format(
-							"Block CRC32 mismatch: %04x vs %04x", checksum,
+					throw new RuntimeException(String.format("Block CRC32 mismatch: %04x vs %04x", checksum,
 							actualChecksum));
 			}
 
@@ -87,16 +84,13 @@ public class Block {
 
 	@Override
 	public String toString() {
-		String raw = rawContent == null ? "NULL" : Arrays.toString(Arrays
-				.copyOf(rawContent, Math.min(5, rawContent.length)));
-		String comp = compressedContent == null ? "NULL" : Arrays
-				.toString(Arrays.copyOf(compressedContent,
-						Math.min(5, compressedContent.length)));
+		String raw = rawContent == null ? "NULL" : Arrays.toString(Arrays.copyOf(rawContent,
+				Math.min(5, rawContent.length)));
+		String comp = compressedContent == null ? "NULL" : Arrays.toString(Arrays.copyOf(compressedContent,
+				Math.min(5, compressedContent.length)));
 
-		return String
-				.format("method=%s, type=%s, id=%d, raw size=%d, compressed size=%d, raw=%s, comp=%s.",
-						method.name(), contentType.name(), contentId,
-						rawContentSize, compressedContentSize, raw, comp);
+		return String.format("method=%s, type=%s, id=%d, raw size=%d, compressed size=%d, raw=%s, comp=%s.",
+				method.name(), contentType.name(), contentId, rawContentSize, compressedContentSize, raw, comp);
 	}
 
 	public boolean isCompressed() {
@@ -214,8 +208,7 @@ public class Block {
 			rawContent = ByteBufferUtils.unrans(compressedContent);
 			break;
 		default:
-			throw new RuntimeException("Unknown block compression method: "
-					+ method.name());
+			throw new RuntimeException("Unknown block compression method: " + method.name());
 		}
 	}
 

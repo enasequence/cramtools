@@ -25,8 +25,7 @@ class ReadFeatureBuffer {
 	private ByteBuffer readFeatureBuffer = ByteBuffer.allocate(1024 * 1024);
 	private int readFeatureSize;
 
-	public final void readReadFeatures(AbstractReader reader)
-			throws IOException {
+	public final void readReadFeatures(AbstractReader reader) throws IOException {
 		readFeatureBuffer.clear();
 		readFeatureSize = reader.nfc.readData();
 		int prevPos = 0;
@@ -75,15 +74,14 @@ class ReadFeatureBuffer {
 				readFeatureBuffer.putInt(reader.paddingCodec.readData());
 				break;
 			default:
-				throw new RuntimeException("Unknown read feature operator: "
-						+ operator);
+				throw new RuntimeException("Unknown read feature operator: " + operator);
 			}
 		}
 		readFeatureBuffer.flip();
 	}
 
-	public final void restoreReadBases(int readLength, int prevAlStart,
-			byte[] ref, SubstitutionMatrix substitutionMatrix, byte[] bases) {
+	public final void restoreReadBases(int readLength, int prevAlStart, byte[] ref,
+			SubstitutionMatrix substitutionMatrix, byte[] bases) {
 		readFeatureBuffer.rewind();
 
 		int posInRead = 1;
@@ -93,8 +91,7 @@ class ReadFeatureBuffer {
 		if (!readFeatureBuffer.hasRemaining()) {
 			if (ref.length < alignmentStart + readLength) {
 				Arrays.fill(bases, 0, readLength, (byte) 'N');
-				System.arraycopy(ref, alignmentStart, bases, 0,
-						Math.min(readLength, ref.length - alignmentStart));
+				System.arraycopy(ref, alignmentStart, bases, 0, Math.min(readLength, ref.length - alignmentStart));
 			} else
 				System.arraycopy(ref, alignmentStart, bases, 0, readLength);
 
@@ -113,8 +110,7 @@ class ReadFeatureBuffer {
 			switch (op) {
 			case Substitution.operator:
 				byte refBase = ref[alignmentStart + posInSeq];
-				byte base = substitutionMatrix.base(refBase,
-						readFeatureBuffer.get());
+				byte base = substitutionMatrix.base(refBase, readFeatureBuffer.get());
 				bases[posInRead - 1] = base;
 				posInRead++;
 				posInSeq++;
@@ -156,8 +152,7 @@ class ReadFeatureBuffer {
 				throw new RuntimeException("Unkown operator: " + op);
 			}
 		}
-		for (; posInRead <= readLength
-				&& alignmentStart + posInSeq < ref.length; posInRead++)
+		for (; posInRead <= readLength && alignmentStart + posInSeq < ref.length; posInRead++)
 			bases[posInRead - 1] = ref[alignmentStart + posInSeq++];
 
 	}
@@ -199,14 +194,12 @@ class ReadFeatureBuffer {
 			case Insertion.operator:
 				co = CigarOperator.INSERTION;
 				rfLen = readFeatureBuffer.getInt();
-				readFeatureBuffer
-						.position(readFeatureBuffer.position() + rfLen);
+				readFeatureBuffer.position(readFeatureBuffer.position() + rfLen);
 				break;
 			case SoftClip.operator:
 				co = CigarOperator.SOFT_CLIP;
 				rfLen = readFeatureBuffer.getInt();
-				readFeatureBuffer
-						.position(readFeatureBuffer.position() + rfLen);
+				readFeatureBuffer.position(readFeatureBuffer.position() + rfLen);
 				break;
 			case HardClip.operator:
 				co = CigarOperator.HARD_CLIP;
@@ -263,13 +256,11 @@ class ReadFeatureBuffer {
 			if (lastOperator != CigarOperator.M) {
 				list.add(new CigarElement(lastOpLen, lastOperator));
 				if (readLength >= lastOpPos + lastOpLen) {
-					ce = new CigarElement(readLength - (lastOpLen + lastOpPos)
-							+ 1, CigarOperator.M);
+					ce = new CigarElement(readLength - (lastOpLen + lastOpPos) + 1, CigarOperator.M);
 					list.add(ce);
 				}
 			} else if (readLength > lastOpPos - 1) {
-				ce = new CigarElement(readLength - lastOpPos + 1,
-						CigarOperator.M);
+				ce = new CigarElement(readLength - lastOpPos + 1, CigarOperator.M);
 				list.add(ce);
 			}
 		}
@@ -282,8 +273,7 @@ class ReadFeatureBuffer {
 		return new Cigar(list);
 	}
 
-	public void restoreQualityScores(int readLength, int prevAlStart,
-			byte[] scores) {
+	public void restoreQualityScores(int readLength, int prevAlStart, byte[] scores) {
 		readFeatureBuffer.rewind();
 
 		int posInRead = 1;

@@ -115,8 +115,7 @@ public class Utils {
 		}
 	}
 
-	public static final byte a = 'a', c = 'c', g = 'g', t = 't', n = 'n',
-			A = 'A', C = 'C', G = 'G', T = 'T', N = 'N';
+	public static final byte a = 'a', c = 'c', g = 'g', t = 't', n = 'n', A = 'A', C = 'C', G = 'G', T = 'T', N = 'N';
 
 	public static byte complement(final byte b) {
 		switch (b) {
@@ -198,8 +197,7 @@ public class Utils {
 		if (newLength == record.getReadLength())
 			return;
 		if (newLength < 1 || newLength >= record.getReadLength())
-			throw new IllegalArgumentException("Cannot change read length to "
-					+ newLength);
+			throw new IllegalArgumentException("Cannot change read length to " + newLength);
 
 		List<CigarElement> newCigarElements = new ArrayList<CigarElement>();
 		int len = 0;
@@ -218,17 +216,16 @@ public class Utils {
 				break;
 
 			default:
-				throw new IllegalArgumentException(
-						"Unexpected cigar operator: " + ce.getOperator()
-								+ " in cigar " + record.getCigarString());
+				throw new IllegalArgumentException("Unexpected cigar operator: " + ce.getOperator() + " in cigar "
+						+ record.getCigarString());
 			}
 
 			if (len <= newLength) {
 				newCigarElements.add(ce);
 				continue;
 			}
-			CigarElement newCe = new CigarElement(ce.getLength()
-					- (record.getReadLength() - newLength), ce.getOperator());
+			CigarElement newCe = new CigarElement(ce.getLength() - (record.getReadLength() - newLength),
+					ce.getOperator());
 			if (newCe.getLength() > 0)
 				newCigarElements.add(newCe);
 			break;
@@ -253,13 +250,11 @@ public class Utils {
 		Collections.reverse(record.readFeatures);
 	}
 
-	public static byte[] getBasesFromReferenceFile(String referenceFilePath,
-			String seqName, int from, int length) {
-		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
-				.getReferenceSequenceFile(new File(referenceFilePath));
+	public static byte[] getBasesFromReferenceFile(String referenceFilePath, String seqName, int from, int length) {
+		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(
+				referenceFilePath));
 		ReferenceSequence sequence = referenceSequenceFile.getSequence(seqName);
-		byte[] bases = referenceSequenceFile.getSubsequenceAt(
-				sequence.getName(), from, from + length).getBases();
+		byte[] bases = referenceSequenceFile.getSubsequenceAt(sequence.getName(), from, from + length).getBases();
 		return bases;
 	}
 
@@ -290,8 +285,7 @@ public class Utils {
 
 			default:
 				if (strict)
-					throw new RuntimeException("Illegal base at " + i + ": "
-							+ bases[i]);
+					throw new RuntimeException("Illegal base at " + i + ": " + bases[i]);
 				else
 					bases[i] = 'N';
 				break;
@@ -308,16 +302,13 @@ public class Utils {
 	 * @param rec2
 	 * @param header
 	 */
-	public static void setLooseMateInfo(final SAMRecord rec1,
-			final SAMRecord rec2, final SAMFileHeader header) {
+	public static void setLooseMateInfo(final SAMRecord rec1, final SAMRecord rec2, final SAMFileHeader header) {
 		if (rec1.getReferenceName() != SAMRecord.NO_ALIGNMENT_REFERENCE_NAME
 				&& rec1.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-			rec1.setReferenceIndex(header.getSequenceIndex(rec1
-					.getReferenceName()));
+			rec1.setReferenceIndex(header.getSequenceIndex(rec1.getReferenceName()));
 		if (rec2.getReferenceName() != SAMRecord.NO_ALIGNMENT_REFERENCE_NAME
 				&& rec2.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-			rec2.setReferenceIndex(header.getSequenceIndex(rec2
-					.getReferenceName()));
+			rec2.setReferenceIndex(header.getSequenceIndex(rec2.getReferenceName()));
 
 		// If neither read is unmapped just set their mate info
 		if (!rec1.getReadUnmappedFlag() && !rec2.getReadUnmappedFlag()) {
@@ -354,23 +345,20 @@ public class Utils {
 
 			mapped.setMateReferenceIndex(unmapped.getReferenceIndex());
 			mapped.setMateAlignmentStart(unmapped.getAlignmentStart());
-			mapped.setMateNegativeStrandFlag(unmapped
-					.getReadNegativeStrandFlag());
+			mapped.setMateNegativeStrandFlag(unmapped.getReadNegativeStrandFlag());
 			mapped.setMateUnmappedFlag(true);
 			mapped.setInferredInsertSize(0);
 
 			unmapped.setMateReferenceIndex(mapped.getReferenceIndex());
 			unmapped.setMateAlignmentStart(mapped.getAlignmentStart());
-			unmapped.setMateNegativeStrandFlag(mapped
-					.getReadNegativeStrandFlag());
+			unmapped.setMateNegativeStrandFlag(mapped.getReadNegativeStrandFlag());
 			unmapped.setMateUnmappedFlag(false);
 			unmapped.setInferredInsertSize(0);
 		}
 
-		boolean firstIsFirst = rec1.getAlignmentStart() < rec2
-				.getAlignmentStart();
-		int insertSize = firstIsFirst ? SamPairUtil.computeInsertSize(rec1,
-				rec2) : SamPairUtil.computeInsertSize(rec2, rec1);
+		boolean firstIsFirst = rec1.getAlignmentStart() < rec2.getAlignmentStart();
+		int insertSize = firstIsFirst ? SamPairUtil.computeInsertSize(rec1, rec2) : SamPairUtil.computeInsertSize(rec2,
+				rec1);
 
 		rec1.setInferredInsertSize(firstIsFirst ? insertSize : -insertSize);
 		rec2.setInferredInsertSize(firstIsFirst ? -insertSize : insertSize);
@@ -381,8 +369,7 @@ public class Utils {
 
 	}
 
-	public static int computeInsertSize(CramRecord firstEnd,
-			CramRecord secondEnd) {
+	public static int computeInsertSize(CramRecord firstEnd, CramRecord secondEnd) {
 		if (firstEnd.isSegmentUnmapped() || secondEnd.isSegmentUnmapped()) {
 			return 0;
 		}
@@ -390,16 +377,10 @@ public class Utils {
 			return 0;
 		}
 
-		final int right = Math
-				.max(Math.max(firstEnd.alignmentStart,
-						firstEnd.getAlignmentEnd()),
-						Math.max(secondEnd.alignmentStart,
-								secondEnd.getAlignmentEnd()));
-		final int left = Math
-				.min(Math.min(firstEnd.alignmentStart,
-						firstEnd.getAlignmentEnd()),
-						Math.min(secondEnd.alignmentStart,
-								secondEnd.getAlignmentEnd()));
+		final int right = Math.max(Math.max(firstEnd.alignmentStart, firstEnd.getAlignmentEnd()),
+				Math.max(secondEnd.alignmentStart, secondEnd.getAlignmentEnd()));
+		final int left = Math.min(Math.min(firstEnd.alignmentStart, firstEnd.getAlignmentEnd()),
+				Math.min(secondEnd.alignmentStart, secondEnd.getAlignmentEnd()));
 		final int tlen = right - left + 1;
 
 		if (firstEnd.alignmentStart == left) {
@@ -426,11 +407,10 @@ public class Utils {
 		return tlen;
 	}
 
-	public static IndexedFastaSequenceFile createIndexedFastaSequenceFile(
-			File file) throws RuntimeException, FileNotFoundException {
+	public static IndexedFastaSequenceFile createIndexedFastaSequenceFile(File file) throws RuntimeException,
+			FileNotFoundException {
 		if (IndexedFastaSequenceFile.canCreateIndexedFastaReader(file)) {
-			IndexedFastaSequenceFile ifsFile = new IndexedFastaSequenceFile(
-					file);
+			IndexedFastaSequenceFile ifsFile = new IndexedFastaSequenceFile(file);
 
 			return ifsFile;
 		} else
@@ -447,8 +427,7 @@ public class Utils {
 	 * @param flag
 	 * @return
 	 */
-	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref,
-			boolean calcMD, boolean calcNM) {
+	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref, boolean calcMD, boolean calcNM) {
 		if (!calcMD && !calcNM)
 			return;
 
@@ -465,8 +444,7 @@ public class Utils {
 			CigarElement ce = cigarElements.get(i);
 			int j, l = ce.getLength();
 			CigarOperator op = ce.getOperator();
-			if (op == CigarOperator.MATCH_OR_MISMATCH || op == CigarOperator.EQ
-					|| op == CigarOperator.X) {
+			if (op == CigarOperator.MATCH_OR_MISMATCH || op == CigarOperator.EQ || op == CigarOperator.X) {
 				for (j = 0; j < l; ++j) {
 					int z = y + j;
 
@@ -506,8 +484,7 @@ public class Utils {
 					break;
 				x += l;
 				nm += l;
-			} else if (op == CigarOperator.INSERTION
-					|| op == CigarOperator.SOFT_CLIP) {
+			} else if (op == CigarOperator.INSERTION || op == CigarOperator.SOFT_CLIP) {
 				y += l;
 				if (op == CigarOperator.INSERTION)
 					nm += l;
@@ -553,26 +530,22 @@ public class Utils {
 		}
 	};
 
-	public static void checkRefMD5(SAMSequenceDictionary d,
-			ReferenceSequenceFile refFile, boolean checkExistingMD5,
+	public static void checkRefMD5(SAMSequenceDictionary d, ReferenceSequenceFile refFile, boolean checkExistingMD5,
 			boolean failIfMD5Mismatch) throws NoSuchAlgorithmException {
 
 		for (SAMSequenceRecord r : d.getSequences()) {
-			ReferenceSequence sequence = refFile.getSequence(r
-					.getSequenceName());
+			ReferenceSequence sequence = refFile.getSequence(r.getSequenceName());
 			if (!r.getAttributes().contains(SAMSequenceRecord.MD5_TAG)) {
 				String md5 = calculateMD5String(sequence.getBases());
 				r.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
 			} else {
 				if (checkExistingMD5) {
-					String existingMD5 = r
-							.getAttribute(SAMSequenceRecord.MD5_TAG);
+					String existingMD5 = r.getAttribute(SAMSequenceRecord.MD5_TAG);
 					String md5 = calculateMD5String(sequence.getBases());
 					if (!md5.equals(existingMD5)) {
 
-						String message = String
-								.format("For sequence %s the md5 %s does not match the actual md5 %s.",
-										r.getSequenceName(), existingMD5, md5);
+						String message = String.format("For sequence %s the md5 %s does not match the actual md5 %s.",
+								r.getSequenceName(), existingMD5, md5);
 
 						if (failIfMD5Mismatch)
 							throw new RuntimeException(message);
@@ -584,8 +557,7 @@ public class Utils {
 		}
 	}
 
-	public static String calculateMD5String(byte[] data)
-			throws NoSuchAlgorithmException {
+	public static String calculateMD5String(byte[] data) throws NoSuchAlgorithmException {
 		return calculateMD5String(data, 0, data.length);
 	}
 
@@ -619,8 +591,7 @@ public class Utils {
 		System.out.println(calculateMD5String("0".getBytes()));
 	}
 
-	public static SAMFileWriter createSAMTextWriter(
-			SAMFileWriterFactory factoryOrNull, OutputStream os,
+	public static SAMFileWriter createSAMTextWriter(SAMFileWriterFactory factoryOrNull, OutputStream os,
 			SAMFileHeader header, boolean printHeader) throws IOException {
 		SAMFileWriter writer = null;
 		if (printHeader) {
@@ -678,8 +649,7 @@ public class Utils {
 	}
 
 	private static Version getVersion() {
-		String version = CramFixHeader.class.getPackage()
-				.getImplementationVersion();
+		String version = CramFixHeader.class.getPackage().getImplementationVersion();
 		if (version == null)
 			return new Version(3, 0, 0);
 		else

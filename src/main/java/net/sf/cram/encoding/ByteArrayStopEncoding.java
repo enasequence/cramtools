@@ -49,8 +49,7 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 	}
 
 	public static EncodingParams toParam(byte stopByte, int externalId) {
-		ByteArrayStopEncoding e = new ByteArrayStopEncoding(stopByte,
-				externalId);
+		ByteArrayStopEncoding e = new ByteArrayStopEncoding(stopByte, externalId);
 		EncodingParams params = new EncodingParams(ID, e.toByteArray());
 		return params;
 	}
@@ -59,7 +58,7 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		ByteBuffer buf = ByteBuffer.allocate(1024);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 		buf.put(stopByte);
-		ByteBufferUtils.writeUnsignedITF8(externalId, buf) ;
+		ByteBufferUtils.writeUnsignedITF8(externalId, buf);
 
 		buf.flip();
 		byte[] array = new byte[buf.limit()];
@@ -72,15 +71,14 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		ByteBuffer buf = ByteBuffer.wrap(data);
 		buf.order(ByteOrder.LITTLE_ENDIAN);
 		stopByte = buf.get();
-		externalId = ByteBufferUtils.readUnsignedITF8(buf) ;
+		externalId = ByteBufferUtils.readUnsignedITF8(buf);
 	}
 
 	@Override
 	public BitCodec<byte[]> buildCodec(Map<Integer, InputStream> inputMap,
 			Map<Integer, ExposedByteArrayOutputStream> outputMap) {
 		InputStream is = inputMap == null ? null : inputMap.get(externalId);
-		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap
-				.get(externalId);
+		ExposedByteArrayOutputStream os = outputMap == null ? null : outputMap.get(externalId);
 		return new ByteArrayStopCodec(stopByte, is, os);
 	}
 
@@ -113,8 +111,7 @@ public class ByteArrayStopEncoding implements Encoding<byte[]> {
 		}
 
 		@Override
-		public long write(BitOutputStream bos, byte[] object)
-				throws IOException {
+		public long write(BitOutputStream bos, byte[] object) throws IOException {
 			os.write(object);
 			os.write(stop);
 			return object.length + 1;

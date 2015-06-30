@@ -35,8 +35,7 @@ import net.sf.picard.util.Log;
  */
 public class CramJTree extends JTree {
 
-	public CramJTree(String name, InputStream is) throws IOException,
-			IllegalAccessException {
+	public CramJTree(String name, InputStream is) throws IOException, IllegalAccessException {
 		super();
 		Log.setGlobalLogLevel(Log.LogLevel.ERROR);
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode(name);
@@ -67,36 +66,28 @@ public class CramJTree extends JTree {
 	}
 
 	private DefaultMutableTreeNode createContainerNode(final Container container) {
-		final DefaultMutableTreeNode containerNode = new DefaultMutableTreeNode(
-				container);
+		final DefaultMutableTreeNode containerNode = new DefaultMutableTreeNode(container);
 		containerNode.add(new DefaultMutableTreeNode(container.h));
 
 		if (container.slices != null) {
 			for (Slice slice : container.slices) {
-				DefaultMutableTreeNode sliceNode = new DefaultMutableTreeNode(
-						slice);
+				DefaultMutableTreeNode sliceNode = new DefaultMutableTreeNode(slice);
 				sliceNode.add(new DefaultMutableTreeNode(slice.coreBlock));
 				sliceNode.add(new DefaultMutableTreeNode(slice.headerBlock));
 				if (slice.embeddedRefBlock != null)
-					sliceNode.add(new DefaultMutableTreeNode(
-							slice.embeddedRefBlock));
+					sliceNode.add(new DefaultMutableTreeNode(slice.embeddedRefBlock));
 
 				for (Block block : slice.external.values())
 					sliceNode.add(new DefaultMutableTreeNode(block));
 
-				DefaultMutableTreeNode byEncodingNode = new DefaultMutableTreeNode(
-						"Data series");
+				DefaultMutableTreeNode byEncodingNode = new DefaultMutableTreeNode("Data series");
 
 				{
-					final Map<EncodingKey, Encoding> nonTagEncodings = createNonTagEncodings(
-							container, slice);
+					final Map<EncodingKey, Encoding> nonTagEncodings = createNonTagEncodings(container, slice);
 
-					for (Map.Entry<EncodingKey, Encoding> entry : nonTagEncodings
-							.entrySet()) {
-						DefaultMutableTreeNode encodingKeyNode = new DefaultMutableTreeNode(
-								entry.getKey());
-						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
-								entry.getValue());
+					for (Map.Entry<EncodingKey, Encoding> entry : nonTagEncodings.entrySet()) {
+						DefaultMutableTreeNode encodingKeyNode = new DefaultMutableTreeNode(entry.getKey());
+						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(entry.getValue());
 						encodingKeyNode.add(encodingNode);
 
 						Encoding e = entry.getValue();
@@ -122,20 +113,14 @@ public class CramJTree extends JTree {
 					}
 				}
 
-				DefaultMutableTreeNode byTagNode = new DefaultMutableTreeNode(
-						"Tags");
+				DefaultMutableTreeNode byTagNode = new DefaultMutableTreeNode("Tags");
 				{
 
-					final Map<Integer, Encoding> tagEncodings = createTagEncodings(
-							container, slice);
-					for (Map.Entry<Integer, Encoding> entry : tagEncodings
-							.entrySet()) {
-						String tagName = ReadTag.intToNameType4Bytes(entry
-								.getKey());
-						DefaultMutableTreeNode tagNode = new DefaultMutableTreeNode(
-								tagName);
-						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(
-								entry.getValue());
+					final Map<Integer, Encoding> tagEncodings = createTagEncodings(container, slice);
+					for (Map.Entry<Integer, Encoding> entry : tagEncodings.entrySet()) {
+						String tagName = ReadTag.intToNameType4Bytes(entry.getKey());
+						DefaultMutableTreeNode tagNode = new DefaultMutableTreeNode(tagName);
+						DefaultMutableTreeNode encodingNode = new DefaultMutableTreeNode(entry.getValue());
 						tagNode.add(encodingNode);
 						Encoding e = entry.getValue();
 						if (e.id() == EncodingID.EXTERNAL) {
@@ -168,9 +153,8 @@ public class CramJTree extends JTree {
 	}
 
 	@Override
-	public String convertValueToText(Object value, final boolean selected,
-			final boolean expanded, final boolean leaf, final int row,
-			final boolean hasFocus) {
+	public String convertValueToText(Object value, final boolean selected, final boolean expanded, final boolean leaf,
+			final int row, final boolean hasFocus) {
 		if (value == null)
 			return "";
 
@@ -178,8 +162,7 @@ public class CramJTree extends JTree {
 			value = ((DefaultMutableTreeNode) value).getUserObject();
 			if (value instanceof CramHeader) {
 				CramHeader c = (CramHeader) value;
-				String label = String.format("Header: version %d.%d; id: %s",
-						c.getMajorVersion(), c.getMinorVersion(),
+				String label = String.format("Header: version %d.%d; id: %s", c.getMajorVersion(), c.getMinorVersion(),
 						new String(c.getId()));
 				return label;
 			}
@@ -188,8 +171,8 @@ public class CramJTree extends JTree {
 				Container c = (Container) value;
 				if (c.isEOF())
 					return "EOF";
-				return String.format("Container %d:%d-%d/%d", c.sequenceId,
-						c.alignmentStart, c.alignmentSpan, c.offset);
+				return String
+						.format("Container %d:%d-%d/%d", c.sequenceId, c.alignmentStart, c.alignmentSpan, c.offset);
 			}
 
 			if (value instanceof CompressionHeader) {
@@ -199,10 +182,8 @@ public class CramJTree extends JTree {
 
 			if (value instanceof Slice) {
 				Slice slice = (Slice) value;
-				return String
-						.format("Slice %d:%d-%d/%d", slice.sequenceId,
-								slice.alignmentStart, slice.alignmentSpan,
-								slice.offset);
+				return String.format("Slice %d:%d-%d/%d", slice.sequenceId, slice.alignmentStart, slice.alignmentSpan,
+						slice.offset);
 			}
 
 			if (value instanceof Block) {
@@ -217,8 +198,7 @@ public class CramJTree extends JTree {
 				case CORE:
 					return String.format("Core block");
 				case EXTERNAL:
-					return String.format("External %d/%s", block.contentId,
-							block.method.name());
+					return String.format("External %d/%s", block.contentId, block.method.name());
 				default:
 					return "unknown block";
 				}
@@ -235,8 +215,7 @@ public class CramJTree extends JTree {
 			Encoding key = (Encoding) value;
 			return String.format("%s", key.id().name());
 		}
-		return super.convertValueToText(value, selected, expanded, leaf, row,
-				hasFocus);
+		return super.convertValueToText(value, selected, expanded, leaf, row, hasFocus);
 	}
 
 	private static class CramModel extends DefaultTreeModel {
@@ -253,18 +232,15 @@ public class CramJTree extends JTree {
 		return model;
 	}
 
-	private static Map<EncodingKey, Encoding> createNonTagEncodings(
-			Container c, Slice s) {
+	private static Map<EncodingKey, Encoding> createNonTagEncodings(Container c, Slice s) {
 
 		CompressionHeader h = c.h;
 
-		BitInputStream bis = new DefaultBitInputStream(
-				new ByteArrayInputStream(s.coreBlock.getRawContent()));
+		BitInputStream bis = new DefaultBitInputStream(new ByteArrayInputStream(s.coreBlock.getRawContent()));
 
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
-			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId)
-					.getRawContent()));
+			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId).getRawContent()));
 		}
 
 		Map<EncodingKey, Encoding> encodingMap = new HashMap<EncodingKey, Encoding>();
@@ -274,8 +250,7 @@ public class CramJTree extends JTree {
 				EncodingKey key = ds.key();
 				DataSeriesType type = ds.type();
 				assert (h.eMap.get(key) != null);
-				Encoding e = createEncoding(type, h.eMap.get(key), bis,
-						inputMap);
+				Encoding e = createEncoding(type, h.eMap.get(key), bis, inputMap);
 				encodingMap.put(key, e);
 			}
 
@@ -286,8 +261,7 @@ public class CramJTree extends JTree {
 					IntHashMap map = new IntHashMap();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
-						final Encoding<Object> encoding = createEncoding(
-								DataSeriesType.BYTE_ARRAY, params, bis,
+						final Encoding<Object> encoding = createEncoding(DataSeriesType.BYTE_ARRAY, params, bis,
 								inputMap);
 					}
 				}
@@ -297,18 +271,15 @@ public class CramJTree extends JTree {
 		return encodingMap;
 	}
 
-	private static Map<Integer, Encoding> createTagEncodings(Container c,
-			Slice s) {
+	private static Map<Integer, Encoding> createTagEncodings(Container c, Slice s) {
 
 		CompressionHeader h = c.h;
 
-		BitInputStream bis = new DefaultBitInputStream(
-				new ByteArrayInputStream(s.coreBlock.getRawContent()));
+		BitInputStream bis = new DefaultBitInputStream(new ByteArrayInputStream(s.coreBlock.getRawContent()));
 
 		Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
 		for (Integer exId : s.external.keySet()) {
-			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId)
-					.getRawContent()));
+			inputMap.put(exId, new ByteArrayInputStream(s.external.get(exId).getRawContent()));
 		}
 
 		Map<Integer, Encoding> encodingMap = new HashMap<Integer, Encoding>();
@@ -320,8 +291,7 @@ public class CramJTree extends JTree {
 					IntHashMap map = new IntHashMap();
 					for (Integer key : h.tMap.keySet()) {
 						EncodingParams params = h.tMap.get(key);
-						final Encoding<Object> encoding = createEncoding(
-								DataSeriesType.BYTE_ARRAY, params, bis,
+						final Encoding<Object> encoding = createEncoding(DataSeriesType.BYTE_ARRAY, params, bis,
 								inputMap);
 						encodingMap.put(key, encoding);
 					}
@@ -332,8 +302,7 @@ public class CramJTree extends JTree {
 		return encodingMap;
 	}
 
-	private static <T> Encoding<T> createEncoding(DataSeriesType valueType,
-			EncodingParams params, BitInputStream bis,
+	private static <T> Encoding<T> createEncoding(DataSeriesType valueType, EncodingParams params, BitInputStream bis,
 			Map<Integer, InputStream> inputMap) {
 		if (params.id == EncodingID.NULL)
 			return new NullEncoding<T>();
@@ -341,8 +310,7 @@ public class CramJTree extends JTree {
 		EncodingFactory f = new EncodingFactory();
 		Encoding<T> encoding = f.createEncoding(valueType, params.id);
 		if (encoding == null)
-			throw new RuntimeException("Encoding not found for value type "
-					+ valueType.name() + ", id=" + params.id);
+			throw new RuntimeException("Encoding not found for value type " + valueType.name() + ", id=" + params.id);
 		encoding.fromByteArray(params.params);
 
 		return encoding;

@@ -158,8 +158,7 @@ public class IntHashMap<T> {
 	public IntHashMap(int initialCapacity, float loadFactor) {
 		super();
 		if (initialCapacity < 0) {
-			throw new IllegalArgumentException("Illegal Capacity: "
-					+ initialCapacity);
+			throw new IllegalArgumentException("Illegal Capacity: " + initialCapacity);
 		}
 		if (loadFactor <= 0) {
 			throw new IllegalArgumentException("Illegal Load: " + loadFactor);

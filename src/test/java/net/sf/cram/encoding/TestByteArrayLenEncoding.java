@@ -40,22 +40,18 @@ public class TestByteArrayLenEncoding {
 	public void test() {
 		int[] values = new int[] { 1, 2, 3 };
 		int[] bitLens = new int[] { 1, 2, 2 };
-		EncodingParams lenParams = HuffmanIntegerEncoding.toParam(values,
-				bitLens);
+		EncodingParams lenParams = HuffmanIntegerEncoding.toParam(values, bitLens);
 
 		int externalID = 4;
-		EncodingParams byteParams = ExternalByteArrayEncoding
-				.toParam(externalID);
+		EncodingParams byteParams = ExternalByteArrayEncoding.toParam(externalID);
 
 		EncodingParams p = ByteArrayLenEncoding.toParam(lenParams, byteParams);
 
-		byte[] expected = new byte[] { 0x03, 0x08, 0x03, 0x01, 0x02, 0x03,
-				0x03, 0x01, 0x02, 0x02, 0x01, 0x01, 0x04, };
+		byte[] expected = new byte[] { 0x03, 0x08, 0x03, 0x01, 0x02, 0x03, 0x03, 0x01, 0x02, 0x02, 0x01, 0x01, 0x04, };
 		assertEquals(EncodingID.BYTE_ARRAY_LEN, p.id);
 		assertArrayEquals(expected, p.params);
 
-		Encoding<byte[]> encoding = new EncodingFactory()
-				.createByteArrayEncoding(p.id);
+		Encoding<byte[]> encoding = new EncodingFactory().createByteArrayEncoding(p.id);
 		encoding.fromByteArray(p.params);
 		assertEquals(ByteArrayLenEncoding.class, encoding.getClass());
 
@@ -65,8 +61,7 @@ public class TestByteArrayLenEncoding {
 		assertArrayEquals(values, hie.values);
 		assertArrayEquals(bitLens, hie.bitLengths);
 
-		assertEquals(ExternalByteArrayEncoding.class,
-				bale.byteEncoding.getClass());
+		assertEquals(ExternalByteArrayEncoding.class, bale.byteEncoding.getClass());
 		ExternalByteArrayEncoding ebae = (ExternalByteArrayEncoding) bale.byteEncoding;
 		assertEquals(externalID, ebae.contentId);
 	}

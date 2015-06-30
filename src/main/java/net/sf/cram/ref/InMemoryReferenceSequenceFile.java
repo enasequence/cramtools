@@ -50,8 +50,7 @@ public class InMemoryReferenceSequenceFile implements ReferenceSequenceFile {
 	@Override
 	public ReferenceSequence getSubsequenceAt(String name, long start, long stop) {
 		int index = getSequenceDictionary().getSequenceIndex(name);
-		byte[] bases = Arrays.copyOfRange(sequences.get(index), (int) start,
-				(int) stop + 1);
+		byte[] bases = Arrays.copyOfRange(sequences.get(index), (int) start, (int) stop + 1);
 		return new ReferenceSequence(name, index, bases);
 	}
 
@@ -68,8 +67,7 @@ public class InMemoryReferenceSequenceFile implements ReferenceSequenceFile {
 		if (!sequences.containsKey(index))
 			throw new RuntimeException("Sequence not found: " + name);
 
-		ReferenceRegion region = new ReferenceRegion(sequences.get(index),
-				index, name, start, stop);
+		ReferenceRegion region = new ReferenceRegion(sequences.get(index), index, name, start, stop);
 		return region;
 	}
 

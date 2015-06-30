@@ -21,18 +21,17 @@ import java.util.EnumSet;
 import net.sf.samtools.SAMRecord;
 
 public class SAMRecordField implements Comparable<SAMRecordField> {
-	public static SAMRecordField[] SHARED = new SAMRecordField[FIELD_TYPE.values().length] ;
+	public static SAMRecordField[] SHARED = new SAMRecordField[FIELD_TYPE.values().length];
 	static {
-		for (FIELD_TYPE type:FIELD_TYPE.values()) 
-			SHARED[type.ordinal()] = new SAMRecordField(type) ;
+		for (FIELD_TYPE type : FIELD_TYPE.values())
+			SHARED[type.ordinal()] = new SAMRecordField(type);
 	}
 	public FIELD_TYPE type;
 	public String tagId;
 
 	public SAMRecordField(FIELD_TYPE type, String tagId) {
 		if (type == null)
-			throw new IllegalArgumentException(
-					"Record field type not specified (null).");
+			throw new IllegalArgumentException("Record field type not specified (null).");
 
 		this.type = type;
 		this.tagId = tagId;
@@ -48,7 +47,7 @@ public class SAMRecordField implements Comparable<SAMRecordField> {
 			return tagId;
 		return type.name();
 	}
-	
+
 	public static String toString(Object value) {
 		if (value == null)
 			return null;
@@ -87,9 +86,7 @@ public class SAMRecordField implements Comparable<SAMRecordField> {
 				return new SAMRecordField(FIELD_TYPE.TAG, spec);
 		}
 
-		throw new IllegalArgumentException(
-				"The specificator is neither field name nor 2 char tag id: "
-						+ spec);
+		throw new IllegalArgumentException("The specificator is neither field name nor 2 char tag id: " + spec);
 	}
 
 	@Override
@@ -139,13 +136,11 @@ public class SAMRecordField implements Comparable<SAMRecordField> {
 
 		case TAG:
 			if (tagId == null)
-				throw new IllegalArgumentException(
-						"Tag mismatch reqiues tag id. ");
+				throw new IllegalArgumentException("Tag mismatch reqiues tag id. ");
 			return record.getAttribute(tagId);
 
 		default:
-			throw new IllegalArgumentException("Unknown record field: "
-					+ type.name());
+			throw new IllegalArgumentException("Unknown record field: " + type.name());
 		}
 	}
 }

@@ -47,10 +47,8 @@ public class SAMFieldSelector {
 	public static final String allSymbol = "*";
 	public static final String fieldSeparatorSymbol = ":";
 	public static final String fieldTagSeparatorSymbol = "/";
-	public static final EnumSet<FIELD_TYPE> onlyTags = EnumSet
-			.of(FIELD_TYPE.TAG);
-	public static final EnumSet<FIELD_TYPE> exceptTags = EnumSet
-			.complementOf(onlyTags);
+	public static final EnumSet<FIELD_TYPE> onlyTags = EnumSet.of(FIELD_TYPE.TAG);
+	public static final EnumSet<FIELD_TYPE> exceptTags = EnumSet.complementOf(onlyTags);
 	private static final Set<SAMRecordField> ALL_FIELDS = new TreeSet<SAMRecordField>();
 	{
 		for (FIELD_TYPE type : exceptTags)
@@ -70,8 +68,7 @@ public class SAMFieldSelector {
 	public SAMFieldSelector(String spec) {
 		Matcher matcher = pattern.matcher(spec);
 		if (!matcher.matches() || matcher.groupCount() != 5)
-			throw new IllegalArgumentException(
-					"Confusing SAMRecord field selector: " + spec);
+			throw new IllegalArgumentException("Confusing SAMRecord field selector: " + spec);
 
 		allButFields = allSymbol.equals(matcher.group(1));
 		if (matcher.group(3).length() == 0)
@@ -97,8 +94,7 @@ public class SAMFieldSelector {
 		return f;
 	}
 
-	public Map<SAMRecordField, Object> getValues(SAMRecord record,
-			Map<SAMRecordField, Object> map) {
+	public Map<SAMRecordField, Object> getValues(SAMRecord record, Map<SAMRecordField, Object> map) {
 		if (map == null)
 			map = new TreeMap<SAMRecordField, Object>();
 
@@ -195,8 +191,7 @@ public class SAMFieldSelector {
 		return super.equals(obj);
 	}
 
-	public static Set<SAMRecordField> filterByType(Set<SAMRecordField> set,
-			EnumSet<FIELD_TYPE> types) {
+	public static Set<SAMRecordField> filterByType(Set<SAMRecordField> set, EnumSet<FIELD_TYPE> types) {
 		Set<SAMRecordField> result = new TreeSet<SAMRecordField>();
 		for (SAMRecordField f : set)
 			if (types.contains(f.type))
@@ -231,8 +226,7 @@ public class SAMFieldSelector {
 		public int maxLen = Integer.MAX_VALUE;
 		public String trimMarker = "...";
 
-		private static Pattern trimPattern = Pattern
-				.compile("^(\\p{Upper}+)(?:\\[(\\d+)\\])?$");
+		private static Pattern trimPattern = Pattern.compile("^(\\p{Upper}+)(?:\\[(\\d+)\\])?$");
 
 		public FieldSpec(String spec) {
 			// handles only [] for now:
@@ -249,8 +243,7 @@ public class SAMFieldSelector {
 					break;
 
 				default:
-					throw new IllegalArgumentException(
-							"Failed to parse field specification: " + spec);
+					throw new IllegalArgumentException("Failed to parse field specification: " + spec);
 				}
 			}
 		}

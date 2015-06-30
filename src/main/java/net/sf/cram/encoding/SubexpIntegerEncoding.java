@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-
 import net.sf.cram.io.ByteBufferUtils;
 import net.sf.cram.io.ExposedByteArrayOutputStream;
 import net.sf.cram.structure.EncodingID;
@@ -56,13 +55,13 @@ public class SubexpIntegerEncoding implements Encoding<Integer> {
 
 	@Override
 	public byte[] toByteArray() {
-		ByteBuffer buf = ByteBuffer.allocate(10) ;
+		ByteBuffer buf = ByteBuffer.allocate(10);
 		ByteBufferUtils.writeUnsignedITF8(offset, buf);
 		ByteBufferUtils.writeUnsignedITF8(k, buf);
-		buf.flip() ;
-		byte[] bytes = new byte[buf.limit()] ;
-		buf.get(bytes) ;
-		return bytes ;
+		buf.flip();
+		byte[] bytes = new byte[buf.limit()];
+		buf.get(bytes);
+		return bytes;
 	}
 
 	@Override
