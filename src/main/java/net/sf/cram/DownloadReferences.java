@@ -1,7 +1,14 @@
 package net.sf.cram;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.util.Log;
+import net.sf.cram.CramTools.LevelConverter;
+import org.junit.Test;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -18,18 +25,8 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.zip.GZIPOutputStream;
 
-import net.sf.cram.CramTools.LevelConverter;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMSequenceRecord;
-
-import org.junit.Test;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.converters.FileConverter;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 public class DownloadReferences {
 	private static Log log = Log.getInstance(DownloadReferences.class);
@@ -227,7 +224,7 @@ public class DownloadReferences {
 	static class Params {
 
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
 		boolean help = false;

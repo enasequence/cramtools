@@ -38,14 +38,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import net.sf.cram.io.ByteBufferUtils;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+import htsjdk.samtools.util.IOUtil;
+import htsjdk.samtools.util.Log;
 
 public class Crambone {
 	private static Log log = Log.getInstance(Crambone.class);
@@ -277,7 +276,7 @@ public class Crambone {
 		private String model;
 
 		private String java = "java";
-		private LogLevel logLevel = LogLevel.INFO;
+		private Log.LogLevel logLevel = Log.LogLevel.INFO;
 		private String cramtoolsCommand = "cram";
 
 		private File cramFile;
@@ -328,7 +327,7 @@ public class Crambone {
 		private File refFile;
 
 		private String java = "java";
-		private LogLevel logLevel = LogLevel.INFO;
+		private Log.LogLevel logLevel = Log.LogLevel.INFO;
 		private String cramtoolsCommand = "bam";
 
 		private File bamFile;
@@ -567,7 +566,8 @@ public class Crambone {
 
 			@Override
 			public Long call() throws Exception {
-				return ByteBufferUtils.copyLarge(is, os);
+				IOUtil.copyStream(is, os);
+				return 0L;
 			}
 
 		}

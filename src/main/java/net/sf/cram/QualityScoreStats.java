@@ -9,16 +9,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 
+import htsjdk.samtools.cram.build.ContainerParser;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.build.CramNormalizer;
+import htsjdk.samtools.cram.lossy.Binning;
+import htsjdk.samtools.cram.structure.Container;
+import htsjdk.samtools.cram.structure.ContainerIO;
+import htsjdk.samtools.cram.structure.CramCompressionRecord;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.build.ContainerParser;
-import net.sf.cram.build.CramIO;
-import net.sf.cram.build.CramNormalizer;
-import net.sf.cram.lossy.Binning;
-import net.sf.cram.structure.Container;
-import net.sf.cram.structure.CramHeader;
-import net.sf.cram.structure.CramRecord;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -66,16 +66,16 @@ public class QualityScoreStats {
 		InputStream is = new FileInputStream(file);
 		CramHeader header = CramIO.readCramHeader(is);
 		Container c = null;
-		ContainerParser parser = new ContainerParser(header.samFileHeader);
-		ArrayList<CramRecord> records = new ArrayList<CramRecord>(10000);
+		ContainerParser parser = new ContainerParser(header.getSamFileHeader());
+		ArrayList<CramCompressionRecord> records = new ArrayList<CramCompressionRecord>(10000);
 
 		long[] freq = new long[255];
-		while ((c = CramIO.readContainer(is)) != null) {
+		while ((c = ContainerIO.readContainer(header.getVersion(), is)) != null) {
 			parser.getRecords(c, records);
 
-			for (CramRecord record : records) {
-				byte[] scores = CramNormalizer.restoreQualityScores(defaultQualityScore, record);
-				for (byte b : scores)
+			CramNormalizer.restoreQualityScores(defaultQualityScore, records);
+			for (CramCompressionRecord record : records) {
+				for (byte b : record.qualityScores)
 					freq[b & 0xFF]++;
 			}
 			records.clear();
@@ -134,7 +134,7 @@ public class QualityScoreStats {
 	@Parameters(commandDescription = "Quality score statistics.")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "-h", "--help" }, description = "Print help and quit")
 		boolean help = false;

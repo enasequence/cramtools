@@ -15,9 +15,10 @@
  ******************************************************************************/
 package net.sf.cram.select;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMFileHeader.SortOrder;
+
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
 
 class BoundSAMRecordIterator implements SAMRecordIterator {
 	private SAMRecordIterator delegate;
@@ -55,7 +56,7 @@ class BoundSAMRecordIterator implements SAMRecordIterator {
 	}
 
 	@Override
-	public SAMRecordIterator assertSorted(SortOrder sortOrder) {
+	public SAMRecordIterator assertSorted(SAMFileHeader.SortOrder sortOrder) {
 		return delegate.assertSorted(sortOrder);
 	}
 

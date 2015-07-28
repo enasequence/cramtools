@@ -15,16 +15,17 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.ProgressLoggerInterface;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.zip.GZIPOutputStream;
-
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMRecord;
 
 public class FastqSAMFileWriter implements SAMFileWriter {
 	private PrintStream s1, s2;
@@ -76,6 +77,11 @@ public class FastqSAMFileWriter implements SAMFileWriter {
 	@Override
 	public SAMFileHeader getFileHeader() {
 		return header;
+	}
+
+	@Override
+	public void setProgressLogger(ProgressLoggerInterface progressLoggerInterface) {
+		throw new RuntimeException("Not implemented");
 	}
 
 	@Override

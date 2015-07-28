@@ -7,13 +7,12 @@ import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import net.sf.picard.util.Log;
-import net.sf.samtools.seekablestream.SeekableFileStream;
-import net.sf.samtools.util.BlockCompressedInputStream;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.Log;
 
 class BGZF_FastaIndexer {
 	private static Log log = Log.getInstance(BGZF_FastaIndexer.class);

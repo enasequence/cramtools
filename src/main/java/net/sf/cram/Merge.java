@@ -26,6 +26,23 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMProgramRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.IOUtil;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.CramTools.ValidationStringencyConverter;
 import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
@@ -33,24 +50,6 @@ import net.sf.cram.common.Utils;
 import net.sf.cram.index.BAMQueryFilteringIterator;
 import net.sf.cram.index.CramIndex;
 import net.sf.cram.ref.ReferenceSource;
-import net.sf.picard.io.IoUtil;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileHeader.SortOrder;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
-import net.sf.samtools.SAMIterator;
-import net.sf.samtools.SAMProgramRecord;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.seekablestream.SeekableFileStream;
-import net.sf.samtools.util.CloseableIterator;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -104,7 +103,7 @@ public class Merge {
 
 		AlignmentSliceQuery query = params.region == null ? null : new AlignmentSliceQuery(params.region);
 
-		List<RecordSource> list = readFiles(params.files, referenceSource, query, params.validationLevel);
+		List<RecordSource> list = readFiles(params.files, params.reference, query, params.validationLevel);
 
 		StringBuffer mergeComment = new StringBuffer("Merged from:");
 		for (RecordSource source : list) {
@@ -113,6 +112,7 @@ public class Merge {
 
 		resolveCollisions(list);
 		SAMFileHeader header = mergeHeaders(list);
+		header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
 		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
 		fix.setConfirmMD5(true);
 		fix.setInjectURI(true);
@@ -136,9 +136,7 @@ public class Merge {
 			// hack to write BAM format to stdout:
 			File file = File.createTempFile("bam", null);
 			file.deleteOnExit();
-			BAMFileWriter bamWriter = new BAMFileWriter(System.out, file);
-			header.setSortOrder(SortOrder.coordinate);
-			bamWriter.setHeader(header);
+			SAMFileWriter bamWriter = new SAMFileWriterFactory().makeBAMWriter(header, true, System.out);
 			writer = bamWriter;
 		}
 
@@ -156,24 +154,16 @@ public class Merge {
 		for (RecordSource source : list)
 			source.close();
 
-		// hack: BAMFileWriter may throw this when streaming to stdout, so
-		// silently drop the exception if streaming out BAM format:
-		try {
 			writer.close();
-		} catch (net.sf.samtools.util.RuntimeIOException e) {
-			if (params.samFormat || params.outFile != null
-					|| !e.getMessage().matches("Terminator block not found after closing BGZF file.*"))
-				throw e;
-		}
 	}
 
-	private static List<RecordSource> readFiles(List<File> files, ReferenceSource referenceSource,
+	private static List<RecordSource> readFiles(List<File> files, File refFile,
 			AlignmentSliceQuery query, ValidationStringency ValidationStringency) throws IOException {
 		List<RecordSource> sources = new ArrayList<Merge.RecordSource>(files.size());
 
 		SAMFileReader.setDefaultValidationStringency(ValidationStringency);
 		for (File file : files) {
-			IoUtil.assertFileIsReadable(file);
+			IOUtil.assertFileIsReadable(file);
 
 			RecordSource source = new RecordSource();
 			sources.add(source);
@@ -213,9 +203,10 @@ public class Merge {
 
 						bis.close();
 
-						SAMIterator it = new SAMIterator(is, referenceSource);
+						SamInputResource sir = SamInputResource.of(is);
+						final SamReader samReader = SamReaderFactory.make().referenceSequence(refFile).open(sir);
 						is.seek(entries.get(0).containerStartOffset);
-						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(it, query.sequence, query.start,
+						BAMQueryFilteringIterator bit = new BAMQueryFilteringIterator(samReader.iterator(), query.sequence, query.start,
 								query.end, BAMQueryFilteringIterator.QueryType.CONTAINED, reader.getFileHeader());
 						source.it = bit;
 					}
@@ -387,7 +378,7 @@ public class Merge {
 		}
 
 		@Override
-		public SAMRecordIterator assertSorted(SortOrder sortOrder) {
+		public SAMRecordIterator assertSorted(SAMFileHeader.SortOrder sortOrder) {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -410,13 +401,12 @@ public class Merge {
 			}
 			return index;
 		}
-
 	}
 
 	@Parameters(commandDescription = "Tool to merge CRAM or BAM files. ")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "-v", "--validation-level" }, description = "Change validation stringency level: STRICT, LENIENT, SILENT.", converter = ValidationStringencyConverter.class)
 		ValidationStringency validationLevel = ValidationStringency.DEFAULT_STRINGENCY;

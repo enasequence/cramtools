@@ -15,6 +15,8 @@
  ******************************************************************************/
 package net.sf.cram.select;
 
+import htsjdk.samtools.SAMRecord;
+
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -22,9 +24,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecord.SAMTagAndValue;
 
 /**
  * Describes and applies selection rules to SAMRecord fields. Examples:
@@ -111,14 +110,14 @@ public class SAMFieldSelector {
 		}
 
 		if (allButTags) {
-			for (SAMTagAndValue tv : record.getAttributes()) {
+			for (SAMRecord.SAMTagAndValue tv : record.getAttributes()) {
 				SAMRecordField f = getCachedTagField(tv.tag);
 				if (!tags.contains(f))
 					map.put(f, f.getValue(record));
 
 			}
 		} else {
-			for (SAMTagAndValue tv : record.getAttributes()) {
+			for (SAMRecord.SAMTagAndValue tv : record.getAttributes()) {
 				SAMRecordField f = getCachedTagField(tv.tag);
 				if (tags.contains(f))
 					map.put(f, f.getValue(record));

@@ -15,6 +15,9 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
+import htsjdk.samtools.cram.structure.Container;
+import htsjdk.samtools.cram.structure.Slice;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,9 +27,6 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-
-import net.sf.cram.structure.Container;
-import net.sf.cram.structure.Slice;
 
 public class CramIndex {
 	private OutputStream os;

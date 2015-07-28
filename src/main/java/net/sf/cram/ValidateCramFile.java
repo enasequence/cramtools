@@ -23,24 +23,21 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.cram.ref.ReferenceSource;
-import net.sf.cram.structure.CramHeader;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.picard.sam.SamFileValidator;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.picard.util.ProgressLogger;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMIterator;
-import net.sf.samtools.SAMIterator.CramFileIterable;
-import net.sf.samtools.SAMValidationError;
-import net.sf.samtools.SAMValidationError.Type;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+import htsjdk.samtools.CRAMIterator;
+import htsjdk.samtools.SAMValidationError;
+import htsjdk.samtools.SamFileValidator;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.util.Log;
+import htsjdk.samtools.util.ProgressLogger;
+import net.sf.cram.ref.ReferenceSource;
 
 public class ValidateCramFile {
 	private static Log log = Log.getInstance(ValidateCramFile.class);
@@ -82,7 +79,7 @@ public class ValidateCramFile {
 			System.exit(1);
 		}
 
-		Log.setGlobalLogLevel(LogLevel.INFO);
+		Log.setGlobalLogLevel(Log.LogLevel.INFO);
 
 		ReferenceSequenceFile referenceSequenceFile = ReferenceSequenceFileFactory
 				.getReferenceSequenceFile(params.reference);
@@ -90,22 +87,19 @@ public class ValidateCramFile {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		SAMIterator iterator = new SAMIterator(bis, new ReferenceSource(params.reference));
+		CRAMIterator iterator = new CRAMIterator(bis,new ReferenceSource(params.reference));
 		CramHeader cramHeader = iterator.getCramHeader();
 
 		iterator.close();
 
 		ProgressLogger progress = new ProgressLogger(log, 100000, "Validated Read");
 		SamFileValidator v = new SamFileValidator(new PrintWriter(System.out), 1);
+		final SamReader reader = SamReaderFactory.make().referenceSequence(params.reference).open(params.cramFile);
 		List<SAMValidationError.Type> errors = new ArrayList<SAMValidationError.Type>();
-		errors.add(Type.MATE_NOT_FOUND);
+		errors.add(SAMValidationError.Type.MATE_NOT_FOUND);
 		// errors.add(Type.MISSING_TAG_NM);
 		v.setErrorsToIgnore(errors);
-		v.init(referenceSequenceFile, cramHeader.samFileHeader);
-		CramFileIterable iterable = new SAMIterator.CramFileIterable(params.cramFile, new ReferenceSource(
-				params.reference), ValidationStringency.STRICT);
-
-		v.validateSamRecords(iterable, cramHeader.samFileHeader);
+		v.validateSamFileSummary(reader, ReferenceSequenceFileFactory.getReferenceSequenceFile(params.reference));
 		log.info("Elapsed seconds: " + progress.getElapsedSeconds());
 	}
 

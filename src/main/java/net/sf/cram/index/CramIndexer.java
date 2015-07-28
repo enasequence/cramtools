@@ -22,18 +22,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
+import htsjdk.samtools.BAMIndexer;
+import htsjdk.samtools.CRAMFileReader;
+import htsjdk.samtools.SAMException;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ref.ReferenceSource;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.BAMIndexer;
-import net.sf.samtools.CRAMFileReader;
-import net.sf.samtools.SAMException;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
+
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -73,7 +74,15 @@ public class CramIndexer {
 
 		Log.setGlobalLogLevel(params.logLevel);
 
-		if (CRAMFileReader.isCRAMFile(params.inputFile)) {
+		boolean cramOrNot = false;
+		try {
+			CramIO.readCramHeader(new FileInputStream(params.inputFile));
+			cramOrNot = true ;
+		} catch (Exception e) {
+			cramOrNot = false;
+		} finally {
+		}
+		if (cramOrNot) {
 			if (params.bai) {
 
 				File cramIndexFile = new File(params.inputFile.getAbsolutePath() + ".bai");
@@ -124,7 +133,7 @@ public class CramIndexer {
 	@Parameters(commandDescription = "BAM/CRAM indexer. ")
 	public static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--input-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM or CRAM file to be indexed. Omit if standard input (pipe).")
 		File inputFile;

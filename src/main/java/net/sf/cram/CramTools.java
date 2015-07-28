@@ -21,16 +21,14 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.TreeMap;
 
-import net.sf.cram.common.Utils;
-import net.sf.cram.index.CramIndexer;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.util.Log;
+import net.sf.cram.common.Utils;
+import net.sf.cram.index.CramIndexer;
 
 public class CramTools {
 	private static Log log = Log.getInstance(CramTools.class);
@@ -129,11 +127,11 @@ public class CramTools {
 		private boolean help = false;
 	}
 
-	public static class LevelConverter implements IStringConverter<LogLevel> {
+	public static class LevelConverter implements IStringConverter<Log.LogLevel> {
 
 		@Override
-		public LogLevel convert(String s) {
-			return LogLevel.valueOf(s.toUpperCase());
+		public Log.LogLevel convert(String s) {
+			return Log.LogLevel.valueOf(s.toUpperCase());
 		}
 
 	}

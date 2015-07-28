@@ -6,14 +6,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
-import net.sf.cram.build.CramIO;
 import net.sf.cram.common.Utils;
 import net.sf.cram.ref.ReferenceSource;
-import net.sf.cram.structure.CramHeader;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -72,8 +71,8 @@ public class CramFixHeader {
 
 		FixBAMFileHeader fixer = new FixBAMFileHeader(referenceSource);
 		fixer.setIgnoreMD5Mismatch(true);
-		fixer.fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
-		fixer.addCramtoolsPG(cramHeader.samFileHeader);
+		fixer.fixSequences(cramHeader.getSamFileHeader().getSequenceDictionary().getSequences());
+		fixer.addCramtoolsPG(cramHeader.getSamFileHeader());
 
 		CramHeader newHeader = cramHeader.clone();
 
@@ -94,7 +93,7 @@ public class CramFixHeader {
 	@Parameters(commandDescription = "A tool to fix CRAM header without re-writing the whole file.")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--input-cram-file", "-I" }, converter = FileConverter.class, description = "The path to the CRAM file.")
 		File cramFile;

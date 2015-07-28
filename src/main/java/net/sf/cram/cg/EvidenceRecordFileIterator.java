@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import net.sf.samtools.util.CloseableIterator;
 
+import htsjdk.samtools.util.CloseableIterator;
 import org.apache.tools.bzip2.CBZip2InputStream;
 
 class EvidenceRecordFileIterator implements CloseableIterator<EvidenceRecord> {

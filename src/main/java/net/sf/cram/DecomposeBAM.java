@@ -15,6 +15,16 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.cram.structure.ReadTag;
+import htsjdk.samtools.util.Log;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -24,20 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
-
-import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.structure.ReadTag;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecord.SAMTagAndValue;
-import net.sf.samtools.SAMRecordIterator;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.converters.FileConverter;
 
 public class DecomposeBAM {
 	private static Log log = Log.getInstance(DecomposeBAM.class);
@@ -93,7 +89,7 @@ public class DecomposeBAM {
 			put(map, "SEQ", record.getReadString());
 			put(map, "QUAL", record.getBaseQualityString());
 
-			for (SAMTagAndValue tv : record.getAttributes()) {
+			for (SAMRecord.SAMTagAndValue tv : record.getAttributes()) {
 				writeTagValue(map, tv);
 			}
 		}
@@ -109,7 +105,7 @@ public class DecomposeBAM {
 		log.info(String.format("Bases %d, bytes %d, b/b %.2f\n", bases, totalBytes, 8f * totalBytes / bases));
 	}
 
-	private static void writeTagValue(Map<String, Out> map, SAMTagAndValue tv) throws IOException {
+	private static void writeTagValue(Map<String, Out> map, SAMRecord.SAMTagAndValue tv) throws IOException {
 		String name = tv.tag;
 		char type = ReadTag.getTagValueType(tv.value);
 		byte[] value = ReadTag.writeSingleValue((byte) type, tv.value, false);
@@ -187,8 +183,8 @@ public class DecomposeBAM {
 
 	@Parameters(commandDescription = "Decomposes BAM data series into separate files.")
 	static class Params {
-		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = CramTools.LevelConverter.class)
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--input-bam-file", "-I" }, converter = FileConverter.class, description = "Path to the input BAM file.")
 		File bamFile;
