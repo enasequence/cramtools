@@ -270,6 +270,9 @@ public class Cram2Bam {
 
 			boolean enough = false;
 			for (CramCompressionRecord r : cramRecords) {
+				// enforcing a special way to calculate template size:
+				restoreMateInfo(r);
+
 				// check if the record ends before the query start:
 				if (location != null && r.sequenceId == location.sequenceId && r.getAlignmentEnd() < location.start)
 					continue;
@@ -323,6 +326,38 @@ public class Cram2Bam {
 
 		log.warn(String.format("TIMES: io %ds, parse %ds, norm %ds, convert %ds, BAM write %ds", readTime / 1000000000,
 				parseTime / 1000000000, normTime / 1000000000, samTime / 1000000000, writeTime / 1000000000));
+	}
+
+	private static void restoreMateInfo(CramCompressionRecord r) {
+		if (r.next == null) {
+
+			return;
+		}
+		CramCompressionRecord cur;
+		cur = r;
+		while (cur.next != null) {
+			setNextMate(cur, cur.next);
+			cur = cur.next;
+		}
+
+		// cur points to the last segment now:
+		CramCompressionRecord last = cur;
+		setNextMate(last, r);
+		// r.setFirstSegment(true);
+		// last.setLastSegment(true);
+
+		final int templateLength = Utils.computeInsertSize(r, last);
+		r.templateSize = templateLength;
+		last.templateSize = -templateLength;
+	}
+
+	private static void setNextMate(CramCompressionRecord r, CramCompressionRecord next) {
+		r.mateAlignmentStart = next.alignmentStart;
+		r.setMateUnmapped(next.isSegmentUnmapped());
+		r.setMateNegativeStrand(next.isNegativeStrand());
+		r.mateSequenceID = next.sequenceId;
+		if (r.mateSequenceID == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+			r.mateAlignmentStart = SAMRecord.NO_ALIGNMENT_START;
 	}
 
 	private static htsjdk.samtools.cram.structure.Container skipToContainer(SeekableStream cramFileInputStream, CramHeader header,
