@@ -20,6 +20,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+import htsjdk.samtools.CRAMFileWriter;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
@@ -29,6 +30,7 @@ import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.ContainerFactory;
 import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.build.CramNormalizer;
 import htsjdk.samtools.cram.build.Sam2CramRecordFactory;
 import htsjdk.samtools.cram.common.CramVersions;
 import htsjdk.samtools.cram.lossy.QualityScorePreservation;
@@ -43,6 +45,7 @@ import net.sf.cram.ref.ReferenceSource;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -74,6 +77,7 @@ public class Bam2Cram {
 
 	public static void updateTracks(List<SAMRecord> samRecords, ReferenceTracks tracks) {
 		for (SAMRecord samRecord : samRecords) {
+			if (samRecord.getReadBases().length == 0) continue;
 			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
 				int refPos = samRecord.getAlignmentStart();
 				int readPos = 0;
@@ -145,49 +149,104 @@ public class Bam2Cram {
 
 		createNanos = System.nanoTime() - createNanos;
 
-		// mating:
-		long mateNanos = System.nanoTime();
-		Map<String, CramCompressionRecord> mateMap = new TreeMap<String, CramCompressionRecord>();
-		for (CramCompressionRecord r : cramRecords) {
-			if (!r.isMultiFragment()) {
-				r.setDetached(true);
+		long mateNanos=System.nanoTime();
+		{
+			if (samFileHeader.getSortOrder() == SAMFileHeader.SortOrder.coordinate) {
+				// mating:
+				final Map<String, CramCompressionRecord> primaryMateMap = new TreeMap<String, CramCompressionRecord>();
+				final Map<String, CramCompressionRecord> secondaryMateMap = new TreeMap<String, CramCompressionRecord>();
+				for (final CramCompressionRecord r : cramRecords) {
+					if (!r.isMultiFragment()) {
+						r.setDetached(true);
 
-				r.setHasMateDownStream(false);
-				r.recordsToNextFragment = -1;
-				r.next = null;
-				r.previous = null;
-			} else {
-				String name = r.readName;
-				CramCompressionRecord mate = mateMap.get(name);
-				if (mate == null) {
-					mateMap.put(name, r);
-				} else {
-					mate.recordsToNextFragment = r.index - mate.index - 1;
-					mate.next = r;
-					r.previous = mate;
-					r.previous.setHasMateDownStream(true);
-					r.setHasMateDownStream(false);
-					r.setDetached(false);
-					r.previous.setDetached(false);
+						r.setHasMateDownStream(false);
+						r.recordsToNextFragment = -1;
+						r.next = null;
+						r.previous = null;
+					} else {
+						final String name = r.readName;
+						final Map<String, CramCompressionRecord> mateMap = r.isSecondaryAlignment() ? secondaryMateMap : primaryMateMap;
+						final CramCompressionRecord mate = mateMap.get(name);
+						if (mate == null) {
+							mateMap.put(name, r);
+						} else {
+							CramCompressionRecord prev = mate;
+							while (prev.next != null) prev = prev.next;
+							prev.recordsToNextFragment = r.index - prev.index - 1;
+							prev.next = r;
+							r.previous = prev;
+							r.previous.setHasMateDownStream(true);
+							r.setHasMateDownStream(false);
+							r.setDetached(false);
+							r.previous.setDetached(false);
+						}
+					}
+				}
 
-					mateMap.remove(name);
+				// mark unpredictable reads as detached:
+				for (final CramCompressionRecord cramRecord : cramRecords) {
+					if (cramRecord.next == null || cramRecord.previous != null) continue;
+					CramCompressionRecord last = cramRecord;
+					while (last.next != null) last = last.next;
+
+					if (cramRecord.isFirstSegment() && last.isLastSegment()) {
+
+						final int templateLength = CramNormalizer.computeInsertSize(cramRecord, last);
+
+						if (cramRecord.templateSize == templateLength) {
+							last = cramRecord.next;
+							while (last.next != null) {
+								if (last.templateSize != -templateLength)
+									break;
+
+								last = last.next;
+							}
+							if (last.templateSize != -templateLength) detach(cramRecord);
+						}
+					} else detach(cramRecord);
+				}
+
+				for (final CramCompressionRecord cramRecord : primaryMateMap.values()) {
+					if (cramRecord.next != null) continue;
+					cramRecord.setDetached(true);
+
+					cramRecord.setHasMateDownStream(false);
+					cramRecord.recordsToNextFragment = -1;
+					cramRecord.next = null;
+					cramRecord.previous = null;
+				}
+
+				for (final CramCompressionRecord cramRecord : secondaryMateMap.values()) {
+					if (cramRecord.next != null) continue;
+					cramRecord.setDetached(true);
+
+					cramRecord.setHasMateDownStream(false);
+					cramRecord.recordsToNextFragment = -1;
+					cramRecord.next = null;
+					cramRecord.previous = null;
 				}
 			}
-		}
-
-		for (CramCompressionRecord r : mateMap.values()) {
-			r.setDetached(true);
-
-			r.setHasMateDownStream(false);
-			r.recordsToNextFragment = -1;
-			r.next = null;
-			r.previous = null;
+			else {
+				for (final CramCompressionRecord cramRecord : cramRecords) {
+					cramRecord.setDetached(true);
+				}
+			}
 		}
 		mateNanos = System.nanoTime() - mateNanos;
 		log.info(String.format("create: tracks %dms, records %dms, mating %dms.", tracksNanos / 1000000,
 				createNanos / 1000000, mateNanos / 1000000));
 
 		return cramRecords;
+	}
+
+	private static void detach(CramCompressionRecord cramRecord) {
+		do {
+			cramRecord.setDetached(true);
+
+			cramRecord.setHasMateDownStream(false);
+			cramRecord.recordsToNextFragment = -1;
+		}
+		while ((cramRecord = cramRecord.next) != null);
 	}
 
 	private static void printUsage(JCommander jc) {
@@ -197,6 +256,23 @@ public class Bam2Cram {
 
 		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
+	}
+
+	private static OutputStream openOutputStream(File outputCramFile, boolean encrypt, char[] pass) throws FileNotFoundException {
+		OutputStream os;
+		if (outputCramFile != null) {
+			FileOutputStream fos = new FileOutputStream(outputCramFile);
+			os = new BufferedOutputStream(fos);
+		} else {
+			log.warn("No output file, writint to STDOUT.");
+			os = System.out;
+		}
+
+		if (encrypt) {
+			CipherOutputStream_256 cos = new CipherOutputStream_256(os, pass, 128);
+			os = cos.getCipherOutputStream();
+		}
+		return os;
 	}
 
 	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException,
@@ -246,6 +322,17 @@ public class Bam2Cram {
 		List<SAMRecord> samRecords = new ArrayList<SAMRecord>(params.maxSliceSize);
 		int prevSeqId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
 		SAMRecordIterator iterator = samFileReader.iterator();
+		if (!iterator.hasNext()) {
+			log.debug("No records found, writing out empty cram file...");
+			CramHeader h = new CramHeader(CramVersions.CRAM_v3, bamFile.getName(), samFileHeader);
+
+			OutputStream os = openOutputStream(params.outputCramFile, params.encrypt, pass);
+			CramIO.writeCramHeader(h, os);
+			CramIO.issueEOF(h.getVersion(), os);
+			os.close();
+			return;
+		}
+
 		{
 			String seqName = null;
 			SAMRecord samRecord = iterator.next();
@@ -311,19 +398,17 @@ public class Bam2Cram {
 		long offset = CramIO.writeCramHeader(h, os);
 
 		long bases = 0;
-		long coreBytes = 0;
-		long[] externalBytes = new long[10];
+//		long coreBytes = 0;
+//		long[] 90 = new long[10];
 
 		ContainerFactory cf = new ContainerFactory(samFileHeader, params.maxSliceSize);
-
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
 				return;
 
+			if (!iterator.hasNext()) break;
 			SAMRecord samRecord = iterator.next();
-			if (samRecord == null)
-				// no more records
-				break;
+
 			if (samRecord.getReferenceIndex() != prevSeqId || samRecords.size() >= params.maxContainerSize) {
 				long convertNanos = 0;
 				if (!samRecords.isEmpty()) {
@@ -347,11 +432,11 @@ public class Bam2Cram {
 									convertNanos / 1000000, container.buildHeaderTime / 1000000,
 									container.buildSlicesTime / 1000000, container.writeTime / 1000000));
 
-					for (Slice s : container.slices) {
-						coreBytes += s.coreBlock.getCompressedContentSize();
-						for (Integer i : s.external.keySet())
-							externalBytes[i] += s.external.get(i).getCompressedContentSize();
-					}
+//					for (Slice s : container.slices) {
+//						coreBytes += s.coreBlock.getCompressedContentSize();
+//						for (Integer i : s.external.keySet())
+//							externalBytes[i] += s.external.get(i).getCompressedContentSize();
+//					}
 				}
 			}
 
@@ -393,11 +478,11 @@ public class Bam2Cram {
 						container.buildHeaderTime / 1000000, container.buildSlicesTime / 1000000,
 						container.writeTime / 1000000));
 
-				for (Slice s : container.slices) {
-					coreBytes += s.coreBlock.getCompressedContentSize();
-					for (Integer i : s.external.keySet())
-						externalBytes[i] += s.external.get(i).getCompressedContentSize();
-				}
+//				for (Slice s : container.slices) {
+//					coreBytes += s.coreBlock.getCompressedContentSize();
+//					for (Integer i : s.external.keySet())
+//						externalBytes[i] += s.external.get(i).getCompressedContentSize();
+//				}
 			}
 		}
 
@@ -408,10 +493,10 @@ public class Bam2Cram {
 		os.close();
 
 		StringBuilder sb = new StringBuilder();
-		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
-		for (int i = 0; i < externalBytes.length; i++)
-			if (externalBytes[i] > 0)
-				sb.append(String.format(", ex%d %.2f b/b, ", i, 8f * externalBytes[i] / bases));
+//		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
+//		for (int i = 0; i < externalBytes.length; i++)
+//			if (externalBytes[i] > 0)
+//				sb.append(String.format(", ex%d %.2f b/b, ", i, 8f * externalBytes[i] / bases));
 
 		log.info(sb.toString());
 		if (params.outputCramFile != null)

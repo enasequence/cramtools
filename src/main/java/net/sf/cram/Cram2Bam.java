@@ -18,6 +18,7 @@ package net.sf.cram;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,11 +33,14 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import htsjdk.samtools.CRAMFileReader;
 import htsjdk.samtools.Defaults;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.ContainerParser;
 import htsjdk.samtools.cram.build.Cram2SamRecordFactory;
 import htsjdk.samtools.cram.build.CramIO;
@@ -170,6 +174,16 @@ public class Cram2Bam {
 			// }
 		}
 
+//		CRAMFileReader cramFileReader = new CRAMFileReader(new FileInputStream(params.cramURL), null, referenceSource, ValidationStringency.SILENT);
+//		final SAMRecordIterator iterator = cramFileReader.getIterator();
+//		while (iterator.hasNext()) {
+//			writer.addAlignment(iterator.next());
+//		}
+//		iterator.close();
+//		writer.close();
+//		if(true)
+//			return;
+
 		long recordCount = 0;
 		long baseCount = 0;
 		long readTime = 0;
@@ -245,7 +259,7 @@ public class Cram2Bam {
 				}
 
 			long time1 = System.nanoTime();
-			n.normalize(cramRecords, ref, c.alignmentStart, c.header.substitutionMatrix);
+			n.normalize(cramRecords, ref, 0, c.header.substitutionMatrix);
 			long time2 = System.nanoTime();
 			normTime += time2 - time1;
 
