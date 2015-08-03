@@ -36,6 +36,7 @@ public class CramIndex {
 	}
 
 	public void addContainer(Container c) throws IOException {
+		if (c.isEOF()) return;
 		for (int i = 0; i < c.slices.length; i++) {
 			Slice s = c.slices[i];
 			Entry e = new Entry();

@@ -52,7 +52,7 @@ class CraiIndexer {
     private boolean nextContainer() throws IOException {
         long offset = is.getCount();
         Container c = ContainerIO.readContainer(cramHeader.getVersion(), is);
-        if (c == null)
+        if (c.isEOF())
             return false;
         c.offset = offset;
         index.addContainer(c);
