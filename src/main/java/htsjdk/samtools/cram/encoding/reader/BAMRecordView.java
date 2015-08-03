@@ -16,7 +16,8 @@
 package htsjdk.samtools.cram.encoding.reader;
 
 import htsjdk.samtools.Cigar;
-import htsjdk.samtools.BinaryCigarCodec;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 
 public class BAMRecordView {
 	public static final int BLOCK_SIZE = 0;
@@ -47,8 +48,6 @@ public class BAMRecordView {
 	 * Pointer to the beginning of the currently written record.
 	 */
 	int start;
-
-	private final BinaryCigarCodec cigarCodec = new BinaryCigarCodec();
 
 	public BAMRecordView(byte[] buf) {
 		this.buf = buf;
@@ -108,7 +107,7 @@ public class BAMRecordView {
 		if (CIGAR < 0)
 			throw new RuntimeException("Premature setting of cigar.");
 		writeUShort(cigar.numCigarElements(), CIGAR_LEN);
-		final int[] binaryCigar = cigarCodec.encode(cigar);
+		final int[] binaryCigar = encodeBinaryCigar(cigar);
 		int at = CIGAR;
 		for (final int cigarElement : binaryCigar) {
 			// Assumption that this will fit into an integer, despite the fact
@@ -619,5 +618,25 @@ public class BAMRecordView {
 			}
 		}
 		return aend;
+	}
+
+	/**
+	 * From htsjdk
+	 * @param cigar
+	 * @return
+	 */
+	static int[] encodeBinaryCigar(final Cigar cigar) {
+		if (cigar.numCigarElements() == 0) {
+			return new int[0];
+		}
+
+		final int[] binaryCigar = new int[cigar.numCigarElements()];
+		int binaryCigarLength = 0;
+		for (int i = 0; i < cigar.numCigarElements(); ++i) {
+			final CigarElement cigarElement = cigar.getCigarElement(i);
+			final int op = CigarOperator.enumToBinary(cigarElement.getOperator());
+			binaryCigar[binaryCigarLength++] = cigarElement.getLength() << 4 | op;
+		}
+		return binaryCigar;
 	}
 }
