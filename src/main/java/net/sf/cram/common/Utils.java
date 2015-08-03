@@ -810,7 +810,7 @@ public class Utils {
      * <p/>
      * The method also checks for EOF marker and raise error if the marker is
      * not found for files with version 2.1 or greater. For version below 2.1 a
-     * warning will be issued.
+     * warning will CRAM be issued.
      *
      * @param decrypt  decrypt the input stream
      * @param password a password to use for decryption
@@ -857,15 +857,19 @@ public class Utils {
     }
 
     private static boolean streamEndsWith(SeekableStream seekableStream, byte[] marker) throws IOException {
-        byte[] tail = new byte[CramIO.ZERO_B_EOF_MARKER.length];
+        byte[] tail = new byte[marker.length];
         seekableStream.seek(seekableStream.length() - (long) marker.length);
         InputStreamUtils.readFully(seekableStream, tail, 0, tail.length);
+        if (Arrays.equals(tail, marker)) return true;
         tail[8] = (byte) (tail[8] | 240);
         return Arrays.equals(tail, marker);
     }
 
     private static boolean checkEOF(htsjdk.samtools.cram.common.Version version, SeekableStream seekableStream) throws IOException {
-        return version.compatibleWith(CramVersions.CRAM_v3) ? streamEndsWith(seekableStream, CramIO.ZERO_B_EOF_MARKER) : (version.compatibleWith(CramVersions.CRAM_v2_1) ? streamEndsWith(seekableStream, CramIO.ZERO_F_EOF_MARKER) : false);
+        if (version.compatibleWith(CramVersions.CRAM_v3)) return streamEndsWith(seekableStream, CramIO.ZERO_F_EOF_MARKER);
+        if (version.compatibleWith(CramVersions.CRAM_v2_1)) return streamEndsWith(seekableStream, CramIO.ZERO_B_EOF_MARKER);
+
+        return false;
     }
 
     private static void eofNotFound(htsjdk.samtools.cram.common.Version version) {
@@ -876,15 +880,6 @@ public class Utils {
         } else {
             log.warn("EOF marker not found, possibly incomplete file/stream.");
         }
-    }
-    public static byte[] bytesFromHex(final String s) {
-        final String clean = s.replaceAll("[^0-9a-fA-F]", "");
-        if (clean.length() % 2 != 0) throw new RuntimeException("Not a hex string: " + s);
-        final byte[] data = new byte[clean.length() / 2];
-        for (int i = 0; i < clean.length(); i += 2) {
-            data[i / 2] = (Integer.decode("0x" + clean.charAt(i) + clean.charAt(i + 1))).byteValue();
-        }
-        return data;
     }
 
     public final static byte[] readFully(InputStream is, int len) throws IOException {
@@ -901,18 +896,6 @@ public class Utils {
         }
 
         return b;
-    }
-
-    public final static void readFully(InputStream is, byte b[], int off, int len) throws IOException {
-        if (len < 0)
-            throw new IndexOutOfBoundsException();
-        int n = 0;
-        while (n < len) {
-            int count = is.read(b, off + n, len - n);
-            if (count < 0)
-                throw new EOFException();
-            n += count;
-        }
     }
 
     public static int readInto(ByteBuffer buf, InputStream inputStream) throws IOException {
