@@ -15,19 +15,20 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMProgramRecord;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.util.Log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMProgramRecord;
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.cram.build.CramIO;
-import htsjdk.samtools.cram.ref.ReferenceSource;
-import htsjdk.samtools.cram.structure.CramHeader;
-import htsjdk.samtools.util.Log;
 import net.sf.cram.common.Utils;
+import net.sf.cram.ref.ReferenceSource;
 
 public class FixBAMFileHeader {
 	private static Log log = Log.getInstance(FixBAMFileHeader.class);

@@ -45,7 +45,6 @@ import htsjdk.samtools.cram.build.ContainerParser;
 import htsjdk.samtools.cram.build.Cram2SamRecordFactory;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.build.CramNormalizer;
-import htsjdk.samtools.cram.ref.ReferenceSource;
 import htsjdk.samtools.cram.structure.*;
 import htsjdk.samtools.seekablestream.SeekableStream;
 import htsjdk.samtools.util.BlockCompressedOutputStream;
@@ -54,13 +53,14 @@ import htsjdk.samtools.util.Log;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+
 import net.sf.cram.common.Utils;
 import net.sf.cram.index.CramIndex;
+import net.sf.cram.ref.ReferenceSource;
 import htsjdk.samtools.BAMIndexFactory;
 
 public class Cram2Bam {

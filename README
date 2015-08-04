@@ -1,10 +1,11 @@
 CRAMTools is a set of Java tools and APIs for efficient compression of sequence read data. Although this is intended as a stable version the code is released as early access. Parts of the CRAMTools are experimental and may not be supported in the future.
 http://www.ebi.ac.uk/ena/about/cram_toolkit
 
-Version 2.1
+Version 3.0
 
 Change log:
-End of file marker has been added. This is an empty container with some fields set to specific values.    
+Switched to htsjdks as backend, which enables CRAM3 features. Please refer to http://samtools.github.io/hts-specs/CRAMv3.pdf for the CRAM file specification. 
+A pre-built cramtools-3.0.jar file is included in the repository.   
 
 Input files:
 Reference sequence in fasta format <fasta file>
@@ -12,46 +13,54 @@ Reference sequence index file <fasta file>.fai created using samtools (samtools 
 Input BAM file <BAM file> sorted by reference coordinates
 BAM index file <BAM file>.bai created using samtools (samtools index <BAM file>)
 Download and run the program:
-Download the prebuilt runnable jar file from: https://github.com/vadimzalunin/crammer/blob/master/cramtools-1.0.jar?raw=true
-Execute the command line program: java -jar cramtools.jar
+Download the prebuilt runnable jar file from: https://github.com/enasequence/cramtools/blob/master/cramtools-3.0.jar?raw=true
+Execute the command line program: java -jar cramtools-3.0.jar
 Usage is printed if no arguments were given 
 
 To convert a BAM file to CRAM:
-java -jar cramtools.jar cram --input-bam-file <bam file> --reference-fasta-file <reference fasta file> [--output-cram-file <output cram file>]
+> java -jar cramtools-3.0.jar cram --input-bam-file <bam file> --reference-fasta-file <reference fasta file> [--output-cram-file <output cram file>]
 
 To convert a CRAM file to BAM:
-java -jar cramtools.jar bam --input-cram-file <input cram file> --reference-fasta-file <reference fasta file> --output-bam-file <output bam file>
+> java -jar cramtools-3.0.jar bam --input-cram-file <input cram file> --reference-fasta-file <reference fasta file> --output-bam-file <output bam file>
 
 
 To build the program from source:
  
 To check out the source code from github you will need git client: http://git-scm.com/
-Make sure you have java 1.6 or higher: http://openjdk.java.net/ or http://www.oracle.com/us/technologies/java/index.html
+Make sure you have java 1.7 or higher: http://openjdk.java.net/ or http://www.oracle.com/us/technologies/java/index.html
 Make sure you have ant version 1.7 or higher: http://ant.apache.org/
-git clone git://github.com/vadimzalunin/crammer.git
-ant -f build/build.xml runnable
-java -jar cramtools.jar
-To run unit tests:
- ant -f build/build.xml test
- 
- 
-Picard integraion
-Some tools using Picard API should be able to read/write CRAM archives. For example: 
-java -cp cramtools.jar net.sf.picard.sam.ValidateSamFile INPUT=data.cram
+Clone the repository to your local directory:
+> git clone https://github.com/enasequence/cramtools.git
+Change to the directory: 
+> cd cramtools
+Build a runnable jar file: 
+> ant -f build/build.xml runnable
+Run cramtools
+> java -jar cramtools-3.0.jar 
 
-However the following will not work: 
-java -cp cramtools.jar -jar ValidateSamFile.jar INPUT=data.cram
+
+Picard integraion
+Picard tools have been removed from cramtools because Picard supports CRAM via htsjdk. 
+
 
 Reference sequence discovery
-For tools that use Picard API the following rules describe how the reference sequence file is discovered: 
-1. Given an input file '<some name>.cram' search for a '<some name>.fa' file in the same directory.
-2. Given an input file '<some name>.cram' search for a '<some name>.fa' file in the same directory, which should contain a full path to the reference file.
-3. Use java property 'reference=<path to ref file>', usage: java -Dreference=<path to ref file> -cp cramtools.jar ...
+cramtools supports the following reference discovery mechanism: 
+1. check local file provided in the command line (-R or --reference-fasta-file option)
+2. download sequences from the ENA reference registry using MD5 checksums from the SAM header
+3. access local cache using REF_CACHE/REF_PATH environment variables. Please refer to http://www.htslib.org/doc/samtools.html for more details.
 
 The following tools have been included into this release: 
-Bam2Cram
-Cram2Bam
-ValidateCramFile (this works similar to ValidateSamFile tool from picard)
+cram (SAM/BAM to CRAM conversion)
+bam (CRAM to SAM/BAM conversion)
+index (CRAM indexing, can produce CRAI or BAI index)
+merge (merges several SAM/BAM/CRAM files into one)
+fastq (dump reads in fastq format)
+fixheader (fix CRAM file header, namely reference sequence MD5 checksums)
+getref (download all reference sequences mentioned in a CRAM file)
+qstat (produce some basic quality score stats for a CRAM file) 
+
+The usage can be accessed by calling cramtools with the corresponding command as a single argument.
+
 
 Lossy model
 Bam2Cram allows to specify lossy model via a string which can be composed of one or more words separated by '-'.
