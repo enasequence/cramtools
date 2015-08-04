@@ -1,11 +1,12 @@
 package net.sf.cram.cg;
 
+import htsjdk.samtools.util.CloseableIterator;
+
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import net.sf.samtools.util.CloseableIterator;
 
 class DedupIterator implements CloseableIterator<EvidenceRecord> {
 	private static final int DEFAULT_MAX_CACHE = 10000;

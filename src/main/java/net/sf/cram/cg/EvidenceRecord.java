@@ -1,6 +1,7 @@
 package net.sf.cram.cg;
 
-import net.sf.samtools.SAMUtils;
+
+import htsjdk.samtools.SAMUtils;
 
 class EvidenceRecord {
 	public String IntervalId = null;

@@ -15,11 +15,11 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
-import java.util.NoSuchElementException;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.CloseableIterator;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
+import java.util.NoSuchElementException;
 
 public class BAMQueryFilteringIterator implements CloseableIterator<SAMRecord> {
 	/**

@@ -15,10 +15,10 @@
  ******************************************************************************/
 package net.sf.cram.select;
 
-import java.util.Arrays;
-import java.util.EnumSet;
+import htsjdk.samtools.SAMRecord;
 
-import net.sf.samtools.SAMRecord;
+import java.util.Arrays;
+
 
 public class SAMRecordField implements Comparable<SAMRecordField> {
 	public static SAMRecordField[] SHARED = new SAMRecordField[FIELD_TYPE.values().length];

@@ -9,15 +9,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Scanner;
 
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.cram.io.InputStreamUtils;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.AlignmentSliceQuery;
-import net.sf.cram.io.ByteBufferUtils;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.util.Log;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.seekablestream.SeekableFileStream;
-import net.sf.samtools.util.BlockCompressedInputStream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -114,6 +114,11 @@ public class BGZF_ReferenceSequenceFile implements ReferenceSequenceFile {
 		}
 	}
 
+	@Override
+	public void close() throws IOException {
+
+	}
+
 	private ReferenceSequence findSequence(String name, long start, long stop) throws IOException {
 		if (!index.containsKey(name))
 			return null;
@@ -157,7 +162,7 @@ public class BGZF_ReferenceSequenceFile implements ReferenceSequenceFile {
 		// read complete lines:
 		int completeLinesToRead = (len - bufPos) / entry.getBasesPerLine();
 		for (int line = 0; line < completeLinesToRead; line++) {
-			ByteBufferUtils.readFully(data, entry.getBasesPerLine(), bufPos, is);
+			InputStreamUtils.readFully(is, data, bufPos, entry.getBasesPerLine());
 			bufPos += entry.getBasesPerLine();
 			is.skip(lineBreakLen);
 		}

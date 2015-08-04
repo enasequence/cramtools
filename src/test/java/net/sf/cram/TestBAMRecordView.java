@@ -18,21 +18,26 @@ package net.sf.cram;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import net.sf.cram.build.CramIO;
-import net.sf.cram.encoding.reader.BAMRecordView;
-import net.sf.cram.io.ByteBufferUtils;
-import net.sf.samtools.BAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.TextCigarCodec;
-import net.sf.samtools.util.BlockCompressedOutputStream;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMTextHeaderCodec;
+import htsjdk.samtools.TextCigarCodec;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.cram.encoding.reader.BAMRecordView;
+import htsjdk.samtools.cram.io.CramInt;
+import htsjdk.samtools.cram.io.ExposedByteArrayOutputStream;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
 import org.junit.Test;
 
 public class TestBAMRecordView {
@@ -51,7 +56,7 @@ public class TestBAMRecordView {
 		view.setInsertSize(133);
 
 		view.setReadName("name1");
-		view.setCigar(TextCigarCodec.getSingleton().decode("10M"));
+		view.setCigar(TextCigarCodec.decode("10M"));
 		view.setBases("AAAAAAAAAA".getBytes());
 		view.setQualityScores("BBBBBBBBBB".getBytes());
 
@@ -68,8 +73,7 @@ public class TestBAMRecordView {
 		header.addSequence(new SAMSequenceRecord("14", 14));
 
 		ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
-		BAMFileWriter writer = new BAMFileWriter(baos2, null);
-		writer.setHeader(header);
+		SAMFileWriter writer = new SAMFileWriterFactory().makeBAMWriter(header, true, baos2);
 		SAMRecord record = new SAMRecord(header);
 		record.setReferenceIndex(0);
 		record.setAlignmentStart(1);
@@ -105,14 +109,14 @@ public class TestBAMRecordView {
 
 		BlockCompressedOutputStream bcos = new BlockCompressedOutputStream(baos, null);
 		bcos.write("BAM\1".getBytes());
-		bcos.write(CramIO.toByteArray(header));
-		ByteBufferUtils.writeInt32(header.getSequenceDictionary().size(), bcos);
+		bcos.write(toByteArray(header));
+		CramInt.writeInt32(header.getSequenceDictionary().size(), bcos);
 		for (final SAMSequenceRecord sequenceRecord : header.getSequenceDictionary().getSequences()) {
 			byte[] bytes = sequenceRecord.getSequenceName().getBytes();
-			ByteBufferUtils.writeInt32(bytes.length + 1, bcos);
+			CramInt.writeInt32(bytes.length + 1, bcos);
 			bcos.write(sequenceRecord.getSequenceName().getBytes());
 			bcos.write(0);
-			ByteBufferUtils.writeInt32(sequenceRecord.getSequenceLength(), bcos);
+			CramInt.writeInt32(sequenceRecord.getSequenceLength(), bcos);
 		}
 		bcos.write(buf, 0, len);
 		bcos.close();
@@ -127,6 +131,35 @@ public class TestBAMRecordView {
 		}
 		reader.close();
 
+	}
+
+	private static byte[] toByteArray(SAMFileHeader samFileHeader) {
+		ExposedByteArrayOutputStream headerBodyOS = new ExposedByteArrayOutputStream();
+		OutputStreamWriter outStreamWriter = new OutputStreamWriter(headerBodyOS);
+		(new SAMTextHeaderCodec()).encode(outStreamWriter, samFileHeader);
+
+		try {
+			outStreamWriter.close();
+		} catch (IOException var8) {
+			throw new RuntimeException(var8);
+		}
+
+		ByteBuffer buf = ByteBuffer.allocate(4);
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+		buf.putInt(headerBodyOS.size());
+		buf.flip();
+		byte[] bytes = new byte[buf.limit()];
+		buf.get(bytes);
+		ByteArrayOutputStream headerOS = new ByteArrayOutputStream();
+
+		try {
+			headerOS.write(bytes);
+			headerOS.write(headerBodyOS.getBuffer(), 0, headerBodyOS.size());
+		} catch (IOException var7) {
+			throw new RuntimeException(var7);
+		}
+
+		return headerOS.toByteArray();
 	}
 
 }

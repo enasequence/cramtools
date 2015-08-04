@@ -1,19 +1,18 @@
 package net.sf.cram.cg;
 
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMTag;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileHeader.SortOrder;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMTag;
 
 public class Evidence2SAM {
 
@@ -21,7 +20,7 @@ public class Evidence2SAM {
 		EvidenceRecordFileIterator iterator = new EvidenceRecordFileIterator(new File(args[0]));
 		Read context = new Read();
 		SAMFileHeader header = new SAMFileHeader();
-		header.setSortOrder(SortOrder.unsorted);
+		header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
 		SAMSequenceRecord samSequenceRecord = new SAMSequenceRecord("chr10", 135534747);
 		samSequenceRecord.setAttribute(SAMSequenceRecord.ASSEMBLY_TAG, iterator.assembly_ID);
 		String readGroup = String.format("%s-%s", iterator.assembly_ID, iterator.chromosome);

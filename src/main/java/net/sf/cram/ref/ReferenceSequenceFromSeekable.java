@@ -1,5 +1,11 @@
 package net.sf.cram.ref;
 
+import htsjdk.samtools.SAMException;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.seekablestream.SeekableStream;
+import htsjdk.samtools.seekablestream.SeekableStreamFactory;
+import net.sf.cram.common.Utils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -9,11 +15,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
 
-import net.sf.cram.io.ByteBufferUtils;
-import net.sf.samtools.SAMException;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.seekablestream.SeekableStream;
-import net.sf.samtools.seekablestream.SeekableStreamFactory;
 
 /**
  * This is to compensate the lack of ReferenceSequenceFile working with a URL.
@@ -64,7 +65,7 @@ class ReferenceSequenceFromSeekable {
 
 			try {
 				s.seek(indexEntry.getLocation() + startOffset);
-				startOffset += ByteBufferUtils.readInto(channelBuffer, s);
+				startOffset += Utils.readInto(channelBuffer, s);
 			} catch (IOException ex) {
 				throw new SAMException("Unable to load " + contig + "(" + start + ", " + stop + ") from "
 						+ s.getSource());

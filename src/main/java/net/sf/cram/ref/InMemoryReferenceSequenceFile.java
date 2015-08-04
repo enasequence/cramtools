@@ -15,14 +15,15 @@
  ******************************************************************************/
 package net.sf.cram.ref;
 
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 
 public class InMemoryReferenceSequenceFile implements ReferenceSequenceFile {
 	private Map<Integer, byte[]> sequences = new HashMap<Integer, byte[]>();
@@ -52,6 +53,11 @@ public class InMemoryReferenceSequenceFile implements ReferenceSequenceFile {
 		int index = getSequenceDictionary().getSequenceIndex(name);
 		byte[] bases = Arrays.copyOfRange(sequences.get(index), (int) start, (int) stop + 1);
 		return new ReferenceSequence(name, index, bases);
+	}
+
+	@Override
+	public void close() throws IOException {
+		sequences.clear();
 	}
 
 	/**

@@ -4,19 +4,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
+import htsjdk.samtools.cram.build.ContainerParser;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.structure.Container;
+import htsjdk.samtools.cram.structure.ContainerIO;
+import htsjdk.samtools.cram.structure.CramCompressionRecord;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.util.Log;
+import htsjdk.samtools.util.RuntimeEOFException;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.build.ContainerParser;
-import net.sf.cram.build.CramIO;
-import net.sf.cram.structure.Container;
-import net.sf.cram.structure.CramHeader;
-import net.sf.cram.structure.CramRecord;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.util.RuntimeEOFException;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import net.sf.cram.common.Utils;
 
 public class Refless {
 	private static Log log = Log.getInstance(Refless.class);
@@ -53,7 +54,7 @@ public class Refless {
 
 		InputStream is = null;
 		try {
-			is = CramIO.openCramInputStream(params.cramURL, false, null);
+			is = Utils.openCramInputStream(params.cramURL, false, null);
 		} catch (Exception e2) {
 			log.error("Failed to open CRAM from: " + params.cramURL, e2);
 			System.exit(1);
@@ -62,22 +63,22 @@ public class Refless {
 		CramHeader cramHeader = CramIO.readCramHeader(is);
 
 		if (params.printSAMHeaderOnly) {
-			System.out.println(cramHeader.samFileHeader.getTextHeader());
+			System.out.println(cramHeader.getSamFileHeader().getTextHeader());
 			return;
 		}
 
 		Log.setGlobalLogLevel(params.logLevel);
 
-		ContainerParser parser = new ContainerParser(cramHeader.samFileHeader);
+		ContainerParser parser = new ContainerParser(cramHeader.getSamFileHeader());
 		Container c = null;
 		long recordCount = 0L;
 		long baseCount = 0L;
-		ArrayList<CramRecord> cramRecords = new ArrayList<CramRecord>();
+		ArrayList<CramCompressionRecord> cramRecords = new ArrayList<CramCompressionRecord>();
 		while (true) {
 			if (params.maxContainers-- <= 0)
 				break;
 
-			c = CramIO.readContainer(cramHeader, is);
+			c = ContainerIO.readContainer(cramHeader.getVersion(), is);
 			if (c.isEOF())
 				break;
 
@@ -94,7 +95,7 @@ public class Refless {
 				throw new RuntimeEOFException(e);
 			}
 
-			for (CramRecord r : cramRecords) {
+			for (CramCompressionRecord r : cramRecords) {
 				if (params.requiredFlags != 0 && ((params.requiredFlags & r.flags) == 0))
 					continue;
 				if (params.filteringFlags != 0 && ((params.filteringFlags & r.flags) != 0))
@@ -114,7 +115,7 @@ public class Refless {
 	@Parameters(commandDescription = "CRAM to BAM conversion. ")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--input-cram-file", "-I" }, description = "The path or FTP URL to the CRAM file to uncompress. Omit if standard input (pipe).")
 		String cramURL;

@@ -1,18 +1,18 @@
 package net.sf.cram.cg;
 
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMUtils;
+import htsjdk.samtools.SamPairUtil;
+import htsjdk.samtools.util.SequenceUtil;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import net.sf.picard.sam.SamPairUtil;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMUtils;
-import net.sf.samtools.util.SequenceUtil;
 
 class Read {
 	EvidenceRecord evidenceRecord;

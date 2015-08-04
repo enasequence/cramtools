@@ -32,32 +32,30 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.cram.lossy.BaseCategory;
+import htsjdk.samtools.cram.lossy.Binning;
+import htsjdk.samtools.cram.lossy.PreservationPolicy;
+import htsjdk.samtools.cram.lossy.QualityScorePreservation;
+import htsjdk.samtools.cram.lossy.QualityScoreTreatment;
+import htsjdk.samtools.cram.lossy.QualityScoreTreatmentType;
+import htsjdk.samtools.cram.lossy.ReadCategory;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.AlignmentSliceQuery;
 import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.lossy.BaseCategory;
-import net.sf.cram.lossy.Binning;
-import net.sf.cram.lossy.PreservationPolicy;
-import net.sf.cram.lossy.QualityScorePreservation;
-import net.sf.cram.lossy.QualityScoreTreatment;
-import net.sf.cram.lossy.QualityScoreTreatmentType;
-import net.sf.cram.lossy.ReadCategory;
-import net.sf.cram.ref.ReferenceSource;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecord.SAMTagAndValue;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMSequenceRecord;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+import net.sf.cram.ref.ReferenceSource;
 
 public class SamRecordComparision {
 	private static final byte DEFAULT_SCORE = 30;
@@ -162,9 +160,9 @@ public class SamRecordComparision {
 			return Arrays.equals((Object[]) o1, (Object[]) o2);
 		}
 
-		if (o1 instanceof SAMTagAndValue && o2 instanceof SAMTagAndValue) {
-			SAMTagAndValue t1 = (SAMTagAndValue) o1;
-			SAMTagAndValue t2 = (SAMTagAndValue) o2;
+		if (o1 instanceof SAMRecord.SAMTagAndValue && o2 instanceof SAMRecord.SAMTagAndValue) {
+			SAMRecord.SAMTagAndValue t1 = (SAMRecord.SAMTagAndValue) o1;
+			SAMRecord.SAMTagAndValue t2 = (SAMRecord.SAMTagAndValue) o2;
 
 			return t1.tag.equals(t2.tag) && compareObjects(t1.value, t2.value);
 		}
@@ -176,12 +174,12 @@ public class SamRecordComparision {
 		if (!compareTags)
 			return true;
 
-		Map<String, SAMTagAndValue> m1 = new TreeMap<String, SAMRecord.SAMTagAndValue>();
-		for (SAMTagAndValue t : r1.getAttributes())
+		Map<String, SAMRecord.SAMTagAndValue> m1 = new TreeMap<String, SAMRecord.SAMTagAndValue>();
+		for (SAMRecord.SAMTagAndValue t : r1.getAttributes())
 			m1.put(t.tag, t);
 
-		Map<String, SAMTagAndValue> m2 = new TreeMap<String, SAMRecord.SAMTagAndValue>();
-		for (SAMTagAndValue t : r2.getAttributes())
+		Map<String, SAMRecord.SAMTagAndValue> m2 = new TreeMap<String, SAMRecord.SAMTagAndValue>();
+		for (SAMRecord.SAMTagAndValue t : r2.getAttributes())
 			m2.put(t.tag, t);
 
 		boolean equal = true;
@@ -775,7 +773,7 @@ public class SamRecordComparision {
 	@Parameters(commandDescription = "Compare SAM/BAM/CRAM files.")
 	static class Params {
 		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--file1" }, converter = FileConverter.class, description = "First input file. ")
 		File file1;

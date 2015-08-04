@@ -1,11 +1,11 @@
 package net.sf.cram.cg;
 
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 
 class Utils {
 	static List<CigEl> parseCigarInto(String cigar, List<CigEl> list) {

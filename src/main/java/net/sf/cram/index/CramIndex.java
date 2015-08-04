@@ -15,6 +15,9 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
+import htsjdk.samtools.cram.structure.Container;
+import htsjdk.samtools.cram.structure.Slice;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,9 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
-import net.sf.cram.structure.Container;
-import net.sf.cram.structure.Slice;
-
 public class CramIndex {
 	private OutputStream os;
 
@@ -36,6 +36,7 @@ public class CramIndex {
 	}
 
 	public void addContainer(Container c) throws IOException {
+		if (c.isEOF()) return;
 		for (int i = 0; i < c.slices.length; i++) {
 			Slice s = c.slices[i];
 			Entry e = new Entry();

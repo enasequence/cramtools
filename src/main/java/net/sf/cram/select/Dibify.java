@@ -19,23 +19,20 @@ import java.io.File;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
-import net.sf.cram.AlignmentSliceQuery;
-import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.structure.ReadTag;
-import net.sf.picard.util.Log;
-import net.sf.picard.util.Log.LogLevel;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.cram.structure.ReadTag;
+import htsjdk.samtools.util.Log;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
+import net.sf.cram.AlignmentSliceQuery;
+import net.sf.cram.CramTools;
 
 public class Dibify {
 	private static void printUsage(JCommander jc) {
@@ -191,8 +188,8 @@ public class Dibify {
 
 	@Parameters(commandDescription = "Provide SQL access to a SAM/BAM/CRAM file content.")
 	static class Params {
-		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = LevelConverter.class)
-		LogLevel logLevel = LogLevel.ERROR;
+		@Parameter(names = { "-l", "--log-level" }, description = "Change log level: DEBUG, INFO, WARNING, ERROR.", converter = CramTools.LevelConverter.class)
+		Log.LogLevel logLevel = Log.LogLevel.ERROR;
 
 		@Parameter(names = { "--input-file", "-I" }, converter = FileConverter.class, description = "Path to a SAM/BAM/CRAM file. Omit if standard input (pipe).")
 		File file;

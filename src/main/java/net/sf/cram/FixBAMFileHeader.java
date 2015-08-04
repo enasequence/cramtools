@@ -20,14 +20,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import net.sf.cram.build.CramIO;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMProgramRecord;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.ref.ReferenceSource;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.common.Utils;
-import net.sf.cram.ref.ReferenceSource;
-import net.sf.cram.structure.CramHeader;
-import net.sf.picard.util.Log;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMProgramRecord;
-import net.sf.samtools.SAMSequenceRecord;
 
 public class FixBAMFileHeader {
 	private static Log log = Log.getInstance(FixBAMFileHeader.class);
@@ -142,10 +142,10 @@ public class FixBAMFileHeader {
 		FileInputStream fis = new FileInputStream(cramFile);
 		CramHeader cramHeader = CramIO.readCramHeader(fis);
 
-		fixSequences(cramHeader.samFileHeader.getSequenceDictionary().getSequences());
+		fixSequences(cramHeader.getSamFileHeader().getSequenceDictionary().getSequences());
 		String cmd = "fixheader";
 		String version = getClass().getPackage().getImplementationVersion();
-		addPG(cramHeader.samFileHeader, "cramtools", cmd, version);
+		addPG(cramHeader.getSamFileHeader(), "cramtools", cmd, version);
 
 		CramHeader newHeader = cramHeader.clone();
 
