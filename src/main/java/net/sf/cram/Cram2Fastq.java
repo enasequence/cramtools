@@ -179,6 +179,7 @@ public class Cram2Fastq {
             reader.reverseNegativeReads = reverse;
             MAIN_LOOP:
             while (!brokenPipe.get() && (container = ContainerIO.readContainer(cramHeader.getVersion(),cramIS)) != null) {
+            	if (container.isEOF()) break;
                 DataReaderFactory f = new DataReaderFactory();
 
                 for (Slice s : container.slices) {
