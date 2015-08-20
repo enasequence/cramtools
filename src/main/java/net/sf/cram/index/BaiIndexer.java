@@ -29,57 +29,56 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-
 class BaiIndexer {
-    private static Log log = Log.getInstance(BaiIndexer.class);
+	private static Log log = Log.getInstance(BaiIndexer.class);
 
-    public CountingInputStream is;
-    public SAMFileHeader samFileHeader;
-    public CRAMIndexer indexer;
-    private CramHeader cramHeader;
+	public CountingInputStream is;
+	public SAMFileHeader samFileHeader;
+	public CRAMIndexer indexer;
+	private CramHeader cramHeader;
 
-    public BaiIndexer(InputStream is, SAMFileHeader samFileHeader, File output) {
-        this.is = new CountingInputStream(is);
-        this.samFileHeader = samFileHeader;
+	public BaiIndexer(InputStream is, SAMFileHeader samFileHeader, File output) {
+		this.is = new CountingInputStream(is);
+		this.samFileHeader = samFileHeader;
 
-        indexer = new CRAMIndexer(output, samFileHeader);
-    }
+		indexer = new CRAMIndexer(output, samFileHeader);
+	}
 
-    public BaiIndexer(InputStream is, File output) throws IOException {
-        this.is = new CountingInputStream(is);
-        cramHeader = CramIO.readCramHeader(this.is);
-        samFileHeader = cramHeader.getSamFileHeader();
+	public BaiIndexer(InputStream is, File output) throws IOException {
+		this.is = new CountingInputStream(is);
+		cramHeader = CramIO.readCramHeader(this.is);
+		samFileHeader = cramHeader.getSamFileHeader();
 
-        indexer = new CRAMIndexer(output, samFileHeader);
-    }
+		indexer = new CRAMIndexer(output, samFileHeader);
+	}
 
-    private boolean nextContainer() throws IOException {
-        long offset = is.getCount();
-        Container c = ContainerIO.readContainer(cramHeader.getVersion(), is);
-        if (c == null)
-            return false;
-        c.offset = offset;
+	private boolean nextContainer() throws IOException {
+		long offset = is.getCount();
+		Container c = ContainerIO.readContainer(cramHeader.getVersion(), is);
+		if (c.isEOF())
+			return false;
+		c.offset = offset;
 
-        int i = 0;
-        for (Slice slice : c.slices) {
-            slice.containerOffset = offset;
-            slice.index = i++;
-            indexer.processAlignment(slice);
-        }
+		int i = 0;
+		for (Slice slice : c.slices) {
+			slice.containerOffset = offset;
+			slice.index = i++;
+			indexer.processAlignment(slice);
+		}
 
-        log.info("INDEXED: " + c.toString());
-        return true;
-    }
+		log.info("INDEXED: " + c.toString());
+		return true;
+	}
 
-    private void index() throws IOException {
-        while (true) {
-            if (!nextContainer())
-                break;
-        }
-    }
+	private void index() throws IOException {
+		while (true) {
+			if (!nextContainer())
+				break;
+		}
+	}
 
-    public void run() throws IOException {
-        index();
-        indexer.finish();
-    }
+	public void run() throws IOException {
+		index();
+		indexer.finish();
+	}
 }
