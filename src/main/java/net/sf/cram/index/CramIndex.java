@@ -36,7 +36,8 @@ public class CramIndex {
 	}
 
 	public void addContainer(Container c) throws IOException {
-		if (c.isEOF()) return;
+		if (c.isEOF())
+			return;
 		for (int i = 0; i < c.slices.length; i++) {
 			Slice s = c.slices[i];
 			Entry e = new Entry();
@@ -70,7 +71,7 @@ public class CramIndex {
 		public Entry(String line) {
 			String[] chunks = line.split("\t");
 			if (chunks.length != 6)
-				throw new RuntimeException("Invalid index format.");
+				throw new RuntimeException("Invalid index format: " + line);
 
 			sequenceId = Integer.valueOf(chunks[0]);
 			alignmentStart = Integer.valueOf(chunks[1]);
@@ -184,8 +185,9 @@ public class CramIndex {
 
 		List<Entry> l = new ArrayList<Entry>();
 		for (Entry e : list) {
-			if (e.sequenceId != seqId)
+			if (e.sequenceId != seqId) {
 				continue;
+			}
 			if (whole || intersect(e, query))
 				l.add(e);
 		}
