@@ -144,6 +144,7 @@ class ReadFeatureBuffer {
                 case ReadBase.operator:
                     bases[posInRead++ - 1] = readFeatureBuffer.get();
                     readFeatureBuffer.get();
+                    posInSeq++;
                     break;
                 case BaseQualityScore.operator:
                     readFeatureBuffer.get();
