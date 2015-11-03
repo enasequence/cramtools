@@ -309,7 +309,6 @@ public class Cram2Bam {
 
 	private static void restoreMateInfo(CramCompressionRecord r) {
 		if (r.next == null) {
-
 			return;
 		}
 		CramCompressionRecord cur;
@@ -325,7 +324,7 @@ public class Cram2Bam {
 		// r.setFirstSegment(true);
 		// last.setLastSegment(true);
 
-		final int templateLength = Utils.computeInsertSize(r, last);
+		final int templateLength = CramNormalizer.computeInsertSize(r, last);
 		r.templateSize = templateLength;
 		last.templateSize = -templateLength;
 	}

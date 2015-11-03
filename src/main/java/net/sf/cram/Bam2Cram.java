@@ -15,12 +15,6 @@
  ******************************************************************************/
 package net.sf.cram;
 
-import cipheronly.CipherOutputStream_256;
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.converters.FileConverter;
-import htsjdk.samtools.CRAMFileWriter;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
@@ -41,8 +35,6 @@ import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.CramHeader;
 import htsjdk.samtools.cram.structure.Slice;
 import htsjdk.samtools.util.Log;
-import net.sf.cram.common.Utils;
-import net.sf.cram.ref.ReferenceSource;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -57,6 +49,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import net.sf.cram.ref.ReferenceSource;
+import cipheronly.CipherOutputStream_256;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
 
 public class Bam2Cram {
 	private static Log log = Log.getInstance(Bam2Cram.class);
@@ -78,7 +78,8 @@ public class Bam2Cram {
 
 	public static void updateTracks(List<SAMRecord> samRecords, ReferenceTracks tracks) {
 		for (SAMRecord samRecord : samRecords) {
-			if (samRecord.getReadBases().length == 0) continue;
+			if (samRecord.getReadBases().length == 0)
+				continue;
 			if (samRecord.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) {
 				int refPos = samRecord.getAlignmentStart();
 				int readPos = 0;
@@ -111,8 +112,8 @@ public class Bam2Cram {
 	}
 
 	public static List<CramCompressionRecord> convert(List<SAMRecord> samRecords, CramHeader header, byte[] ref,
-										   ReferenceTracks tracks, QualityScorePreservation preservation, boolean captureAllTags, String captureTags,
-										   String ignoreTags) {
+			ReferenceTracks tracks, QualityScorePreservation preservation, boolean captureAllTags, String captureTags,
+			String ignoreTags) {
 
 		int sequenceId = samRecords.get(0).getReferenceIndex();
 		String sequenceName = samRecords.get(0).getReferenceName();
@@ -166,7 +167,8 @@ public class Bam2Cram {
 						r.previous = null;
 					} else {
 						String name = r.readName;
-						Map<String, CramCompressionRecord> mateMap = r.isSecondaryAlignment() ? secondaryMateMap : primaryMateMap;
+						Map<String, CramCompressionRecord> mateMap = r.isSecondaryAlignment() ? secondaryMateMap
+								: primaryMateMap;
 						CramCompressionRecord mate = mateMap.get(name);
 						if (mate == null) {
 							mateMap.put(name, r);
@@ -195,8 +197,7 @@ public class Bam2Cram {
 
 					if (r.isFirstSegment() && last.isLastSegment()) {
 
-						final int templateLength = Utils.computeInsertSize(r, last);
-
+						final int templateLength = CramNormalizer.computeInsertSize(r, last);
 						if (r.templateSize == templateLength) {
 							last = r.next;
 							while (last.next != null) {
@@ -207,7 +208,8 @@ public class Bam2Cram {
 							}
 							if (last.templateSize != -templateLength)
 								detach(r);
-						}
+						} else
+							detach(r);
 					} else
 						detach(r);
 				}
@@ -252,8 +254,7 @@ public class Bam2Cram {
 
 			cramRecord.setHasMateDownStream(false);
 			cramRecord.recordsToNextFragment = -1;
-		}
-		while ((cramRecord = cramRecord.next) != null);
+		} while ((cramRecord = cramRecord.next) != null);
 	}
 
 	private static void printUsage(JCommander jc) {
@@ -265,7 +266,8 @@ public class Bam2Cram {
 		System.out.println(sb.toString());
 	}
 
-	private static OutputStream openOutputStream(File outputCramFile, boolean encrypt, char[] pass) throws FileNotFoundException {
+	private static OutputStream openOutputStream(File outputCramFile, boolean encrypt, char[] pass)
+			throws FileNotFoundException {
 		OutputStream os;
 		if (outputCramFile != null) {
 			FileOutputStream fos = new FileOutputStream(outputCramFile);
@@ -405,15 +407,16 @@ public class Bam2Cram {
 		long offset = CramIO.writeCramHeader(h, os);
 
 		long bases = 0;
-//		long coreBytes = 0;
-//		long[] 90 = new long[10];
+		// long coreBytes = 0;
+		// long[] 90 = new long[10];
 
 		ContainerFactory cf = new ContainerFactory(samFileHeader, params.maxSliceSize);
 		do {
 			if (params.outputCramFile == null && System.out.checkError())
 				return;
 
-			if (!iterator.hasNext()) break;
+			if (!iterator.hasNext())
+				break;
 			SAMRecord samRecord = iterator.next();
 
 			if (samRecord.getReferenceIndex() != prevSeqId || samRecords.size() >= params.maxContainerSize) {
@@ -439,11 +442,12 @@ public class Bam2Cram {
 									convertNanos / 1000000, container.buildHeaderTime / 1000000,
 									container.buildSlicesTime / 1000000, container.writeTime / 1000000));
 
-//					for (Slice s : container.slices) {
-//						coreBytes += s.coreBlock.getCompressedContentSize();
-//						for (Integer i : s.external.keySet())
-//							externalBytes[i] += s.external.get(i).getCompressedContentSize();
-//					}
+					// for (Slice s : container.slices) {
+					// coreBytes += s.coreBlock.getCompressedContentSize();
+					// for (Integer i : s.external.keySet())
+					// externalBytes[i] +=
+					// s.external.get(i).getCompressedContentSize();
+					// }
 				}
 			}
 
@@ -479,17 +483,18 @@ public class Bam2Cram {
 					s.setRefMD5(ref);
 
 				records.clear();
-				ContainerIO.writeContainer(h.getVersion(),container, os);
+				ContainerIO.writeContainer(h.getVersion(), container, os);
 				log.info(String.format(
 						"CONTAINER WRITE TIMES: header build time %dms, slices build time %dms, io time %dms.",
 						container.buildHeaderTime / 1000000, container.buildSlicesTime / 1000000,
 						container.writeTime / 1000000));
 
-//				for (Slice s : container.slices) {
-//					coreBytes += s.coreBlock.getCompressedContentSize();
-//					for (Integer i : s.external.keySet())
-//						externalBytes[i] += s.external.get(i).getCompressedContentSize();
-//				}
+				// for (Slice s : container.slices) {
+				// coreBytes += s.coreBlock.getCompressedContentSize();
+				// for (Integer i : s.external.keySet())
+				// externalBytes[i] +=
+				// s.external.get(i).getCompressedContentSize();
+				// }
 			}
 		}
 
@@ -500,10 +505,12 @@ public class Bam2Cram {
 		os.close();
 
 		StringBuilder sb = new StringBuilder();
-//		sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes / bases));
-//		for (int i = 0; i < externalBytes.length; i++)
-//			if (externalBytes[i] > 0)
-//				sb.append(String.format(", ex%d %.2f b/b, ", i, 8f * externalBytes[i] / bases));
+		// sb.append(String.format("STATS: core %.2f b/b", 8f * coreBytes /
+		// bases));
+		// for (int i = 0; i < externalBytes.length; i++)
+		// if (externalBytes[i] > 0)
+		// sb.append(String.format(", ex%d %.2f b/b, ", i, 8f * externalBytes[i]
+		// / bases));
 
 		log.info(sb.toString());
 		if (params.outputCramFile != null)
