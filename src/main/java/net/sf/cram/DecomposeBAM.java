@@ -15,10 +15,6 @@
  ******************************************************************************/
 package net.sf.cram;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.converters.FileConverter;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -34,6 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
+
+import net.sf.cram.common.Utils;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
 
 public class DecomposeBAM {
 	private static Log log = Log.getInstance(DecomposeBAM.class);
@@ -107,7 +110,7 @@ public class DecomposeBAM {
 
 	private static void writeTagValue(Map<String, Out> map, SAMRecord.SAMTagAndValue tv) throws IOException {
 		String name = tv.tag;
-		char type = ReadTag.getTagValueType(tv.value);
+		char type = Utils.getTagValueType(tv.value);
 		byte[] value = ReadTag.writeSingleValue((byte) type, tv.value, false);
 		put(map, name, new String(value));
 	}

@@ -21,6 +21,7 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.ContainerParser;
 import htsjdk.samtools.cram.build.Cram2SamRecordFactory;
 import htsjdk.samtools.cram.build.CramIO;
@@ -203,7 +204,7 @@ public class Cram2Bam {
 
 			time = System.nanoTime();
 			cramRecords.clear();
-			parser.getRecords(c, cramRecords);
+			parser.getRecords(c, cramRecords, ValidationStringency.SILENT);
 			parseTime += System.nanoTime() - time;
 
 			switch (c.sequenceId) {

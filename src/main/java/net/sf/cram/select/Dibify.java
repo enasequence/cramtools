@@ -15,24 +15,25 @@
  ******************************************************************************/
 package net.sf.cram.select;
 
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.util.Log;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMRecordIterator;
-import htsjdk.samtools.cram.structure.ReadTag;
-import htsjdk.samtools.util.Log;
+import net.sf.cram.AlignmentSliceQuery;
+import net.sf.cram.CramTools;
+import net.sf.cram.common.Utils;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
-import net.sf.cram.AlignmentSliceQuery;
-import net.sf.cram.CramTools;
 
 public class Dibify {
 	private static void printUsage(JCommander jc) {
@@ -138,7 +139,7 @@ public class Dibify {
 				Object value = values.get(f);
 				ps.print(f.tagId);
 				ps.print(':');
-				ps.print(ReadTag.getTagValueType(value));
+				ps.print(Utils.getTagValueType(value));
 				ps.print(SAMRecordField.toString(value));
 			}
 			ps.print('\n');

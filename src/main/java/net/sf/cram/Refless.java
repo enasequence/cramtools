@@ -1,9 +1,6 @@
 package net.sf.cram;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.ContainerParser;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.structure.Container;
@@ -12,12 +9,17 @@ import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.CramHeader;
 import htsjdk.samtools.util.Log;
 import htsjdk.samtools.util.RuntimeEOFException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+
 import net.sf.cram.CramTools.LevelConverter;
+import net.sf.cram.common.Utils;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import net.sf.cram.common.Utils;
 
 public class Refless {
 	private static Log log = Log.getInstance(Refless.class);
@@ -90,7 +92,7 @@ public class Refless {
 
 			cramRecords.clear();
 			try {
-				parser.getRecords(c, cramRecords);
+				parser.getRecords(c, cramRecords, ValidationStringency.SILENT);
 			} catch (Exception e) {
 				throw new RuntimeEOFException(e);
 			}

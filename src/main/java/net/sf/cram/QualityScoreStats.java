@@ -1,14 +1,6 @@
 package net.sf.cram;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.ContainerParser;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.build.CramNormalizer;
@@ -18,6 +10,16 @@ import htsjdk.samtools.cram.structure.ContainerIO;
 import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.CramHeader;
 import htsjdk.samtools.util.Log;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+
 import net.sf.cram.CramTools.LevelConverter;
 
 import com.beust.jcommander.JCommander;
@@ -70,8 +72,8 @@ public class QualityScoreStats {
 		ArrayList<CramCompressionRecord> records = new ArrayList<CramCompressionRecord>(10000);
 
 		long[] freq = new long[255];
-		while ((c = ContainerIO.readContainer(header.getVersion(), is)) != null) {
-			parser.getRecords(c, records);
+		while ((c = ContainerIO.readContainer(header.getVersion(), is)) != null && !c.isEOF()) {
+			parser.getRecords(c, records, ValidationStringency.SILENT);
 
 			CramNormalizer.restoreQualityScores(defaultQualityScore, records);
 			for (CramCompressionRecord record : records) {
