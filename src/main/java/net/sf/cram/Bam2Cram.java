@@ -212,6 +212,9 @@ public class Bam2Cram {
 							detach(r);
 					} else
 						detach(r);
+
+					if (r.mateSequenceID != last.sequenceId || r.sequenceId != last.mateSequenceID)
+						detach(r);
 				}
 
 				for (CramCompressionRecord r : primaryMateMap.values()) {
