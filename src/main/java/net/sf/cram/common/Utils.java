@@ -919,4 +919,102 @@ public class Utils {
 		return read;
 	}
 
+	public static char getTagValueType(final Object value) {
+		if (value instanceof String) {
+			return 'Z';
+		} else if (value instanceof Character) {
+			return 'A';
+		} else if (value instanceof Float) {
+			return 'f';
+		} else if (value instanceof Number) {
+			if (!(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)) {
+				throw new IllegalArgumentException("Unrecognized tag type " + value.getClass().getName());
+			}
+			return getIntegerType(((Number) value).longValue());
+		} /*
+		 * Note that H tag type is never written anymore, because B style is
+		 * more compact. else if (value instanceof byte[]) { return 'H'; }
+		 */else if (value instanceof byte[] || value instanceof short[] || value instanceof int[]
+				|| value instanceof float[]) {
+			return 'B';
+		} else {
+			throw new IllegalArgumentException("When writing BAM, unrecognized tag type " + value.getClass().getName());
+		}
+	}
+
+	private static final long MAX_INT = Integer.MAX_VALUE;
+	private static final long MAX_UINT = MAX_INT * 2 + 1;
+	private static final long MAX_SHORT = Short.MAX_VALUE;
+	private static final long MAX_USHORT = MAX_SHORT * 2 + 1;
+	private static final long MAX_BYTE = Byte.MAX_VALUE;
+	private static final long MAX_UBYTE = MAX_BYTE * 2 + 1;
+
+	static private char getIntegerType(final long val) {
+		if (val > MAX_UINT) {
+			throw new IllegalArgumentException("Integer attribute value too large: " + val);
+		}
+		if (val > MAX_INT) {
+			return 'I';
+		}
+		if (val > MAX_USHORT) {
+			return 'i';
+		}
+		if (val > MAX_SHORT) {
+			return 'S';
+		}
+		if (val > MAX_UBYTE) {
+			return 's';
+		}
+		if (val > MAX_BYTE) {
+			return 'C';
+		}
+		if (val >= Byte.MIN_VALUE) {
+			return 'c';
+		}
+		if (val >= Short.MIN_VALUE) {
+			return 's';
+		}
+		if (val >= Integer.MIN_VALUE) {
+			return 'i';
+		}
+		throw new IllegalArgumentException("Integer attribute value too negative to be encoded in BAM");
+	}
+
+	public static int getTagValueByteSize(final byte type, final Object value) {
+		switch (type) {
+		case 'A':
+			return 1;
+		case 'I':
+			return 4;
+		case 'i':
+			return 4;
+		case 's':
+			return 2;
+		case 'S':
+			return 2;
+		case 'c':
+			return 1;
+		case 'C':
+			return 1;
+		case 'f':
+			return 4;
+		case 'Z':
+			return ((String) value).length();
+		case 'B':
+			if (value instanceof byte[])
+				return ((byte[]) value).length;
+			if (value instanceof short[])
+				return ((short[]) value).length * 2;
+			if (value instanceof int[])
+				return ((int[]) value).length * 4;
+			if (value instanceof float[])
+				return ((byte[]) value).length * 4;
+			if (value instanceof long[])
+				return ((long[]) value).length * 4;
+
+			throw new RuntimeException("Unkown tag array class: " + value.getClass());
+		default:
+			throw new RuntimeException("Unkown tag type: " + (char) type);
+		}
+	}
 }
