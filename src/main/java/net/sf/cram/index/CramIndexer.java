@@ -15,13 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Random;
-
 import htsjdk.samtools.BAMIndexer;
 import htsjdk.samtools.CRAMFileReader;
 import htsjdk.samtools.SAMException;
@@ -31,10 +24,17 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.Log;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Random;
+
 import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.ref.ReferenceSource;
-
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -54,7 +54,7 @@ public class CramIndexer {
 		System.out.println(sb.toString());
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, IllegalArgumentException, IllegalAccessException {
 		Params params = new Params();
 		JCommander jc = new JCommander(params);
 		try {
@@ -77,7 +77,7 @@ public class CramIndexer {
 		boolean cramOrNot = false;
 		try {
 			CramIO.readCramHeader(new FileInputStream(params.inputFile));
-			cramOrNot = true ;
+			cramOrNot = true;
 		} catch (Exception e) {
 			cramOrNot = false;
 		} finally {
@@ -170,7 +170,8 @@ public class CramIndexer {
 		ic.run();
 	}
 
-	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile) throws IOException {
+	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile) throws IOException,
+			IllegalArgumentException, IllegalAccessException {
 		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
 		CraiIndexer ic = new CraiIndexer(is, cramIndexFile);
 

@@ -15,7 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
-import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.io.CountingInputStream;
 import htsjdk.samtools.cram.structure.Container;
@@ -29,46 +28,49 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.zip.GZIPOutputStream;
 
-
 class CraiIndexer {
-    private static Log log = Log.getInstance(CraiIndexer.class);
+	private static Log log = Log.getInstance(CraiIndexer.class);
 
-    private CountingInputStream is;
-    private SAMFileHeader samFileHeader;
-    private CramIndex index;
-    private CramHeader cramHeader;
+	private CountingInputStream is;
+	private CramIndex index;
+	private CramHeader cramHeader;
 
-    public CraiIndexer(InputStream is, File output) throws FileNotFoundException, IOException {
-        this.is = new CountingInputStream(is);
-        cramHeader = CramIO.readCramHeader(this.is);
-        samFileHeader = cramHeader.getSamFileHeader();
+	private File output;
 
-        index = new CramIndex(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(output))));
+	public CraiIndexer(InputStream is, File output) throws FileNotFoundException, IOException {
+		this.is = new CountingInputStream(is);
+		this.output = output;
+		cramHeader = CramIO.readCramHeader(this.is);
 
-    }
+		index = new CramIndex();
 
-    private boolean nextContainer() throws IOException {
-        long offset = is.getCount();
-        Container c = ContainerIO.readContainer(cramHeader.getVersion(), is);
-        if (c.isEOF())
-            return false;
-        c.offset = offset;
-        index.addContainer(c);
-        log.info("INDEXED: " + c.toString());
-        return true;
-    }
+	}
 
-    private void index() throws IOException {
-        while (true) {
-            if (!nextContainer())
-                break;
-        }
-    }
+	private boolean nextContainer() throws IOException, IllegalArgumentException, IllegalAccessException {
+		long offset = is.getCount();
+		Container c = ContainerIO.readContainer(cramHeader.getVersion(), is);
+		if (c.isEOF())
+			return false;
+		c.offset = offset;
+		index.addContainer(c);
+		log.info("INDEXED: " + c.toString());
+		return true;
+	}
 
-    public void run() throws IOException {
-        index();
-        index.close();
-    }
+	private void index() throws IOException, IllegalArgumentException, IllegalAccessException {
+		while (true) {
+			if (!nextContainer())
+				break;
+		}
+	}
+
+	public void run() throws IOException, IllegalArgumentException, IllegalAccessException {
+		index();
+		OutputStream os = new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(output)));
+		index.writeTo(os);
+		os.close();
+	}
 }

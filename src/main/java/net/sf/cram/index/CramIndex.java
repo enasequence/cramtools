@@ -15,45 +15,111 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.cram.encoding.reader.DataReaderFactory;
+import htsjdk.samtools.cram.encoding.reader.RefSeqIdReader;
+import htsjdk.samtools.cram.encoding.reader.RefSeqIdReader.Span;
+import htsjdk.samtools.cram.io.DefaultBitInputStream;
+import htsjdk.samtools.cram.structure.CompressionHeader;
 import htsjdk.samtools.cram.structure.Container;
+import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.Slice;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CramIndex {
-	private OutputStream os;
+	private List<Entry> entries = new ArrayList<CramIndex.Entry>();
 
-	public CramIndex(OutputStream os) {
-		this.os = os;
-	}
-
-	public void addContainer(Container c) throws IOException {
+	public void addContainer(Container c) throws IOException, IllegalArgumentException, IllegalAccessException {
 		if (c.isEOF())
 			return;
 		for (int i = 0; i < c.slices.length; i++) {
 			Slice s = c.slices[i];
-			Entry e = new Entry();
-			e.sequenceId = c.sequenceId;
-			e.alignmentStart = s.alignmentStart;
-			e.alignmentSpan = s.alignmentSpan;
-			e.containerStartOffset = c.offset;
-			e.sliceOffset = c.landmarks[i];
-			e.sliceSize = s.size;
+			if (s.sequenceId == -2) {
+				this.entries.addAll(getMutliRefEntries(c.header, s, c.offset, c.landmarks));
+			} else {
+				Entry e = new Entry();
+				e.sequenceId = c.sequenceId;
+				e.alignmentStart = s.alignmentStart;
+				e.alignmentSpan = s.alignmentSpan;
+				e.containerStartOffset = c.offset;
+				e.sliceOffset = c.landmarks[i];
+				e.sliceSize = s.size;
 
-			e.sliceIndex = i;
+				e.sliceIndex = i;
 
+				entries.add(e);
+			}
+		}
+	}
+
+	public void writeTo(OutputStream os) throws IOException {
+		Collections.sort(entries, byStartDesc);
+		for (Entry e : entries) {
 			String string = e.toString();
 			os.write(string.getBytes());
 			os.write('\n');
 		}
+	}
+
+	private static Collection<Entry> getMutliRefEntries(CompressionHeader header, Slice slice, long containerOffset,
+			int[] landmarks) throws IllegalArgumentException, IllegalAccessException, IOException {
+		final DataReaderFactory dataReaderFactory = new DataReaderFactory();
+		final Map<Integer, InputStream> inputMap = new HashMap<Integer, InputStream>();
+		for (final Integer exId : slice.external.keySet()) {
+			inputMap.put(exId, new ByteArrayInputStream(slice.external.get(exId).getRawContent()));
+		}
+
+		final RefSeqIdReader reader = new RefSeqIdReader(slice.sequenceId, slice.alignmentStart);
+		dataReaderFactory.buildReader(reader,
+				new DefaultBitInputStream(new ByteArrayInputStream(slice.coreBlock.getRawContent())), inputMap, header,
+				slice.sequenceId);
+
+		for (int i = 0; i < slice.nofRecords; i++) {
+			final CramCompressionRecord record = new CramCompressionRecord();
+			record.sliceIndex = slice.index;
+			record.index = i;
+
+			reader.read();
+
+			if (record.sequenceId == slice.sequenceId) {
+				record.sequenceId = slice.sequenceId;
+			} else {
+				if (record.sequenceId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
+					record.sequenceName = SAMRecord.NO_ALIGNMENT_REFERENCE_NAME;
+			}
+		}
+
+		Map<Integer, Span> spans = reader.getReferenceSpans();
+		List<Entry> entries = new ArrayList<CramIndex.Entry>(spans.size());
+		for (int seqId : spans.keySet()) {
+			Entry e = new Entry();
+			e.sequenceId = seqId;
+			Span span = spans.get(seqId);
+			e.alignmentStart = span.start;
+			e.alignmentSpan = span.span;
+			e.sliceSize = slice.size;
+			e.sliceIndex = slice.index;
+
+			e.containerStartOffset = containerOffset;
+			e.sliceOffset = landmarks[slice.index];
+
+			entries.add(e);
+		}
+
+		return entries;
 	}
 
 	public static class Entry implements Comparable<Entry>, Cloneable {
@@ -156,6 +222,24 @@ public class CramIndex {
 		}
 	};
 
+	private static Comparator<Entry> byStartDesc = new Comparator<Entry>() {
+
+		@Override
+		public int compare(Entry o1, Entry o2) {
+			if (o1.sequenceId != o2.sequenceId) {
+				if (o1.sequenceId == -1)
+					return 1;
+				if (o2.sequenceId == -1)
+					return -1;
+				return -o2.sequenceId + o1.sequenceId;
+			}
+			if (o1.alignmentStart != o2.alignmentStart)
+				return o1.alignmentStart - o2.alignmentStart;
+
+			return (int) (o1.containerStartOffset - o2.containerStartOffset);
+		}
+	};
+
 	private static boolean intersect(Entry e0, Entry e1) {
 		if (e0.sequenceId != e1.sequenceId)
 			return false;
@@ -193,10 +277,6 @@ public class CramIndex {
 		}
 		Collections.sort(l, byStart);
 		return l;
-	}
-
-	public void close() throws IOException {
-		os.close();
 	}
 
 	public static Entry getLeftmost(List<Entry> list) {
