@@ -86,6 +86,7 @@ public class CramIndex {
 		dataReaderFactory.buildReader(reader,
 				new DefaultBitInputStream(new ByteArrayInputStream(slice.coreBlock.getRawContent())), inputMap, header,
 				slice.sequenceId);
+		reader.APDelta = header.APDelta;
 
 		for (int i = 0; i < slice.nofRecords; i++) {
 			final CramCompressionRecord record = new CramCompressionRecord();

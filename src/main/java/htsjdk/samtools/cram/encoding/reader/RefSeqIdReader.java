@@ -15,11 +15,27 @@
  ******************************************************************************/
 package htsjdk.samtools.cram.encoding.reader;
 
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.cram.encoding.readfeatures.BaseQualityScore;
+import htsjdk.samtools.cram.encoding.readfeatures.Bases;
+import htsjdk.samtools.cram.encoding.readfeatures.Deletion;
+import htsjdk.samtools.cram.encoding.readfeatures.HardClip;
+import htsjdk.samtools.cram.encoding.readfeatures.InsertBase;
+import htsjdk.samtools.cram.encoding.readfeatures.Insertion;
+import htsjdk.samtools.cram.encoding.readfeatures.Padding;
+import htsjdk.samtools.cram.encoding.readfeatures.ReadBase;
+import htsjdk.samtools.cram.encoding.readfeatures.ReadFeature;
+import htsjdk.samtools.cram.encoding.readfeatures.RefSkip;
+import htsjdk.samtools.cram.encoding.readfeatures.Scores;
+import htsjdk.samtools.cram.encoding.readfeatures.SoftClip;
+import htsjdk.samtools.cram.encoding.readfeatures.Substitution;
+import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.ReadTag;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -42,6 +58,7 @@ public class RefSeqIdReader extends AbstractReader {
 	private int globalReferenceSequenceId;
 
 	private int alignmentStart;
+	private CramCompressionRecord cramRecord = new CramCompressionRecord();
 
 	public RefSeqIdReader(int seqId, int alignmentStart) {
 		super();
@@ -73,77 +90,152 @@ public class RefSeqIdReader extends AbstractReader {
 	}
 
 	public void read() throws IOException {
+		cramRecord.sequenceId = globalReferenceSequenceId;
 		try {
-			flags = bitFlagsCodec.readData();
-
-			compressionFlags = compressionBitFlagsCodec.readData();
-
-			int seqId = globalReferenceSequenceId;
-			if (refId == -2) {
-				seqId = refIdCodec.readData();
-			}
-
-			int len = readLengthCodec.readData();
-			if (APDelta)
-				alignmentStart += alignmentStartCodec.readData();
+			cramRecord.flags = bitFlagsCodec.readData();
+			cramRecord.compressionFlags = compressionBitFlagsCodec.readData();
+			if (refId == -2)
+				cramRecord.sequenceId = refIdCodec.readData();
 			else
-				alignmentStart = alignmentStartCodec.readData();
+				cramRecord.sequenceId = refId;
 
-			if (!spans.containsKey(seqId)) {
-				spans.put(seqId, new Span(alignmentStart, len));
-			} else
-				spans.get(seqId).add(alignmentStart, len);
-
-			readGroupCodec.readData();
+			cramRecord.readLength = readLengthCodec.readData();
+			if (APDelta)
+				cramRecord.alignmentDelta = alignmentStartCodec.readData();
+			else
+				cramRecord.alignmentStart = alignmentStartCodec.readData();
+			cramRecord.readGroupID = readGroupCodec.readData();
 
 			if (captureReadNames)
-				readNameCodec.readData();
+				cramRecord.readName = new String(readNameCodec.readData(), charset);
 
 			// mate record:
-			if ((compressionFlags & CramFlags.DETACHED_FLAG) != 0) {
-				mateBitFlagCodec.readData();
+			if (cramRecord.isDetached()) {
+				cramRecord.mateFlags = mateBitFlagCodec.readData();
 				if (!captureReadNames)
-					readNameCodec.readData();
+					cramRecord.readName = new String(readNameCodec.readData(), charset);
 
-				mateReferenceIdCodec.readData();
-				mateAlignmentStartCodec.readData();
-				insertSizeCodec.readData();
+				cramRecord.mateSequenceID = mateReferenceIdCodec.readData();
+				cramRecord.mateAlignmentStart = mateAlignmentStartCodec.readData();
+				cramRecord.templateSize = insertSizeCodec.readData();
 				detachedCount++;
-			} else if ((compressionFlags & CramFlags.HAS_MATE_DOWNSTREAM_FLAG) != 0) {
-				distanceToNextFragmentCodec.readData();
+			} else if (cramRecord.isHasMateDownStream())
+				cramRecord.recordsToNextFragment = distanceToNextFragmentCodec.readData();
+
+			final Integer tagIdList = tagIdListCodec.readData();
+			final byte[][] ids = tagIdDictionary[tagIdList];
+			if (ids.length > 0) {
+				final int tagCount = ids.length;
+				cramRecord.tags = new ReadTag[tagCount];
+				for (int i = 0; i < ids.length; i++) {
+					final int id = ReadTag.name3BytesToInt(ids[i]);
+					final DataReader<byte[]> dataReader = tagValueCodecs.get(id);
+					final ReadTag tag = new ReadTag(id, dataReader.readData(), ValidationStringency.SILENT);
+					cramRecord.tags[i] = tag;
+				}
 			}
 
-			Integer tagIdList = tagIdListCodec.readData();
-			byte[][] ids = tagIdDictionary[tagIdList];
-			if (ids.length > 0) {
-				for (int i = 0; i < ids.length; i++) {
-					int id = ReadTag.name3BytesToInt(ids[i]);
-					DataReader<byte[]> dataReader = tagValueCodecs.get(id);
-					try {
-						dataReader.readData();
-					} catch (EOFException e) {
-						throw e;
+			if (!cramRecord.isSegmentUnmapped()) {
+				// reading read features:
+				final int size = numberOfReadFeaturesCodec.readData();
+				int prevPos = 0;
+				final java.util.List<ReadFeature> readFeatures = new LinkedList<ReadFeature>();
+				cramRecord.readFeatures = readFeatures;
+				for (int i = 0; i < size; i++) {
+					final Byte operator = readFeatureCodeCodec.readData();
+
+					final int pos = prevPos + readFeaturePositionCodec.readData();
+					prevPos = pos;
+
+					switch (operator) {
+					case ReadBase.operator:
+						final ReadBase readBase = new ReadBase(pos, baseCodec.readData(), qualityScoreCodec.readData());
+						readFeatures.add(readBase);
+						break;
+					case Substitution.operator:
+						final Substitution substitution = new Substitution();
+						substitution.setPosition(pos);
+						final byte code = baseSubstitutionCodec.readData();
+						substitution.setCode(code);
+						readFeatures.add(substitution);
+						break;
+					case Insertion.operator:
+						final Insertion insertion = new Insertion(pos, insertionCodec.readData());
+						readFeatures.add(insertion);
+						break;
+					case SoftClip.operator:
+						final SoftClip softClip = new SoftClip(pos, softClipCodec.readData());
+						readFeatures.add(softClip);
+						break;
+					case HardClip.operator:
+						final HardClip hardCLip = new HardClip(pos, hardClipCodec.readData());
+						readFeatures.add(hardCLip);
+						break;
+					case Padding.operator:
+						final Padding padding = new Padding(pos, paddingCodec.readData());
+						readFeatures.add(padding);
+						break;
+					case Deletion.operator:
+						final Deletion deletion = new Deletion(pos, deletionLengthCodec.readData());
+						readFeatures.add(deletion);
+						break;
+					case RefSkip.operator:
+						final RefSkip refSkip = new RefSkip(pos, refSkipCodec.readData());
+						readFeatures.add(refSkip);
+						break;
+					case InsertBase.operator:
+						final InsertBase insertBase = new InsertBase(pos, baseCodec.readData());
+						readFeatures.add(insertBase);
+						break;
+					case BaseQualityScore.operator:
+						final BaseQualityScore baseQualityScore = new BaseQualityScore(pos,
+								qualityScoreCodec.readData());
+						readFeatures.add(baseQualityScore);
+						break;
+					case Bases.operator:
+						final Bases bases = new Bases(pos, basesCodec.readData());
+						readFeatures.add(bases);
+						break;
+					case Scores.operator:
+						final Scores scores = new Scores(pos, scoresCodec.readData());
+						readFeatures.add(scores);
+						break;
+					default:
+						throw new RuntimeException("Unknown read feature operator: " + operator);
+					}
+				}
+
+				// mapping quality:
+				cramRecord.mappingQuality = mappingScoreCodec.readData();
+				if (cramRecord.isForcePreserveQualityScores()) {
+					cramRecord.qualityScores = qualityScoresCodec.readDataArray(cramRecord.readLength);
+				}
+			} else {
+				if (cramRecord.isUnknownBases()) {
+					cramRecord.readBases = SAMRecord.NULL_SEQUENCE;
+					cramRecord.qualityScores = SAMRecord.NULL_QUALS;
+				} else {
+					final byte[] bases = new byte[cramRecord.readLength];
+					for (int i = 0; i < bases.length; i++)
+						bases[i] = baseCodec.readData();
+					cramRecord.readBases = bases;
+
+					if (cramRecord.isForcePreserveQualityScores()) {
+						cramRecord.qualityScores = qualityScoresCodec.readDataArray(cramRecord.readLength);
 					}
 				}
 			}
 
-			if ((flags & CramFlags.SEGMENT_UNMAPPED_FLAG) == 0) {
-				rfBuf.readReadFeatures(this);
-				mappingScoreCodec.readData();
-			} else {
-				for (int i = 0; i < readLength; i++)
-					baseCodec.readData();
-			}
-
-			if ((compressionFlags & CramFlags.FORCE_PRESERVE_QS_FLAG) != 0) {
-				for (int i = 0; i < readLength; i++)
-					qualityScoreCodec.readData();
-			}
-
 			recordCounter++;
+
 		} catch (Exception e) {
 			System.err.printf("Failed at record %d. \n", recordCounter);
 			throw new RuntimeException(e);
 		}
+
+		if (!spans.containsKey(cramRecord.sequenceId)) {
+			spans.put(cramRecord.sequenceId, new Span(alignmentStart, cramRecord.readLength));
+		} else
+			spans.get(cramRecord.sequenceId).add(alignmentStart, cramRecord.readLength);
 	}
 }
