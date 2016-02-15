@@ -16,10 +16,11 @@
 package net.sf.cram.index;
 
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.encoding.reader.DataReaderFactory;
 import htsjdk.samtools.cram.encoding.reader.RefSeqIdReader;
-import htsjdk.samtools.cram.encoding.reader.RefSeqIdReader.Span;
 import htsjdk.samtools.cram.io.DefaultBitInputStream;
+import htsjdk.samtools.cram.structure.AlignmentSpan;
 import htsjdk.samtools.cram.structure.CompressionHeader;
 import htsjdk.samtools.cram.structure.Container;
 import htsjdk.samtools.cram.structure.CramCompressionRecord;
@@ -82,7 +83,8 @@ public class CramIndex {
 			inputMap.put(exId, new ByteArrayInputStream(slice.external.get(exId).getRawContent()));
 		}
 
-		final RefSeqIdReader reader = new RefSeqIdReader(slice.sequenceId, slice.alignmentStart);
+		final RefSeqIdReader reader = new RefSeqIdReader(slice.sequenceId, slice.alignmentStart,
+				ValidationStringency.SILENT);
 		dataReaderFactory.buildReader(reader,
 				new DefaultBitInputStream(new ByteArrayInputStream(slice.coreBlock.getRawContent())), inputMap, header,
 				slice.sequenceId);
@@ -103,14 +105,14 @@ public class CramIndex {
 			}
 		}
 
-		Map<Integer, Span> spans = reader.getReferenceSpans();
+		Map<Integer, AlignmentSpan> spans = reader.getReferenceSpans();
 		List<Entry> entries = new ArrayList<CramIndex.Entry>(spans.size());
 		for (int seqId : spans.keySet()) {
 			Entry e = new Entry();
 			e.sequenceId = seqId;
-			Span span = spans.get(seqId);
-			e.alignmentStart = span.start;
-			e.alignmentSpan = span.span;
+			AlignmentSpan span = spans.get(seqId);
+			e.alignmentStart = span.getStart();
+			e.alignmentSpan = span.getSpan();
 			e.sliceSize = slice.size;
 			e.sliceIndex = slice.index;
 

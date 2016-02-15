@@ -15,6 +15,18 @@
  ******************************************************************************/
 package net.sf.cram;
 
+import htsjdk.samtools.CRAMIterator;
+import htsjdk.samtools.SAMValidationError;
+import htsjdk.samtools.SamFileValidator;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.cram.structure.CramHeader;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.util.Log;
+import htsjdk.samtools.util.ProgressLogger;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,21 +35,12 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.cram.ref.ReferenceSource;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.converters.FileConverter;
-import htsjdk.samtools.CRAMIterator;
-import htsjdk.samtools.SAMValidationError;
-import htsjdk.samtools.SamFileValidator;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
-import htsjdk.samtools.cram.structure.CramHeader;
-import htsjdk.samtools.reference.ReferenceSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
-import htsjdk.samtools.util.Log;
-import htsjdk.samtools.util.ProgressLogger;
-import net.sf.cram.ref.ReferenceSource;
 
 public class ValidateCramFile {
 	private static Log log = Log.getInstance(ValidateCramFile.class);
@@ -87,7 +90,8 @@ public class ValidateCramFile {
 		FileInputStream fis = new FileInputStream(params.cramFile);
 		BufferedInputStream bis = new BufferedInputStream(fis);
 
-		CRAMIterator iterator = new CRAMIterator(bis,new ReferenceSource(params.reference));
+		CRAMIterator iterator = new CRAMIterator(bis, new ReferenceSource(params.reference),
+				ValidationStringency.STRICT);
 		CramHeader cramHeader = iterator.getCramHeader();
 
 		iterator.close();

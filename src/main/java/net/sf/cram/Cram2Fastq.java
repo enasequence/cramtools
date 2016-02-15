@@ -223,8 +223,6 @@ public class Cram2Fastq {
 								inputMap, container.header, s.sequenceId);
 					} catch (IllegalArgumentException e) {
 						throw new RuntimeException(e);
-					} catch (IllegalAccessException e) {
-						throw new RuntimeException(e);
 					}
 
 					for (int i = 0; i < s.nofRecords; i++) {
