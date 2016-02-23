@@ -38,15 +38,19 @@ class CraiIndexer {
 	private CramIndex index;
 	private CramHeader cramHeader;
 
-	private File output;
+	private OutputStream os;
 
-	public CraiIndexer(InputStream is, File output) throws FileNotFoundException, IOException {
-		this.is = new CountingInputStream(is);
-		this.output = output;
+	public CraiIndexer(InputStream cramInputStream, File craiFile) throws FileNotFoundException, IOException {
+		this(cramInputStream, new FileOutputStream(craiFile));
+	}
+
+	public CraiIndexer(InputStream cramInputStream, OutputStream craiOutputStream) throws FileNotFoundException,
+			IOException {
+		this.is = new CountingInputStream(cramInputStream);
 		cramHeader = CramIO.readCramHeader(this.is);
 
 		index = new CramIndex();
-
+		os = new GZIPOutputStream(new BufferedOutputStream(craiOutputStream));
 	}
 
 	private boolean nextContainer() throws IOException, IllegalArgumentException, IllegalAccessException {
@@ -69,7 +73,6 @@ class CraiIndexer {
 
 	public void run() throws IOException, IllegalArgumentException, IllegalAccessException {
 		index();
-		OutputStream os = new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(output)));
 		index.writeTo(os);
 		os.close();
 	}

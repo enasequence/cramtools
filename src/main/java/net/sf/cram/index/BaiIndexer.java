@@ -28,6 +28,7 @@ import htsjdk.samtools.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 class BaiIndexer {
 	private static Log log = Log.getInstance(BaiIndexer.class);
@@ -44,7 +45,7 @@ class BaiIndexer {
 		indexer = new CRAMIndexer(output, samFileHeader);
 	}
 
-	public BaiIndexer(InputStream is, File output) throws IOException {
+	public BaiIndexer(InputStream is, OutputStream output) throws IOException {
 		this.is = new CountingInputStream(is);
 		cramHeader = CramIO.readCramHeader(this.is);
 		samFileHeader = cramHeader.getSamFileHeader();

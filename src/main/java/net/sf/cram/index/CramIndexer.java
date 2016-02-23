@@ -16,26 +16,26 @@
 package net.sf.cram.index;
 
 import htsjdk.samtools.BAMIndexer;
-import htsjdk.samtools.CRAMFileReader;
-import htsjdk.samtools.SAMException;
+import htsjdk.samtools.FileFormat;
+import htsjdk.samtools.IndexFormat;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.cram.build.CramIO;
-import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Random;
+import java.io.OutputStream;
+import java.util.EnumSet;
 
-import net.sf.cram.Bam2Cram;
 import net.sf.cram.CramTools.LevelConverter;
-import net.sf.cram.ref.ReferenceSource;
 
+import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
@@ -44,13 +44,14 @@ import com.beust.jcommander.converters.FileConverter;
 public class CramIndexer {
 	private static Log log = Log.getInstance(CramIndexer.class);
 	public static final String COMMAND = "index";
+	private static int BUFFER_SIZE = 100 * 1024;
 
 	private static void printUsage(JCommander jc) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("\n");
 		jc.usage(sb);
 
-		System.out.println("Version " + Bam2Cram.class.getPackage().getImplementationVersion());
+		System.out.println("Version " + CramIndexer.class.getPackage().getImplementationVersion());
 		System.out.println(sb.toString());
 	}
 
@@ -74,61 +75,104 @@ public class CramIndexer {
 
 		Log.setGlobalLogLevel(params.logLevel);
 
-		boolean cramOrNot = false;
-		try {
-			CramIO.readCramHeader(new FileInputStream(params.inputFile));
-			cramOrNot = true;
-		} catch (Exception e) {
-			cramOrNot = false;
-		} finally {
+		if (!EnumSet.of(IndexFormat.BAI, IndexFormat.CRAI).contains(params.indexFormat)) {
+			failWithError(String.format("Unexpected index format (%s).", params.indexFormat.name()));
 		}
-		if (cramOrNot) {
-			if (params.bai) {
 
-				File cramIndexFile = new File(params.inputFile.getAbsolutePath() + ".bai");
+		BufferedInputStream is = null;
+		String source = null;
+		if (params.inputFile == null)
+			is = new BufferedInputStream(System.in);
+		else {
+			is = new BufferedInputStream(new FileInputStream(params.inputFile), BUFFER_SIZE);
+			source = params.inputFile.getName();
+		}
 
-				create_BAI_forCramFile(params.inputFile, cramIndexFile);
+		FileFormat format = FileFormat.detect(is, source);
+		if (!format.testHeader(is)) {
+			failWithError("On a second thought, this is not the format it seems: " + format.name());
+		}
 
-				if (params.test) {
-					if (params.referenceFastaFile == null) {
-						System.out.println("A reference fasta file is required.");
-						System.exit(1);
-					}
+		if (!isValidInputCombination(format, params.indexFormat)) {
+			failWithError(String.format("Unexpected combination of file format (%s) and index format (%s).",
+					format.name(), params.indexFormat.name()));
+		}
 
-					randomTestCramFileWithBaiIndex(params.inputFile, cramIndexFile, params.referenceFastaFile,
-							params.testMinPos, params.testMaxPos, params.testCount, params.testSequenceName);
-				}
-			} else {
-				File cramIndexFile = new File(params.inputFile.getAbsolutePath() + ".crai");
-
-				create_CRAI_forCramFile(params.inputFile, cramIndexFile);
-
-			}
+		// open raw {@link: OutputStream} for index file:
+		OutputStream indexOutputStream = null;
+		if (params.indexFile != null) {
+			indexOutputStream = new FileOutputStream(params.indexFile);
 		} else {
-			if (!params.bai)
-				throw new RuntimeException("CRAM index is not compatible with BAM files.");
+			if (params.inputFile == null)
+				indexOutputStream = System.out;
+			else
+				indexOutputStream = new FileOutputStream(
+						params.indexFormat.getDefaultIndexFileNameForDataFile(params.inputFile));
+		}
 
-			SAMFileReader reader = new SAMFileReader(params.inputFile);
-			if (!reader.isBinary()) {
-				reader.close();
-				throw new SAMException("Input file must be bam file, not sam file.");
+		switch (format) {
+		case CRAM:
+			switch (params.indexFormat) {
+			case BAI:
+				new BaiIndexer(is, indexOutputStream).run();
+				break;
+			case CRAI:
+				new CraiIndexer(is, indexOutputStream).run();
+				break;
+
+			default:
+				failWithError("Expecting CRAI or BAI for CRAM input.");
 			}
+			break;
+		case BAM:
+			if (params.indexFormat != IndexFormat.BAI)
+				failWithError("CRAM index is not compatible with BAM files.");
+
+			SamReader reader = SamReaderFactory.make()
+					.setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true).open(SamInputResource.of(is));
 
 			if (!reader.getFileHeader().getSortOrder().equals(SAMFileHeader.SortOrder.coordinate)) {
 				reader.close();
-				throw new SAMException("Input bam file must be sorted by coordinates");
+				failWithError("Input bam file must be sorted by coordinates");
 			}
 
-			File indexFile = new File(params.inputFile.getAbsolutePath() + ".bai");
-			BAMIndexer indexer = new BAMIndexer(indexFile, reader.getFileHeader());
+			BAMIndexer indexer = new BAMIndexer(indexOutputStream, reader.getFileHeader());
+
 			for (SAMRecord record : reader) {
 				indexer.processAlignment(record);
 			}
 			indexer.finish();
 			reader.close();
+			break;
+		default:
+			failWithError("Failed to recognize input file format.");
+		}
+	}
+
+	private static void failWithError(String message) {
+		log.error(message);
+		System.exit(1);
+	}
+
+	private static boolean isValidInputCombination(FileFormat inputFileFormat, IndexFormat indexFileFormat) {
+		switch (inputFileFormat) {
+		case CRAM:
+			return EnumSet.of(IndexFormat.BAI, IndexFormat.CRAI).contains(indexFileFormat);
+		case BAM:
+			return IndexFormat.BAI == indexFileFormat;
+		default:
+			return false;
+		}
+	}
+
+	public static class IndexTypeConverter implements IStringConverter<IndexFormat> {
+
+		@Override
+		public IndexFormat convert(String indexNameString) {
+			return IndexFormat.fromString(indexNameString);
 		}
 
-	}
+	};
 
 	@Parameters(commandDescription = "BAM/CRAM indexer. ")
 	public static class Params {
@@ -138,103 +182,13 @@ public class CramIndexer {
 		@Parameter(names = { "--input-file", "-I" }, converter = FileConverter.class, description = "Path to a BAM or CRAM file to be indexed. Omit if standard input (pipe).")
 		File inputFile;
 
-		@Parameter(names = { "--reference-fasta-file", "-R" }, hidden = true, converter = FileConverter.class, description = "The reference fasta file, uncompressed and indexed (.fai file, use 'samtools faidx'). ")
-		File referenceFastaFile;
+		@Parameter(names = { "--index-file", "-O" }, converter = FileConverter.class, description = "Write index to this file.")
+		File indexFile;
 
-		@Parameter(names = { "--bam-style-index" }, description = "Choose between BAM index (bai) and CRAM index (crai). ")
-		boolean bai = false;
+		@Parameter(names = { "--index-format" }, converter = IndexTypeConverter.class, description = "Choose between BAM index (bai) and CRAM index (crai). ")
+		IndexFormat indexFormat = IndexFormat.CRAI;
 
 		@Parameter(names = { "--help", "-h" }, description = "Print help and exit.")
 		boolean help = false;
-
-		@Parameter(names = { "--test" }, hidden = true, description = "Random test of the built index.")
-		boolean test = false;
-
-		@Parameter(names = { "--test-min-pos" }, hidden = true, description = "Minimum alignment start for randomt test.")
-		int testMinPos = 1;
-
-		@Parameter(names = { "--test-max-pos" }, hidden = true, description = "Maximum alignment start for randomt test.")
-		int testMaxPos = 100000000;
-
-		@Parameter(names = { "--test-count" }, hidden = true, description = "Run random test this many times.")
-		int testCount = 100;
-
-		@Parameter(names = { "--test-sequence-name" }, hidden = true, description = "Run random test for this sequence. ")
-		String testSequenceName = null;
-	}
-
-	public static void create_BAI_forCramFile(File cramFile, File cramIndexFile) throws IOException {
-		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
-		BaiIndexer ic = new BaiIndexer(is, cramIndexFile);
-
-		ic.run();
-	}
-
-	public static void create_CRAI_forCramFile(File cramFile, File cramIndexFile) throws IOException,
-			IllegalArgumentException, IllegalAccessException {
-		InputStream is = new BufferedInputStream(new FileInputStream(cramFile));
-		CraiIndexer ic = new CraiIndexer(is, cramIndexFile);
-
-		ic.run();
-	}
-
-	/**
-	 * @param cramFile
-	 * @param cramIndexFile
-	 * @param refFile
-	 * @param posMin
-	 * @param posMax
-	 * @param repeat
-	 * @return the overhead, the number of records skipped before reached the
-	 *         query or -1 if nothing was found.
-	 */
-	private static int randomTestCramFileWithBaiIndex(File cramFile, File cramIndexFile, File refFile, int posMin,
-			int posMax, int repeat, String sequenceName) {
-		CRAMFileReader reader = new CRAMFileReader(cramFile, cramIndexFile, new ReferenceSource(refFile));
-
-		int overhead = 0;
-
-		Random random = new Random();
-		for (int i = 0; i < repeat; i++) {
-			int result = 0;
-			int pos = random.nextInt(posMax - posMin) + posMin;
-			try {
-				result = query(reader, pos, sequenceName);
-			} catch (Exception e) {
-				e.printStackTrace();
-				log.error(String.format("Query failed at %d.", pos));
-			}
-			if (result > -1)
-				overhead += repeat;
-		}
-		return overhead;
-	}
-
-	private static int query(CRAMFileReader reader, int position, String sequenceName) {
-		long timeStart = System.nanoTime();
-
-		CloseableIterator<SAMRecord> iterator = reader.queryAlignmentStart(sequenceName, position);
-
-		SAMRecord record = null;
-		int overhead = 0;
-		while (iterator.hasNext()) {
-			record = iterator.next();
-			if (record.getAlignmentStart() >= position)
-				break;
-			else
-				record = null;
-			overhead++;
-		}
-		iterator.close();
-
-		long timeStop = System.nanoTime();
-		if (record == null)
-			log.info(String.format("Query not found: position=%d, time=%dms.", position,
-					(timeStop - timeStart) / 1000000));
-		else
-			log.info(String.format("Query found: position=%d, overhead=%d, time=%dms.", position, overhead,
-					(timeStop - timeStart) / 1000000));
-
-		return overhead;
 	}
 }
