@@ -17,12 +17,12 @@ package net.sf.cram.index;
 
 import htsjdk.samtools.CRAMIndexer;
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.io.CountingInputStream;
 import htsjdk.samtools.cram.structure.Container;
 import htsjdk.samtools.cram.structure.ContainerIO;
 import htsjdk.samtools.cram.structure.CramHeader;
-import htsjdk.samtools.cram.structure.Slice;
 import htsjdk.samtools.util.Log;
 
 import java.io.File;
@@ -59,14 +59,7 @@ class BaiIndexer {
 		if (c.isEOF())
 			return false;
 		c.offset = offset;
-
-		int i = 0;
-		for (Slice slice : c.slices) {
-			slice.containerOffset = offset;
-			slice.index = i++;
-			indexer.processAlignment(slice);
-		}
-
+		indexer.processContainer(c, ValidationStringency.DEFAULT_STRINGENCY);
 		log.info("INDEXED: " + c.toString());
 		return true;
 	}
