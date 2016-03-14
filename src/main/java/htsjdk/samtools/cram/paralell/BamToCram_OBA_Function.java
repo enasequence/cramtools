@@ -2,12 +2,11 @@ package htsjdk.samtools.cram.paralell;
 
 import htsjdk.samtools.BAMRecordCodec;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.cram.build.ContainerFactory;
+import htsjdk.samtools.cram.CramLossyOptions;
+import htsjdk.samtools.cram.CramSerilization;
 import htsjdk.samtools.cram.structure.Container;
 import htsjdk.samtools.cram.structure.ContainerIO;
-import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.CramHeader;
-import htsjdk.samtools.cram.structure.Slice;
 import htsjdk.samtools.util.Log;
 import htsjdk.samtools.util.RuntimeIOException;
 
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import net.sf.cram.Bam2Cram;
 import net.sf.cram.ref.ReferenceSource;
 
 class BamToCram_OBA_Function implements Function<OrderedByteArray, OrderedByteArray> {
@@ -29,6 +27,7 @@ class BamToCram_OBA_Function implements Function<OrderedByteArray, OrderedByteAr
 	private ReferenceSource referenceSource;
 	private String captureTags;
 	private String ignoreTags;
+	private CramLossyOptions lossyOptions;
 
 	BamToCram_OBA_Function(CramHeader header, ReferenceSource referenceSource) {
 		this.header = header;
@@ -63,39 +62,11 @@ class BamToCram_OBA_Function implements Function<OrderedByteArray, OrderedByteAr
 			return result;
 		}
 
-		int refId = SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
-		if (refSet.size() == 1) {
-			refId = refSet.iterator().next();
-		} else {
-			if (refSet.remove(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX))
-				refId = refSet.iterator().next();
-			else {
-				// multiref detected
-				throw new RuntimeException("Multiref not supported.");
-			}
-		}
-		byte[] ref = null;
-		if (refId == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX)
-			ref = new byte[] {};
-		else
-			ref = referenceSource.getReferenceBases(header.getSamFileHeader().getSequence(refId), true);
-
-		List<CramCompressionRecord> cramRecords = Bam2Cram.convert(records, header, ref, null, null, true, captureTags,
-				ignoreTags);
-		int detached = 0;
-		for (CramCompressionRecord r : cramRecords) {
-			if (r.isDetached())
-				detached++;
-		}
-		ContainerFactory f = new ContainerFactory(header.getSamFileHeader(), cramRecords.size());
-		Container container;
+		Container container = null;
 		try {
-			container = f.buildContainer(cramRecords);
-		} catch (Exception e) {
+			container = CramSerilization.convert(records, header.getSamFileHeader(), referenceSource, lossyOptions);
+		} catch (IllegalArgumentException | IllegalAccessException | IOException e) {
 			throw new RuntimeException(e);
-		}
-		for (Slice s : container.slices) {
-			s.setRefMD5(ref);
 		}
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -106,7 +77,7 @@ class BamToCram_OBA_Function implements Function<OrderedByteArray, OrderedByteAr
 		}
 		result.bytes = baos.toByteArray();
 		result.order = object.order;
-		log.debug(String.format("Converted OBA %d, records %d, detached %d", object.order, cramRecords.size(), detached));
+		log.debug(String.format("Converted OBA %d, records %d", object.order, records.size()));
 		return result;
 	}
 
