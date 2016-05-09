@@ -1,0 +1,73 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'application'
+
+group = 'uk.ac.ebi.ena'
+archivesBaseName = 'cramtools'
+version='3.0.173'
+mainClassName = 'net.sf.cram.CramTools'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.github.samtools:htsjdk:2.1.0'
+    compile 'org.apache.ant:ant:1.8.2'
+    compile 'org.apache.commons:commons-compress:1.9'
+    compile 'org.tukaani:xz:1.5'    
+    compile 'com.h2database:h2:1.3.170'
+    compile 'com.beust:jcommander:1.48'
+    compile files('lib/CipherOnly.jar')
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.hamcrest:hamcrest-core:1.1'
+}
+
+task wrapper(type: Wrapper) { gradleVersion = '2.12' }
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts { archives sourceJar }
+
+jar {
+    manifest {
+        attributes (
+                'Main-Class': mainClassName,
+                "Implementation-Title": archivesBaseName,
+                "Implementation-Vendor": "ENA, EMBL-EBI",
+                "Implementation-Version": version,
+                'Built-By': System.getProperty('user.name'),
+                'Built-Date': new Date(),
+                'Built-JDK': System.getProperty('java.version'))
+        if (project.hasProperty('BUILD_ID')) attributes.put('Build-ID', project.BUILD_ID)
+        if (project.hasProperty('BUILD_NUMBER')) attributes.put('Build-Number', project.BUILD_NUMBER)
+    }
+}
+
+task uberjar(type: Jar) {
+    from files(sourceSets.main.output.classesDir)
+    from files(sourceSets.main.output.resourcesDir)
+    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
+    
+    manifest {
+        attributes (
+                'Main-Class': mainClassName,
+                "Implementation-Title": archivesBaseName,
+                "Implementation-Vendor": "ENA, EMBL-EBI",
+                "Implementation-Version": version,
+                'Built-By': System.getProperty('user.name'),
+                'Built-Date': new Date(),
+                'Built-JDK': System.getProperty('java.version'))
+        if (project.hasProperty('BUILD_ID')) attributes.put('Build-ID', project.BUILD_ID)
+        if (project.hasProperty('BUILD_NUMBER')) attributes.put('Build-Number', project.BUILD_NUMBER)
+    }
+}
+uberjar.dependsOn jar
