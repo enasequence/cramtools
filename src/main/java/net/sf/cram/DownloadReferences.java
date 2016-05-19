@@ -1,19 +1,16 @@
 package net.sf.cram;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.converters.FileConverter;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.cram.build.CramIO;
+import htsjdk.samtools.cram.structure.CramHeader;
 import htsjdk.samtools.util.Log;
-import net.sf.cram.CramTools.LevelConverter;
-import org.junit.Test;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,12 +18,14 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
 import java.util.zip.GZIPOutputStream;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import net.sf.cram.CramTools.LevelConverter;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.converters.FileConverter;
 
 public class DownloadReferences {
 	private static Log log = Log.getInstance(DownloadReferences.class);
@@ -67,14 +66,45 @@ public class DownloadReferences {
 				idList.add(new SeqID(id));
 		}
 
-		if (params.cramFile != null) {
-			SAMFileReader reader = new SAMFileReader(params.cramFile);
-			for (SAMSequenceRecord s : reader.getFileHeader().getSequenceDictionary().getSequences()) {
-				String md5 = s.getAttribute(SAMSequenceRecord.MD5_TAG);
-				if (md5 != null)
-					idList.add(new SeqID(s.getSequenceName(), md5));
+		if (params.cramFile == null) {
+			log.error("Expecting a file.");
+			System.exit(1);
+		}
+
+		if (!params.cramFile.exists()) {
+			log.error("File does not exist: " + params.cramFile.getAbsolutePath());
+			System.exit(1);
+		}
+		if (!params.cramFile.canRead()) {
+			log.error("Cannot read file: " + params.cramFile.getAbsolutePath());
+			System.exit(1);
+		}
+
+		SAMFileHeader samFileHeader = null;
+		try {
+			CramHeader cramHeader = CramIO.readCramHeader(new FileInputStream(params.cramFile));
+			samFileHeader = cramHeader.getSamFileHeader();
+		} catch (Exception e) {
+			// try to open using standard way, perhaps this is a valid file
+			// but not in CRAM format:
+			log.info("Not a cram file, trying other formats...");
+			try {
+				SamReader samReader = SamReaderFactory.make().open(params.cramFile);
+				samFileHeader = samReader.getFileHeader();
+			} catch (Exception e1) {
+				log.error("Failed to open file: unknown file format.");
+				System.exit(1);
 			}
-			reader.close();
+		}
+
+		for (SAMSequenceRecord s : samFileHeader.getSequenceDictionary().getSequences()) {
+			String md5 = s.getAttribute(SAMSequenceRecord.MD5_TAG);
+			if (md5 != null)
+				idList.add(new SeqID(s.getSequenceName(), md5));
+		}
+		if (idList.size() < samFileHeader.getSequenceDictionary().size()) {
+			log.warn(String.format("File header contains %d sequences but only %d have md5 checksums.", samFileHeader
+					.getSequenceDictionary().size(), idList.size()));
 		}
 
 		OutputStream os = (params.destFile != null ? os = openOptionallyGzippedFile(params.destFile.getAbsolutePath(),
@@ -118,16 +148,6 @@ public class DownloadReferences {
 				InputStream is = null;
 				try {
 					is = getInputStreamForMD5(id.md5);
-					// } catch (FileNotFoundException e) {
-					// if (ignoreNotFound) {
-					// log.warn(String.format("Sequence %s not found for MD5 %s",
-					// id.name, id.md5));
-					// continue;
-					// } else {
-					// log.error(String.format("Sequence %s not found for MD5 %s",
-					// id.name, id.md5));
-					// throw e;
-					// }
 				} catch (IOException ioe) {
 					String message = ioe.getMessage();
 					if (message != null & message.startsWith("Server returned HTTP response code: 500")) {
@@ -187,31 +207,6 @@ public class DownloadReferences {
 		}
 		if (posInLine > 0)
 			out.write('\n');
-	}
-
-	@Test
-	public void testCopy() throws IOException {
-		Random random = new Random();
-		byte[] bytes = new byte[100];
-		for (int i = 0; i < bytes.length; i++)
-			bytes[i] = (byte) ('A' + random.nextInt('Z' - 'A'));
-
-		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		int lineLength = 10;
-		copy(bais, baos, lineLength);
-		baos.close();
-
-		Scanner scanner = new Scanner(new ByteArrayInputStream(baos.toByteArray()));
-		int bufPos = 0;
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			System.out.println(line);
-			byte[] lineBytes = line.getBytes();
-			for (int i = 0; i < line.length(); i++)
-				assertThat(lineBytes[i], is(bytes[bufPos++]));
-		}
 	}
 
 	private static InputStream getInputStreamForMD5(String md5) throws IOException {
