@@ -4,7 +4,7 @@ apply plugin: 'application'
 
 group = 'uk.ac.ebi.ena'
 archivesBaseName = 'cramtools'
-version='3.0.173'
+version='3.0.177'
 mainClassName = 'net.sf.cram.CramTools'
 
 sourceCompatibility = 1.7
@@ -53,9 +53,9 @@ jar {
 }
 
 task uberjar(type: Jar) {
+    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
     from files(sourceSets.main.output.classesDir)
     from files(sourceSets.main.output.resourcesDir)
-    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
     
     manifest {
         attributes (
