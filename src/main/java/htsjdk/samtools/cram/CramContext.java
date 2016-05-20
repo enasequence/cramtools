@@ -35,6 +35,9 @@ public class CramContext {
 		this.lossyOptions = lossyOptions;
 
 		sam2cramFactory = new Sam2CramRecordFactory(null, samFileHeader, CramVersions.CRAM_v3);
+		sam2cramFactory.captureAllTags = lossyOptions.isCaptureAllTags();
+		sam2cramFactory.captureTags.addAll(lossyOptions.getCaptureTags());
+		sam2cramFactory.ignoreTags.addAll(lossyOptions.getIgnoreTags());
 		containerFactory = new ContainerFactory(samFileHeader, RECORDS_PER_SLICE);
 	}
 }

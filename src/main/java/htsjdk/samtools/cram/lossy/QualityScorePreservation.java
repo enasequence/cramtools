@@ -50,13 +50,13 @@ public class QualityScorePreservation {
 	}
 
 	public static QualityScorePreservation lossless() {
-		QualityScorePreservation p = new QualityScorePreservation(Collections.emptyList());
+		QualityScorePreservation p = new QualityScorePreservation("");
 		p.type = TYPE.LOSSLESS;
 		return p;
 	}
 
 	public static QualityScorePreservation dropAll() {
-		QualityScorePreservation p = new QualityScorePreservation(Collections.emptyList());
+		QualityScorePreservation p = new QualityScorePreservation("");
 		p.type = TYPE.DROP_ALL;
 		return p;
 	}

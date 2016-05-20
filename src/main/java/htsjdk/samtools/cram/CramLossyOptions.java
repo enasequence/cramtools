@@ -34,7 +34,7 @@ public class CramLossyOptions {
 	}
 
 	public boolean isLosslessQualityScore() {
-		if (preservation == null)
+		if (preservation == null || preservation.isLossless())
 			return true;
 
 		if (preservation.getPreservationPolicies().isEmpty())
