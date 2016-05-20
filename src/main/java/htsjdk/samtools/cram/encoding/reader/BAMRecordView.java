@@ -42,7 +42,7 @@ public class BAMRecordView {
 	private int TAGS = -1;
 	public int END = -1;
 
-	private byte[] buf;
+	byte[] buf;
 
 	/**
 	 * Pointer to the beginning of the currently written record.
@@ -622,6 +622,7 @@ public class BAMRecordView {
 
 	/**
 	 * From htsjdk
+	 * 
 	 * @param cigar
 	 * @return
 	 */
