@@ -73,7 +73,7 @@ public class InMemoryReferenceSequenceFile implements ReferenceSequenceFile {
 		if (!sequences.containsKey(index))
 			throw new RuntimeException("Sequence not found: " + name);
 
-		ReferenceRegion region = new ReferenceRegion(sequences.get(index), index, name, start, stop);
+		ReferenceRegion region = new ReferenceRegion(sequences.get(index), index, name, start);
 		return region;
 	}
 

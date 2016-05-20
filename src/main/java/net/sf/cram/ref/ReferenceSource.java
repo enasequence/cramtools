@@ -15,18 +15,16 @@
  ******************************************************************************/
 package net.sf.cram.ref;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.cram.io.InputStreamUtils;
 import htsjdk.samtools.reference.FastaSequenceIndex;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.util.IOUtil;
 import htsjdk.samtools.util.Log;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -35,7 +33,6 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -141,6 +138,79 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 			addToRefCache(md5, bases);
 
 		return bases;
+	}
+
+	private static byte[] readBytesFromFile(File file, int offset, int len) throws IOException {
+		long size = file.length();
+		if (size < offset || len < 0) {
+			System.err.println("Negative ref seq range for: " + file.getAbsolutePath());
+			System.err.printf("size=%d, offset=%d, len=%d\n", size, offset, len);
+			Thread.dumpStack();
+			return new byte[] {};
+		}
+		byte[] data = new byte[(int) Math.min(size - offset, len)];
+		FileInputStream fis = new FileInputStream(file);
+		DataInputStream dis = new DataInputStream(fis);
+		dis.skip(offset);
+		dis.readFully(data);
+		dis.close();
+		return data;
+	}
+
+	public synchronized ReferenceRegion getRegion(SAMSequenceRecord record, int start_1based, int endInclusive_1based)
+			throws IOException {
+		{ // check cache by sequence name:
+			String name = record.getSequenceName();
+			byte[] bases = findInCache(name);
+			if (bases != null) {
+				log.debug("Reference found in memory cache by name: " + name);
+				return ReferenceRegion.copyRegion(bases, record.getSequenceIndex(), record.getSequenceName(),
+						start_1based, endInclusive_1based);
+			}
+		}
+
+		String md5 = record.getAttribute(SAMSequenceRecord.MD5_TAG);
+		{ // check cache by md5:
+			if (md5 != null) {
+				byte[] bases = findInCache(md5);
+				if (bases != null) {
+					log.debug("Reference found in memory cache by md5: " + md5);
+					return ReferenceRegion.copyRegion(bases, record.getSequenceIndex(), record.getSequenceName(),
+							start_1based, endInclusive_1based);
+				}
+			}
+		}
+
+		byte[] bases = null;
+		if (REF_CACHE != null) {
+			PathPattern pathPattern = new PathPattern(REF_CACHE);
+			File file = new File(pathPattern.format(md5));
+			if (file.exists()) {
+				bases = readBytesFromFile(file, start_1based - 1, endInclusive_1based - start_1based + 1);
+				return new ReferenceRegion(bases, record.getSequenceIndex(), record.getSequenceName(), start_1based);
+			}
+		}
+
+		{ // try to fetch sequence by md5:
+			if (md5 != null)
+				try {
+					bases = findBasesByMD5(md5);
+				} catch (Exception e) {
+					if (e instanceof RuntimeException)
+						throw (RuntimeException) e;
+					throw new RuntimeException(e);
+				}
+			if (bases != null) {
+				cacheW.put(record.getSequenceName(), new WeakReference<byte[]>(bases));
+
+				if (REF_CACHE != null)
+					addToRefCache(md5, bases);
+				return ReferenceRegion.copyRegion(bases, record.getSequenceIndex(), record.getSequenceName(),
+						start_1based, endInclusive_1based);
+			}
+		}
+
+		return null;
 	}
 
 	protected byte[] findBases(SAMSequenceRecord record, boolean tryNameVariants) {
@@ -251,6 +321,14 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 				if (is == null)
 					return null;
 
+				if (REF_CACHE != null) {
+					String localPath = addToRefCache(md5, is);
+					File file = new File(localPath);
+					if (file.length() > Integer.MAX_VALUE)
+						throw new RuntimeException("The reference sequence is too long: " + md5);
+
+					return readBytesFromFile(file, 0, (int) file.length());
+				}
 				byte[] data = InputStreamUtils.readFully(is);
 				is.close();
 
@@ -268,9 +346,10 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 		} else {
 			File file = new File(path);
 			if (file.exists()) {
-				FileInputStream fis = new FileInputStream(file);
-				byte[] data = InputStreamUtils.readFully(fis);
-				fis.close();
+				if (file.length() > Integer.MAX_VALUE)
+					throw new RuntimeException("The reference sequence is too long: " + md5);
+
+				byte[] data = readBytesFromFile(file, 0, (int) file.length());
 
 				if (confirmMD5(md5, data))
 					return data;
@@ -305,27 +384,37 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 				FileOutputStream fos = new FileOutputStream(tmpFile);
 				fos.write(data);
 				fos.close();
-				tmpFile.renameTo(cachedFile);
+				if (!cachedFile.exists())
+					tmpFile.renameTo(cachedFile);
+				else
+					tmpFile.delete();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	public static void main(String[] args) throws NoSuchAlgorithmException {
-		ReferenceSource s = new ReferenceSource();
-		SAMSequenceRecord record = new SAMSequenceRecord("20", 1518);
-		byte[] bases = s.getReferenceBases(record, false);
-		assertThat(bases, is(nullValue()));
-
-		String md5 = "0000259a289a94ef5f10220539b79e7e";
-		record.setAttribute(SAMSequenceRecord.MD5_TAG, md5);
-		bases = s.getReferenceBases(record, false);
-		assertThat(bases, is(notNullValue()));
-		assertThat(bases.length, is(record.getSequenceLength()));
-		assertThat(Utils.calculateMD5String(bases), is(record.getAttribute(SAMSequenceRecord.MD5_TAG)));
-		assertThat(s.cacheW.containsKey(record.getSequenceName()), is(true));
-		assertThat(s.cacheW.containsKey(md5), is(false));
+	private static String addToRefCache(String md5, InputStream stream) {
+		String localPath = new PathPattern(REF_CACHE).format(md5);
+		File cachedFile = new File(localPath);
+		if (!cachedFile.exists()) {
+			log.debug(String.format("Adding to REF_CACHE: md5=%s, from stream", md5));
+			cachedFile.getParentFile().mkdirs();
+			File tmpFile;
+			try {
+				tmpFile = File.createTempFile(md5, ".tmp", cachedFile.getParentFile());
+				FileOutputStream fos = new FileOutputStream(tmpFile);
+				IOUtil.copyStream(stream, fos);
+				fos.close();
+				if (!cachedFile.exists())
+					tmpFile.renameTo(cachedFile);
+				else
+					tmpFile.delete();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return localPath;
 	}
 
 	private boolean confirmMD5(String md5, byte[] data) {
