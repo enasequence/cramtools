@@ -4,7 +4,7 @@ apply plugin: 'application'
 
 group = 'uk.ac.ebi.ena'
 archivesBaseName = 'cramtools'
-version='3.0.177'
+version='3.0'
 mainClassName = 'net.sf.cram.CramTools'
 
 sourceCompatibility = 1.7
