@@ -48,6 +48,7 @@ import java.util.zip.GZIPOutputStream;
 import net.sf.cram.CramTools.LevelConverter;
 import net.sf.cram.FixBAMFileHeader.MD5MismatchError;
 import net.sf.cram.common.Utils;
+import net.sf.cram.ref.ReferenceRegion;
 import net.sf.cram.ref.ReferenceSource;
 
 import com.beust.jcommander.JCommander;
@@ -97,6 +98,8 @@ public class Cram2Bam {
 		InputStream is = null;
 		try {
 			is = Utils.openCramInputStream(params.cramURL, params.decrypt, params.password);
+			// is = new BufferedInputStream(new
+			// FileInputStream(params.cramURL));
 		} catch (Exception e2) {
 			log.error("Failed to open CRAM from: " + params.cramURL, e2);
 			System.exit(1);
@@ -112,18 +115,20 @@ public class Cram2Bam {
 		ReferenceSource referenceSource = new ReferenceSource(params.reference);
 		referenceSource.setDownloadTriesBeforeFailing(params.downloadTriesBeforeFailing);
 
-		FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
-		fix.setConfirmMD5(!params.skipMD5Checks);
-		fix.setInjectURI(params.injectURI);
-		fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
-		try {
-			log.info("Preparing the header...");
-			fix.fixSequences(cramHeader.getSamFileHeader().getSequenceDictionary().getSequences());
-		} catch (MD5MismatchError e) {
-			log.error(e.getMessage());
-			System.exit(1);
+		if (!params.countOnly) {
+			FixBAMFileHeader fix = new FixBAMFileHeader(referenceSource);
+			fix.setConfirmMD5(!params.skipMD5Checks);
+			fix.setInjectURI(params.injectURI);
+			fix.setIgnoreMD5Mismatch(params.ignoreMD5Mismatch);
+			try {
+				log.info("Preparing the header...");
+				fix.fixSequences(cramHeader.getSamFileHeader().getSequenceDictionary().getSequences());
+			} catch (MD5MismatchError e) {
+				log.error(e.getMessage());
+				System.exit(1);
+			}
+			fix.addCramtoolsPG(cramHeader.getSamFileHeader());
 		}
-		fix.addCramtoolsPG(cramHeader.getSamFileHeader());
 
 		BlockCompressedOutputStream.setDefaultCompressionLevel(Defaults.COMPRESSION_LEVEL);
 		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
@@ -176,9 +181,6 @@ public class Cram2Bam {
 
 		CramNormalizer n = new CramNormalizer(cramHeader.getSamFileHeader(), referenceSource);
 
-		byte[] ref = null;
-		int prevSeqId = -1;
-
 		ContainerParser parser = new ContainerParser(cramHeader.getSamFileHeader());
 		while (true) {
 			if (params.maxContainers-- <= 0)
@@ -207,39 +209,32 @@ public class Cram2Bam {
 			parser.getRecords(c, cramRecords, ValidationStringency.SILENT);
 			parseTime += System.nanoTime() - time;
 
-			switch (c.sequenceId) {
-			case SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX:
-			case -2:
-				ref = new byte[] {};
-				break;
-
-			default:
-				if (prevSeqId < 0 || prevSeqId != c.sequenceId) {
-					SAMSequenceRecord sequence = cramHeader.getSamFileHeader().getSequence(c.sequenceId);
-					log.info("Loading reference sequence " + sequence.getSequenceName());
-					ref = referenceSource.getReferenceBases(sequence, true);
-					Utils.upperCase(ref);
-					prevSeqId = c.sequenceId;
-				}
-				break;
-			}
-
 			for (int i = 0; i < c.slices.length; i++) {
 				Slice s = c.slices[i];
 				if (s.sequenceId < 0)
 					continue;
-				if (!s.validateRefMD5(ref)) {
-					log.error(String.format(
-							"Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
-							s.sequenceId, s.alignmentStart, s.alignmentSpan,
-							String.format("%032x", new BigInteger(1, s.refMD5))));
-					if (!params.resilient)
-						System.exit(1);
+
+				SAMSequenceRecord sequence = cramHeader.getSamFileHeader().getSequence(s.sequenceId);
+				ReferenceRegion ref = referenceSource.getRegion(sequence, s.alignmentStart, s.alignmentStart
+						+ s.alignmentSpan - 1);
+				if (ref == null)
+					log.error("Can't find reference to validate slice md5: " + sequence.getSequenceIndex() + " "
+							+ sequence.getSequenceName());
+				else {
+					String sliceMD5 = String.format("%032x", new BigInteger(1, s.refMD5));
+					String md5 = ref.md5(s.alignmentStart, s.alignmentSpan);
+					if (!md5.equals(sliceMD5)) {
+						log.error(String
+								.format("Reference sequence MD5 mismatch for slice: seq id %d, start %d, span %d, expected MD5 %s",
+										s.sequenceId, s.alignmentStart, s.alignmentSpan, sliceMD5));
+						if (!params.resilient)
+							System.exit(1);
+					}
 				}
 			}
 
 			long time1 = System.nanoTime();
-			n.normalize(cramRecords, ref, 0, c.header.substitutionMatrix);
+			n.normalizeRecordsForReferenceSource(cramRecords, referenceSource, c.header.substitutionMatrix);
 			long time2 = System.nanoTime();
 			normTime += time2 - time1;
 
@@ -276,8 +271,6 @@ public class Cram2Bam {
 					continue;
 				}
 
-				if (ref != null)
-					Utils.calculateMdAndNmTags(s, ref, params.calculateMdTag, params.calculateNmTag);
 				c2sTime += System.nanoTime() - time;
 				samTime += System.nanoTime() - time;
 
@@ -290,9 +283,10 @@ public class Cram2Bam {
 
 			}
 
-			log.info(String.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms",
-					c.readTime / 1000000, c.parseTime / 1000000, (time2 - time1) / 1000000, c2sTime / 1000000,
-					sWriteTime / 1000000));
+			log.info(String
+					.format("CONTAINER READ: io %dms, parse %dms, norm %dms, convert %dms, BAM write %dms, %d bases in %d records",
+							c.readTime / 1000000, c.parseTime / 1000000, (time2 - time1) / 1000000, c2sTime / 1000000,
+							sWriteTime / 1000000, c.bases, c.nofRecords));
 
 			if (enough || (params.outputFile == null && System.out.checkError()))
 				break;
@@ -322,8 +316,6 @@ public class Cram2Bam {
 		// cur points to the last segment now:
 		CramCompressionRecord last = cur;
 		setNextMate(last, r);
-		// r.setFirstSegment(true);
-		// last.setLastSegment(true);
 
 		final int templateLength = CramNormalizer.computeInsertSize(r, last);
 		r.templateSize = templateLength;
@@ -458,6 +450,9 @@ public class Cram2Bam {
 
 		@Parameter(names = { "--max-containers" }, description = "Read only specified number of containers.", hidden = true)
 		long maxContainers = Long.MAX_VALUE;
+
+		@Parameter(names = { "--load-whole-reference-sequence" }, description = "Load all bases for each reference sequence required. ", hidden = true)
+		public boolean loadWholeReferenceSequence = false;
 	}
 
 }
