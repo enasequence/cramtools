@@ -29,7 +29,7 @@ import htsjdk.samtools.cram.encoding.readfeatures.ReadFeature;
 import htsjdk.samtools.cram.encoding.readfeatures.RefSkip;
 import htsjdk.samtools.cram.encoding.readfeatures.SoftClip;
 import htsjdk.samtools.cram.encoding.readfeatures.Substitution;
-import htsjdk.samtools.cram.ref.ReferenceSource;
+import htsjdk.samtools.cram.ref.CRAMReferenceSource;
 import htsjdk.samtools.cram.structure.AlignmentSpan;
 import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.SubstitutionMatrix;
@@ -50,13 +50,13 @@ public class CramNormalizer {
 	private int readCounter = 0;
 
 	private static Log log = Log.getInstance(CramNormalizer.class);
-	private ReferenceSource referenceSource;
+	private CRAMReferenceSource referenceSource;
 
 	private CramNormalizer(final SAMFileHeader header) {
 		this.header = header;
 	}
 
-	public CramNormalizer(final SAMFileHeader header, final ReferenceSource referenceSource) {
+	public CramNormalizer(final SAMFileHeader header, final CRAMReferenceSource referenceSource) {
 		if (referenceSource == null) {
 			throw new IllegalArgumentException("A reference is required.");
 		}

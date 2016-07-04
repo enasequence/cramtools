@@ -25,7 +25,7 @@ public enum FileFormat {
 		@Override
 		protected SAMFileHeader readHeader(InputStream is) throws IOException {
 			try {
-				BAMFileReader reader = new BAMFileReader(is, null, false, ValidationStringency.SILENT, null);
+				BAMFileReader reader = new BAMFileReader(is, null, false, false, ValidationStringency.SILENT, null);
 				return reader.getFileHeader();
 			} catch (IOException e) {
 				throw e;

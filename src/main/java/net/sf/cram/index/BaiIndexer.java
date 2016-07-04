@@ -15,7 +15,7 @@
  ******************************************************************************/
 package net.sf.cram.index;
 
-import htsjdk.samtools.CRAMIndexer;
+import htsjdk.samtools.CRAMBAIIndexer;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.cram.build.CramIO;
@@ -35,14 +35,14 @@ class BaiIndexer {
 
 	public CountingInputStream is;
 	public SAMFileHeader samFileHeader;
-	public CRAMIndexer indexer;
+	public CRAMBAIIndexer indexer;
 	private CramHeader cramHeader;
 
 	public BaiIndexer(InputStream is, SAMFileHeader samFileHeader, File output) {
 		this.is = new CountingInputStream(is);
 		this.samFileHeader = samFileHeader;
 
-		indexer = new CRAMIndexer(output, samFileHeader);
+		indexer = new CRAMBAIIndexer(output, samFileHeader);
 	}
 
 	public BaiIndexer(InputStream is, OutputStream output) throws IOException {
@@ -50,7 +50,7 @@ class BaiIndexer {
 		cramHeader = CramIO.readCramHeader(this.is);
 		samFileHeader = cramHeader.getSamFileHeader();
 
-		indexer = new CRAMIndexer(output, samFileHeader);
+		indexer = new CRAMBAIIndexer(output, samFileHeader);
 	}
 
 	private boolean nextContainer() throws IOException {

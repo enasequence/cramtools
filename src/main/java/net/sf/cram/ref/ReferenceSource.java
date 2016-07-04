@@ -17,6 +17,7 @@ package net.sf.cram.ref;
 
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.cram.io.InputStreamUtils;
+import htsjdk.samtools.cram.ref.CRAMReferenceSource;
 import htsjdk.samtools.reference.FastaSequenceIndex;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
@@ -60,7 +61,7 @@ import net.sf.cram.common.Utils;
  * 
  * @author vadim
  */
-public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
+public class ReferenceSource implements CRAMReferenceSource {
 	private static final int REF_BASES_TO_CHECK_FOR_SANITY = 1000;
 	private static final Pattern chrPattern = Pattern.compile("chr.*", Pattern.CASE_INSENSITIVE);
 	private static String REF_CACHE = System.getenv("REF_CACHE");
@@ -105,7 +106,6 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 		this.rsFile = rsFile;
 	}
 
-	@Override
 	public void clearCache() {
 		cacheW.clear();
 	}
@@ -452,12 +452,10 @@ public class ReferenceSource extends htsjdk.samtools.cram.ref.ReferenceSource {
 		return variants;
 	}
 
-	@Override
 	public int getDownloadTriesBeforeFailing() {
 		return downloadTriesBeforeFailing;
 	}
 
-	@Override
 	public void setDownloadTriesBeforeFailing(int downloadTriesBeforeFailing) {
 		this.downloadTriesBeforeFailing = downloadTriesBeforeFailing;
 	}

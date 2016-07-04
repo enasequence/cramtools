@@ -41,7 +41,7 @@ public class CRAMContainerStreamWriter {
 
 	protected final List<SAMRecord> samRecords = new ArrayList<SAMRecord>();
 
-	protected CRAMIndexer indexer;
+	protected CRAMBAIIndexer indexer;
 	protected long offset;
 	protected CramLossyOptions lossyOptions = CramLossyOptions.lossless();
 	private CramContext context;
@@ -55,7 +55,7 @@ public class CRAMContainerStreamWriter {
 		this.cramID = cramId;
 		this.source = source;
 		if (indexStream != null) {
-			indexer = new CRAMIndexer(indexStream, samFileHeader);
+			indexer = new CRAMBAIIndexer(indexStream, samFileHeader);
 		}
 		context = new CramContext(samFileHeader, source, lossyOptions);
 	}
@@ -84,7 +84,7 @@ public class CRAMContainerStreamWriter {
 		this.cramID = cramId;
 		this.source = source;
 		if (indexStream != null) {
-			indexer = new CRAMIndexer(indexStream, samFileHeader);
+			indexer = new CRAMBAIIndexer(indexStream, samFileHeader);
 		}
 	}
 

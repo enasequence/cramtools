@@ -38,6 +38,15 @@ public class CRAMFileWriter extends SAMFileWriterImpl {
 
 	private static final Log log = Log.getInstance(CRAMFileWriter.class);
 
+	public CRAMFileWriter(final OutputStream outputStream, final ReferenceSource referenceSource,
+			final SAMFileHeader samFileHeader, final String fileName) {
+		this(outputStream, null, referenceSource, samFileHeader, fileName, 1); // defaults
+		// to
+		// presorted
+		// ==
+		// true
+	}
+
 	/**
 	 * Create a CRAMFileWriter on an output stream. Requires input records to be
 	 * presorted to match the sort order defined by the input
@@ -148,7 +157,7 @@ public class CRAMFileWriter extends SAMFileWriterImpl {
 		ReferenceSource source = new ReferenceSource(new File(args[2]));
 		int maxThreads = Integer.valueOf(args[3]);
 
-		BAMFileReader reader = new BAMFileReader(bamFile, null, false, ValidationStringency.SILENT,
+		BAMFileReader reader = new BAMFileReader(bamFile, null, false, false, ValidationStringency.SILENT,
 				new DefaultSAMRecordFactory());
 		OutputStream os = new FileOutputStream(outCramFile);
 		CRAMFileWriter writer = new CRAMFileWriter(os, source, reader.getFileHeader(), outCramFile.getName(),
