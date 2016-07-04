@@ -271,6 +271,11 @@ public class Cram2Bam {
 					continue;
 				}
 
+				if (params.calculateMdTag || params.calculateNmTag) {
+					AlignmentsTags.calculateMdAndNmTags(s, referenceSource, cramHeader.getSamFileHeader()
+							.getSequenceDictionary(), params.calculateMdTag, params.calculateNmTag);
+				}
+
 				c2sTime += System.nanoTime() - time;
 				samTime += System.nanoTime() - time;
 
