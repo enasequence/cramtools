@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.samtools:htsjdk:2.1.0'
+    compile 'com.github.samtools:htsjdk:2.4.1'
     compile 'org.apache.ant:ant:1.8.2'
     compile 'org.apache.commons:commons-compress:1.9'
     compile 'org.tukaani:xz:1.5'    
