@@ -52,7 +52,7 @@
 
 		<jar destfile="${basedir}/${jar.file.name}" filesetmanifest="skip" duplicate="preserve">
 			<fileset dir="${classes}" />		
-		    <zipgroupfileset dir="lib" includes="*.jar" >
+		    <zipgroupfileset dir="lib" includes="*.jar">
 			    <!-- exclude name="**/SamFileValidator.class" />
                 <exclude name="**/BAMFileReader.class" />
                 <exclude name="**/SAMFileReader.class" /-->
