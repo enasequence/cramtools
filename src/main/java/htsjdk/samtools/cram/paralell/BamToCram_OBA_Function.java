@@ -29,9 +29,10 @@ class BamToCram_OBA_Function implements Function<OrderedByteArray, OrderedByteAr
 	private String ignoreTags;
 	private CramLossyOptions lossyOptions;
 
-	BamToCram_OBA_Function(CramHeader header, ReferenceSource referenceSource) {
+	BamToCram_OBA_Function(CramHeader header, ReferenceSource referenceSource, CramLossyOptions lossyOptions) {
 		this.header = header;
 		this.referenceSource = referenceSource;
+		this.lossyOptions = lossyOptions;
 		log.info("converter created");
 	}
 

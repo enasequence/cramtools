@@ -2,6 +2,7 @@ package htsjdk.samtools.cram.paralell;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.cram.CramLossyOptions;
 import htsjdk.samtools.cram.build.CramIO;
 import htsjdk.samtools.cram.common.CramVersions;
 import htsjdk.samtools.cram.structure.CramHeader;
@@ -130,8 +131,10 @@ public class BamToCram {
 		Conveyer<OrderedByteArray> cram_OBA_conveyer = new OrderingConveyer<OrderedByteArray>();
 
 		List<Job> converterJobs = new ArrayList<Job>();
+		CramLossyOptions lossyOptions = CramLossyOptions.lossless();
 		for (int i = 0; i < conversionThreads; i++) {
-			BamToCram_OBA_Function convertFunction = new BamToCram_OBA_Function(cramHeader, referenceSource);
+			BamToCram_OBA_Function convertFunction = new BamToCram_OBA_Function(cramHeader, referenceSource,
+					lossyOptions);
 			convertFunction.setCaptureTags(params.captureTags);
 			convertFunction.setIgnoreTags(params.ignoreTags);
 			Job job = new TransformerJob<OrderedByteArray, OrderedByteArray>(bam_OBA_conveyer, cram_OBA_conveyer,
