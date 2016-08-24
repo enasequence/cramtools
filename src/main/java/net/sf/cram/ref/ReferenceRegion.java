@@ -31,8 +31,6 @@ public class ReferenceRegion {
 	 * @param sequenceName
 	 * @param alignmentStart
 	 *            1-based inclusive
-	 * @param alignmentEnd
-	 *            1-based inclusive
 	 */
 	public ReferenceRegion(byte[] bases, int sequenceIndex, String sequenceName, long alignmentStart) {
 		this.array = bases;

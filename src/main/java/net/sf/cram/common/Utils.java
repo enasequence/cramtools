@@ -446,8 +446,8 @@ public class Utils {
 	 * 
 	 * @param record
 	 * @param ref
-	 * @param flag
-	 * @return
+	 * @param calcMD
+	 * @param calcNM
 	 */
 	public static void calculateMdAndNmTags(SAMRecord record, byte[] ref, boolean calcMD, boolean calcNM) {
 		if (!calcMD && !calcNM)
@@ -804,12 +804,12 @@ public class Utils {
 
 	/**
 	 * A convenience method.
-	 * <p/>
+	 * <p>
 	 * If a file is supplied then it will be wrapped into a SeekableStream. If
 	 * file is null, then the fromIS argument will be used or System.in if null.
 	 * Optionally the input can be decrypted using provided password or the
 	 * password read from the console.
-	 * <p/>
+	 * </p>
 	 * The method also checks for EOF marker and raise error if the marker is
 	 * not found for files with version 2.1 or greater. For version below 2.1 a
 	 * warning will CRAM be issued.

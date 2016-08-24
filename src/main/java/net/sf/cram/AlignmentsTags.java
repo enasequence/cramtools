@@ -18,9 +18,9 @@ import net.sf.cram.ref.ReferenceSource;
 public class AlignmentsTags {
 
 	/**
-	 * Convenience method. See {@link
-	 * net.sf.cram.AlignmentsTags.calculateMdAndNmTags(SAMRecord, byte[], int,
-	 * boolean, boolean)} for details.
+	 * Convenience method. See
+	 * {@link net.sf.cram.AlignmentsTags#calculateMdAndNmTags(SAMRecord, byte[], int, boolean, boolean)}
+	 * for details.
 	 * 
 	 * @param samRecord
 	 * @param referenceSource
