@@ -1,14 +1,28 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+    }
+}
+
+apply plugin: 'io.codearte.nexus-staging'
+
 apply plugin: 'java'
-apply plugin: 'eclipse'
 apply plugin: 'application'
+apply plugin: 'maven'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'signing'
 
 group = 'uk.ac.ebi.ena'
 archivesBaseName = 'cramtools'
-version='3.0'
+version='3.0.187'
 mainClassName = 'net.sf.cram.CramTools'
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
     mavenLocal()
@@ -30,14 +44,37 @@ dependencies {
 
 task wrapper(type: Wrapper) { gradleVersion = '2.12' }
 
+javadoc {
+    classpath = configurations.compile
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from 'build/docs/javadoc'
+}
+
 task sourceJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
 }
 
-artifacts { archives sourceJar }
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourceJar
+}
+
+signing {
+// from sourceSets.main.allSource
+    sign configurations.archives
+}
+
+install {
+    configuration = configurations.runtime
+}
 
 jar {
+    from(zipTree("lib/CipherOnly.jar"))
     manifest {
         attributes (
                 'Main-Class': mainClassName,
@@ -71,3 +108,59 @@ task uberjar(type: Jar) {
     }
 }
 uberjar.dependsOn jar
+
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'cramtools'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'A java implementation of CRAM file format and a set of accompanying tools.'
+                url 'http://www.ebi.ac.uk/ena/software/cram-toolkit'
+
+                scm {
+                    url 'https://github.com/enasequence/cramtools'
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'vadim'
+                        name 'Vadim Zalunin'
+                        email 'vadim@ebi.ac.uk'
+                    }
+                }
+            }
+        }
+    }
+}
+
+nexusStaging {
+    packageGroup = "uk.ac.ebi.ena"
+}
+
+test {
+    maxHeapSize = "1024m"
+    jvmArgs "-Dfile.encoding=UTF-8"
+    testLogging {
+        events "failed", "standardOut", "standardError"
+    }
+}
