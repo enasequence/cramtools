@@ -17,6 +17,14 @@
  */
 package htsjdk.samtools.cram.build;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceRecord;
@@ -34,15 +42,6 @@ import htsjdk.samtools.cram.structure.AlignmentSpan;
 import htsjdk.samtools.cram.structure.CramCompressionRecord;
 import htsjdk.samtools.cram.structure.SubstitutionMatrix;
 import htsjdk.samtools.util.Log;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import net.sf.cram.ref.ReferenceRegion;
 
 public class CramNormalizer {
@@ -90,8 +89,8 @@ public class CramNormalizer {
 					continue;
 				}
 				if (record.isHasMateDownStream()) {
-					final CramCompressionRecord downMate = records.get(record.index + record.recordsToNextFragment
-							- startCounter);
+					final CramCompressionRecord downMate = records
+							.get(record.index + record.recordsToNextFragment - startCounter);
 					record.next = downMate;
 					downMate.previous = record;
 				}
@@ -170,8 +169,8 @@ public class CramNormalizer {
 					continue;
 				}
 				if (record.isHasMateDownStream()) {
-					final CramCompressionRecord downMate = records.get(record.index + record.recordsToNextFragment
-							- startCounter);
+					final CramCompressionRecord downMate = records
+							.get(record.index + record.recordsToNextFragment - startCounter);
 					record.next = downMate;
 					downMate.previous = record;
 				}
@@ -222,8 +221,12 @@ public class CramNormalizer {
 
 		for (Entry<Integer, AlignmentSpan> entry : map.entrySet()) {
 			SAMSequenceRecord sequence = header.getSequence(entry.getKey());
-			ReferenceRegion region = referenceSource.getRegion(sequence, entry.getValue().getStart(), entry.getValue()
-					.getStart() + entry.getValue().getSpan() - 1);
+			ReferenceRegion region = referenceSource.getRegion(sequence, entry.getValue().getStart(),
+					entry.getValue().getStart() + entry.getValue().getSpan() - 1);
+			if (region == null) {
+				throw new RuntimeException("Reference sequence required but not found: " + sequence.getSequenceName()
+						+ ", md5=" + sequence.getMd5());
+			}
 
 			for (final CramCompressionRecord record : records) {
 				if (record.sequenceId != sequence.getSequenceIndex())
@@ -406,7 +409,8 @@ public class CramNormalizer {
 				break;
 			}
 		}
-		for (; posInRead <= readLength && alignmentStart + posInSeq - refOffsetZeroBased < ref.length; posInRead++, posInSeq++) {
+		for (; posInRead <= readLength
+				&& alignmentStart + posInSeq - refOffsetZeroBased < ref.length; posInRead++, posInSeq++) {
 			bases[posInRead - 1] = ref[alignmentStart + posInSeq - refOffsetZeroBased];
 		}
 

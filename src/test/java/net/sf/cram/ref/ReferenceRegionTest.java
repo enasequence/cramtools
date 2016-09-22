@@ -1,11 +1,14 @@
 package net.sf.cram.ref;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import htsjdk.samtools.util.SequenceUtil;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import htsjdk.samtools.util.SequenceUtil;
 
 public class ReferenceRegionTest {
 
@@ -187,4 +190,32 @@ public class ReferenceRegionTest {
 		byte[] copy = region.copySafe(copyAlignmentStart, len);
 		Assert.assertEquals(0, copy.length);
 	}
+
+	@Test
+	public void test_copyRegion() {
+		ReferenceRegion region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 1, 4);
+		assertArrayEquals("ACGT".getBytes(), region.array);
+		assertEquals(1, region.alignmentStart);
+
+		region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 2, 4);
+		assertArrayEquals("CGT".getBytes(), region.array);
+		assertEquals(2, region.alignmentStart);
+
+		region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 1, 5);
+		assertArrayEquals("ACGT".getBytes(), region.array);
+		assertEquals(1, region.alignmentStart);
+
+		region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 4, 5);
+		assertArrayEquals("T".getBytes(), region.array);
+		assertEquals(4, region.alignmentStart);
+
+		region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 4, 6);
+		assertArrayEquals("T".getBytes(), region.array);
+		assertEquals(4, region.alignmentStart);
+
+		region = ReferenceRegion.copyRegion("ACGT".getBytes(), 0, "seq1", 5, 10);
+		assertArrayEquals("".getBytes(), region.array);
+		assertEquals(5, region.alignmentStart);
+	}
+
 }

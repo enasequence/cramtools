@@ -15,16 +15,6 @@
  ******************************************************************************/
 package net.sf.cram.ref;
 
-import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.cram.io.InputStreamUtils;
-import htsjdk.samtools.cram.ref.CRAMReferenceSource;
-import htsjdk.samtools.reference.FastaSequenceIndex;
-import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.reference.ReferenceSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
-import htsjdk.samtools.util.IOUtil;
-import htsjdk.samtools.util.Log;
-
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,23 +30,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.cram.io.InputStreamUtils;
+import htsjdk.samtools.cram.ref.CRAMReferenceSource;
+import htsjdk.samtools.reference.FastaSequenceIndex;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.util.IOUtil;
+import htsjdk.samtools.util.Log;
 import net.sf.cram.common.Utils;
 
 /**
  * A central class for automated discovery of reference sequences. The algorithm
  * is expected similar to that of samtools:
  * <ul>
- * <li>
- * Search in memory cache by sequence name.</li>
- * <li>
- * Use local fasta file is supplied as a reference file and cache the found
+ * <li>Search in memory cache by sequence name.</li>
+ * <li>Use local fasta file is supplied as a reference file and cache the found
  * sequence in memory.</li>
- * <li>
- * Try REF_CACHE env variable.</li>
- * <li>
- * Try all entries in REF_PATH. The default value is the EBI reference service.</li>
- * <li>
- * Try @SQ:UR as a URL for a fasta file with the fasta index next to it.</li>
+ * <li>Try REF_CACHE env variable.</li>
+ * <li>Try all entries in REF_PATH. The default value is the EBI reference
+ * service.</li>
+ * <li>Try @SQ:UR as a URL for a fasta file with the fasta index next to
+ * it.</li>
  * </ul>
  * 
  * @author vadim
@@ -74,8 +70,11 @@ public class ReferenceSource implements CRAMReferenceSource {
 
 		if (REF_CACHE != null)
 			refPatterns.add(new PathPattern(REF_CACHE));
-		for (String s : REF_PATH.split("(?i)(?<!(http|ftp)):"))
+		for (String s : REF_PATH.split("(?i)(?<!(http|ftp)):")) {
+			System.out.println("Adding ref pattern: " + s);
 			refPatterns.add(new PathPattern(s));
+		}
+
 	}
 
 	private static Log log = Log.getInstance(ReferenceSource.class);
@@ -143,9 +142,8 @@ public class ReferenceSource implements CRAMReferenceSource {
 	private static byte[] readBytesFromFile(File file, int offset, int len) throws IOException {
 		long size = file.length();
 		if (size < offset || len < 0) {
-			System.err.println("Negative ref seq range for: " + file.getAbsolutePath());
-			System.err.printf("size=%d, offset=%d, len=%d\n", size, offset, len);
-			Thread.dumpStack();
+			log.warn(String.format("Ref request is out of range: %s, size=%d, offset=%d, len=%d",
+					file.getAbsolutePath(), size, offset, len));
 			return new byte[] {};
 		}
 		byte[] data = new byte[(int) Math.min(size - offset, len)];
@@ -260,8 +258,8 @@ public class ReferenceSource implements CRAMReferenceSource {
 
 		{ // try @SQ:UR file location
 			if (record.getAttribute(SAMSequenceRecord.URI_TAG) != null) {
-				ReferenceSequenceFromSeekable s = ReferenceSequenceFromSeekable.fromString(record
-						.getAttribute(SAMSequenceRecord.URI_TAG));
+				ReferenceSequenceFromSeekable s = ReferenceSequenceFromSeekable
+						.fromString(record.getAttribute(SAMSequenceRecord.URI_TAG));
 				bases = s.getSubsequenceAt(record.getSequenceName(), 1, record.getSequenceLength());
 				Utils.upperCase(bases);
 				return bases;
@@ -398,7 +396,7 @@ public class ReferenceSource implements CRAMReferenceSource {
 		String localPath = new PathPattern(REF_CACHE).format(md5);
 		File cachedFile = new File(localPath);
 		if (!cachedFile.exists()) {
-			log.debug(String.format("Adding to REF_CACHE: md5=%s, from stream", md5));
+			log.info(String.format("Adding to REF_CACHE sequence md5=%s", md5));
 			cachedFile.getParentFile().mkdirs();
 			File tmpFile;
 			try {

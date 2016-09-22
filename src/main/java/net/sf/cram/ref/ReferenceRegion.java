@@ -15,13 +15,14 @@
  ******************************************************************************/
 package net.sf.cram.ref;
 
-import htsjdk.samtools.util.SequenceUtil;
-
 import java.util.Arrays;
+
+import htsjdk.samtools.util.SequenceUtil;
 
 public class ReferenceRegion {
 	public int index;
 	public String name;
+	// alignment start of the first element in the 'array':
 	public long alignmentStart;
 	public byte[] array;
 
@@ -50,8 +51,7 @@ public class ReferenceRegion {
 
 	public static ReferenceRegion copyRegion(byte[] bases, int sequenceIndex, String sequenceName, long alignmentStart,
 			long alignmentEnd) {
-		byte[] copy = new byte[(int) (alignmentEnd - alignmentStart + 1)];
-		System.arraycopy(bases, (int) (alignmentStart - 1), copy, 0, copy.length);
+		byte[] copy = copySafe(bases, 1, (int) alignmentStart, (int) (alignmentEnd - alignmentStart + 1));
 		return new ReferenceRegion(copy, sequenceIndex, sequenceName, alignmentStart);
 	}
 
@@ -60,9 +60,9 @@ public class ReferenceRegion {
 
 		if (arrayPosition < 0 || arrayPosition > array.length - 1) {
 			System.err.println(toString());
-			throw new IllegalArgumentException(String.format(
-					"The alignment position is out of the region: %d, %d, %d, %d", alignmentStart, alignmentPosition,
-					0, arrayPosition));
+			throw new IllegalArgumentException(
+					String.format("The alignment position is out of the region: %d, %d, %d, %d", alignmentStart,
+							alignmentPosition, 0, arrayPosition));
 		}
 
 		return arrayPosition;
@@ -79,15 +79,38 @@ public class ReferenceRegion {
 	}
 
 	public byte[] copySafe(long alignmentStart, int alignmentSpan) {
-		int from = (int) (alignmentStart - this.alignmentStart);
-		if (from > array.length - 1)
+		return ReferenceRegion.copySafe(array, (int) this.alignmentStart, (int) alignmentStart, alignmentSpan);
+	}
+
+	/**
+	 * Copies a byte array into a new array. If the requested region is out of
+	 * the source array then the new array size is adjusted accordingly. An
+	 * empty array is return if there requested region is completely outside of
+	 * the source array.
+	 * 
+	 * @param ref
+	 *            array of bases to copy from
+	 * @param refAlStart
+	 *            a 1-based alignment start of the 1st element in the source
+	 *            array, default is 1
+	 * @param alignmentStart
+	 *            a 1-based alignment start of the region to be copied
+	 * @param alignmentSpan
+	 *            alignment span of the region to be copied
+	 * @return a copy of the bases from ref array trimmed if the ref array is
+	 *         not long enough. An empty array is return if the requested region
+	 *         is beyond the ref array.
+	 */
+	public static byte[] copySafe(byte[] ref, long refAlStart, int alignmentStart, int alignmentSpan) {
+		int from = (int) (alignmentStart - refAlStart);
+		if (from > ref.length - 1)
 			return new byte[0];
 
-		int to = (int) (alignmentStart + alignmentSpan - this.alignmentStart);
+		int to = (int) (alignmentStart + alignmentSpan - refAlStart);
 
-		if (to > array.length)
-			to = array.length;
-		return Arrays.copyOfRange(array, from, to);
+		if (to > ref.length)
+			to = ref.length;
+		return Arrays.copyOfRange(ref, from, to);
 	}
 
 	public String md5(int alignmentStart, int alignmentSpan) {
