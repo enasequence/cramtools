@@ -18,7 +18,7 @@ apply plugin: 'signing'
 
 group = 'uk.ac.ebi.ena'
 archivesBaseName = 'cramtools'
-version='3.0.187'
+version='3.0.g202'
 mainClassName = 'net.sf.cram.CramTools'
 
 sourceCompatibility = 1.8
