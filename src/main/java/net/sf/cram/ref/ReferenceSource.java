@@ -71,7 +71,6 @@ public class ReferenceSource implements CRAMReferenceSource {
 		if (REF_CACHE != null)
 			refPatterns.add(new PathPattern(REF_CACHE));
 		for (String s : REF_PATH.split("(?i)(?<!(http|ftp)):")) {
-			System.out.println("Adding ref pattern: " + s);
 			refPatterns.add(new PathPattern(s));
 		}
 
