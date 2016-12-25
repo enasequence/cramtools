@@ -1,7 +1,5 @@
 package net.sf.cram;
 
-
-import com.sun.org.glassfish.gmbal.Description;
 import htsjdk.samtools.util.StringUtil;
 import org.junit.Assert;
 import org.junit.Ignore;
