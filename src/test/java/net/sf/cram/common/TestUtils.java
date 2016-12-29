@@ -3,7 +3,11 @@ package net.sf.cram.common;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+
+import static net.sf.cram.common.Utils.complement;
 
 public class TestUtils {
 
@@ -124,6 +128,35 @@ public class TestUtils {
         //index out of bounds text
         byte[] array = new byte[]{1, 2, 3, 4, 5};
         Utils.reverse(array, 1, 100);
+    }
+
+    @Test
+    public void TestComplement() {
+
+        final byte a = 'a', c = 'c', g = 'g', t = 't', n = 'n', A = 'A', C = 'C', G = 'G', T = 'T', N = 'N';
+
+        Map<Byte,Byte> map = new HashMap<>();
+        map.put( a ,  t );
+        map.put( c ,  g );
+        map.put( g ,  c );
+        map.put( t ,  a );
+        map.put( A ,  T );
+        map.put( C ,  G );
+        map.put( G ,  C );
+        map.put( T ,  A );
+
+        // test acgtACGT values
+        map.forEach( (k,v) -> Assert.assertTrue( "Base compliment broken", complement(k) == v) );
+
+        // test other values
+        Random rnd = new Random();
+        byte[] array = new byte[100];
+        rnd.nextBytes(array);
+
+        for (byte b : array) {
+            if (!map.containsKey(b))
+                Assert.assertTrue("Base compliment broken", complement(b) == b);
+        }
     }
 
 
