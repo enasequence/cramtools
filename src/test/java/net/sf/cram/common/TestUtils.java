@@ -3,6 +3,8 @@ package net.sf.cram.common;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Random;
+
 public class TestUtils {
 
     @Test
@@ -89,10 +91,41 @@ public class TestUtils {
     @Test
     public void TestReverse()
     {
+        //simple test 1
         byte[] array = new byte[] {1,2,3,4,5};
-        Utils.reverse(array, 0, 0);
-        Assert.assertArrayEquals(new byte[] {1,2,3,4,5}, array);
+        Utils.reverse(array, 0, 5);
+        Assert.assertArrayEquals(new byte[] {5,4,3,2,1}, array);
+
+        //simple test 2
+        byte[] array2 = new byte[] {1,2,3,4,5};
+        Utils.reverse(array2, 2, 2);
+        Assert.assertArrayEquals(new byte[] {1,2,4,3,5}, array2);
+
+        // randomized test
+        Random rnd = new Random();
+        byte[] original = new byte[rnd.nextInt(1000)];
+        rnd.nextBytes(original);
+        byte[] copy = original.clone();
+        Utils.reverse(copy, rnd.nextInt(copy.length), 1);
+        Assert.assertArrayEquals(original, copy);
     }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void TestReverseNegative1()
+            throws ArrayIndexOutOfBoundsException{
+        //index out of bounds text
+        byte[] array = new byte[]{1, 2, 3, 4, 5};
+        Utils.reverse(array, 100, 1);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void TestReverseNegative2()
+            throws ArrayIndexOutOfBoundsException{
+        //index out of bounds text
+        byte[] array = new byte[]{1, 2, 3, 4, 5};
+        Utils.reverse(array, 1, 100);
+    }
+
 
 
 
