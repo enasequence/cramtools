@@ -5,6 +5,7 @@ import org.junit.Test;
 
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static net.sf.cram.common.Utils.complement;
@@ -95,7 +96,6 @@ public class TestUtils {
     @Test
     public void TestReverse()
     {
-
         // empty array
         byte[] arrayEmpty = {};
         Utils.reverse(arrayEmpty, 0, 0);
@@ -122,6 +122,44 @@ public class TestUtils {
         Assert.assertArrayEquals(new byte[] {1,2,4,3,5}, array2);
 
         // randomized test
+        doTestReverseRandom(false);
+    }
+
+    @Test
+    public void TestReverseComplement()
+    {
+        // empty array
+        byte[] arrayEmpty = {};
+        Utils.reverseComplement(arrayEmpty, 0, 0);
+        Assert.assertArrayEquals(new byte[]{}, arrayEmpty);
+
+        // null array
+        byte[] arrayNull = null;
+        Utils.reverseComplement(arrayNull, 0, 0);
+        Assert.assertArrayEquals(null, arrayNull);
+
+        //one element array
+        byte[] arrayOne = new byte[] {'a'};
+        Utils.reverseComplement(arrayOne, 0, 1);
+        Assert.assertArrayEquals(new byte[] {'t'}, arrayOne);
+
+        //simple test 1
+        byte[] array = new byte[] {'a','c','g','t'};
+        Utils.reverseComplement(array, 0, 4);
+        Assert.assertArrayEquals(new byte[] {'a','c','g','t'}, array);
+
+        //simple test 2
+        byte[] array2 = new byte[] {'A','C','G','T'};
+        Utils.reverseComplement(array2, 2, 2);
+        Assert.assertArrayEquals(new byte[] {'A','C','A','C'}, array2);
+
+        // randomized test
+        doTestReverseRandom(true);
+
+    }
+    private void doTestReverseRandom(boolean bComplement)
+    {
+        // randomized test
         Random rnd = new Random();
         byte[] original = new byte[1+rnd.nextInt(1000)];
         rnd.nextBytes(original);
@@ -130,7 +168,10 @@ public class TestUtils {
         int offset = rnd.nextInt(copy.length);
         int len = rnd.nextInt(copy.length-offset);
 
-        Utils.reverse(copy, offset, len);
+        if(bComplement)
+            Utils.reverseComplement(copy, offset, len);
+        else
+            Utils.reverse(copy, offset, len);
 
         // test that the head is unchanged
         Assert.assertArrayEquals(
@@ -138,6 +179,8 @@ public class TestUtils {
                 Arrays.copyOfRange(copy,0,offset)
         );
 
+        Function<Byte,Byte> wrapper =
+                bComplement ? Utils::complement : (b)->b;
 
         //test the reversed part
         byte[] sliceOriginal = Arrays.copyOfRange(original, offset, offset + len);
@@ -145,7 +188,7 @@ public class TestUtils {
 
         Assert.assertArrayEquals(
                 IntStream.range(1, sliceOriginal.length + 1).boxed()
-                        .mapToInt(i -> sliceOriginal[sliceOriginal.length - i]).toArray()
+                        .mapToInt(i -> wrapper.apply(sliceOriginal[sliceOriginal.length - i])).toArray()
                 ,
                 IntStream.range(0, sliceCopy.length).boxed()
                         .mapToInt(i -> sliceCopy[i]).toArray()
@@ -156,7 +199,6 @@ public class TestUtils {
                 Arrays.copyOfRange(original,offset+len,original.length),
                 Arrays.copyOfRange(copy,offset+len,copy.length)
         );
-
     }
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
