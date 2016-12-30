@@ -9,6 +9,7 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static net.sf.cram.common.Utils.complement;
+import static net.sf.cram.common.Utils.upperCase;
 
 public class TestUtils {
 
@@ -247,11 +248,87 @@ public class TestUtils {
     }
 
 
+    @Test
+    public void TestUpperCase()
+    {
+        final byte a = 'a', c = 'c', g = 'g', t = 't', n = 'n', A = 'A', C = 'C', G = 'G', T = 'T', N = 'N';
 
+        Map<Byte,Byte> map = new HashMap<>();
+        map.put( a ,  A );
+        map.put( c ,  C );
+        map.put( g ,  G );
+        map.put( t ,  T );
+        map.put( n ,  N );
 
+        map.forEach( (k,v) -> Assert.assertTrue( "upperCase broken", upperCase(k) == v) );
 
+        byte[] base = new byte[]{a,c,g,t,n};
+        byte[] baseUpper = new byte[]{A,C,G,T,N};
 
+        Assert.assertArrayEquals(baseUpper, upperCase(base));
+    }
 
+    @Test
+    public void TestCalculateMD5() {
+
+        Assert.assertEquals(
+                "d41d8cd98f00b204e9800998ecf8427e",
+                Utils.calculateMD5String(new byte[]{})
+        );
+        Assert.assertEquals(
+                "0cc175b9c0f1b6a831c399e269772661",
+                Utils.calculateMD5String(new byte[]{'a'})
+        );
+
+        Assert.assertEquals(
+                "900150983cd24fb0d6963f7d28e17f72",
+                Utils.calculateMD5String("abc".getBytes())
+        );
+
+        Assert.assertEquals(
+                "f96b697d7cb7938d525a2f31aaf161d0",
+                Utils.calculateMD5String("message digest".getBytes())
+        );
+
+        Assert.assertEquals(
+                "c3fcd3d76192e4007dfb496cca67e13b",
+                Utils.calculateMD5String("abcdefghijklmnopqrstuvwxyz".getBytes())
+        );
+
+        Assert.assertEquals(
+                "d174ab98d277d9f5a5611c2c9f419d9f",
+                Utils.calculateMD5String("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".getBytes())
+        );
+
+        Assert.assertEquals(
+                "57edf4a22be3c955ac49da2e2107b67a",
+                Utils.calculateMD5String("12345678901234567890123456789012345678901234567890123456789012345678901234567890".getBytes())
+        );
+
+        Assert.assertEquals(
+                "d41d8cd98f00b204e9800998ecf8427e",
+                Utils.calculateMD5String(new byte[]{'a','b'},1,0)
+        );
+        Assert.assertEquals(
+                "0cc175b9c0f1b6a831c399e269772661",
+                Utils.calculateMD5String(new byte[]{'b','a','b'},1,1)
+        );
+
+        Assert.assertEquals(
+                "900150983cd24fb0d6963f7d28e17f72",
+                Utils.calculateMD5String("xabcx".getBytes(),1,3)
+        );
+
+        Assert.assertEquals(
+                "900150983cd24fb0d6963f7d28e17f72",
+                Utils.calculateMD5String("abcx".getBytes(),0,3)
+        );
+
+        Assert.assertEquals(
+                "900150983cd24fb0d6963f7d28e17f72",
+                Utils.calculateMD5String("xabc".getBytes(),1,3)
+        );
+    }
 
 
 }
