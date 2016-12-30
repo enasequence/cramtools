@@ -3,9 +3,9 @@ package net.sf.cram.common;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+
+import java.util.*;
+import java.util.stream.IntStream;
 
 import static net.sf.cram.common.Utils.complement;
 
@@ -95,6 +95,22 @@ public class TestUtils {
     @Test
     public void TestReverse()
     {
+
+        // empty array
+        byte[] arrayEmpty = {};
+        Utils.reverse(arrayEmpty, 0, 0);
+        Assert.assertArrayEquals(new byte[]{}, arrayEmpty);
+
+        // null array
+        byte[] arrayNull = null;
+        Utils.reverse(arrayNull, 0, 0);
+        Assert.assertArrayEquals(null, arrayNull);
+
+        //one element array
+        byte[] arrayOne = new byte[] {1};
+        Utils.reverse(arrayOne, 0, 1);
+        Assert.assertArrayEquals(new byte[] {1}, arrayOne);
+
         //simple test 1
         byte[] array = new byte[] {1,2,3,4,5};
         Utils.reverse(array, 0, 5);
@@ -107,11 +123,40 @@ public class TestUtils {
 
         // randomized test
         Random rnd = new Random();
-        byte[] original = new byte[rnd.nextInt(1000)];
+        byte[] original = new byte[1+rnd.nextInt(1000)];
         rnd.nextBytes(original);
         byte[] copy = original.clone();
-        Utils.reverse(copy, rnd.nextInt(copy.length), 1);
-        Assert.assertArrayEquals(original, copy);
+
+        int offset = rnd.nextInt(copy.length);
+        int len = rnd.nextInt(copy.length-offset);
+
+        Utils.reverse(copy, offset, len);
+
+        // test that the head is unchanged
+        Assert.assertArrayEquals(
+                Arrays.copyOfRange(original,0,offset),
+                Arrays.copyOfRange(copy,0,offset)
+        );
+
+
+        //test the reversed part
+        byte[] sliceOriginal = Arrays.copyOfRange(original, offset, offset + len);
+        byte[] sliceCopy = Arrays.copyOfRange(copy, offset, offset + len);
+
+        Assert.assertArrayEquals(
+                IntStream.range(1, sliceOriginal.length + 1).boxed()
+                        .mapToInt(i -> sliceOriginal[sliceOriginal.length - i]).toArray()
+                ,
+                IntStream.range(0, sliceCopy.length).boxed()
+                        .mapToInt(i -> sliceCopy[i]).toArray()
+        );
+
+        // test that the tail is unchanged
+        Assert.assertArrayEquals(
+                Arrays.copyOfRange(original,offset+len,original.length),
+                Arrays.copyOfRange(copy,offset+len,copy.length)
+        );
+
     }
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
