@@ -1,3 +1,12 @@
+
+# CRAMTools is no longer supported. Please use Samtools: http://www.htslib.org/.
+
+
+
+
+
+
+
 CRAMTools is a set of Java tools and APIs for efficient compression of sequence
 read data. Although this is intended as a stable version the code is released
 as early access. Parts of the CRAMTools are experimental and may not be
