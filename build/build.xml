@@ -110,8 +110,9 @@
                 <batchtest todir="${test.home}/results/xml" fork="true">
                     <fileset dir="${test.home}/java">
                     	<include name="**/Test*.java" />
-                    	<include name="**/GolombRiceIntegerCodecTest.java" />
-                    	
+						<include name="**/AlignmentSliceQueryTest.java" />
+						<include name="**/common/UtilsTest.java" />
+						<include name="**/GolombRiceIntegerCodecTest.java" />
                     	<exclude name="**/TestByteArrayStopCodec.java" />
                     	<exclude name="**/TestFZ_B.java" />
                     	<exclude name="**/TestRandomAccess.java" />
